@@ -275,63 +275,63 @@ export function CashOutflowSection({
 
   return (
     <div className="space-y-6">
-      {/* 4 KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card-double">
+      {/* 4 KPI Cards (2-Grid Mobile, 4-Col Desktop) */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 truncate pr-2">
-              Total Dana Keluar ({categoryFilter !== 'all' ? `${categoryFilter} • ${periodLabel}` : periodLabel})
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-400 truncate pr-1">
+              Total Dana Keluar
             </span>
-            <span className="rounded-lg bg-rose-50 p-2 text-rose-600 shrink-0">
-              <TrendingDown className="h-4 w-4" />
+            <span className="rounded-lg bg-rose-50 p-1.5 sm:p-2 text-rose-600 shrink-0">
+              <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
-          <div className="mt-3 text-2xl font-extrabold text-rose-600 font-mono tabular-num">
+          <div className="mt-2 sm:mt-3 text-sm sm:text-2xl font-extrabold text-rose-600 font-mono tabular-num truncate">
             {formatRupiah(totalDanaKeluar)}
           </div>
-          <p className="mt-1 text-xs text-slate-400">
-            Akumulasi pengeluaran {categoryFilter !== 'all' ? categoryFilter : 'kas riil'}
+          <p className="mt-1 text-[10px] sm:text-xs text-slate-400 truncate">
+            {categoryFilter !== 'all' ? categoryFilter : 'Akumulasi kas riil'}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card-double">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Total Transaksi</span>
-            <span className="rounded-lg bg-blue-50 p-2 text-blue-600">
-              <WalletCards className="h-4 w-4" />
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-400 truncate pr-1">Total Transaksi</span>
+            <span className="rounded-lg bg-blue-50 p-1.5 sm:p-2 text-blue-600 shrink-0">
+              <WalletCards className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
-          <div className="mt-3 text-2xl font-extrabold text-slate-800 font-mono tabular-num">
+          <div className="mt-2 sm:mt-3 text-sm sm:text-2xl font-extrabold text-slate-800 font-mono tabular-num truncate">
             {totalTransaksi}
           </div>
-          <p className="mt-1 text-xs text-slate-400">Mutasi kas keluar tercatat</p>
+          <p className="mt-1 text-[10px] sm:text-xs text-slate-400 truncate">Mutasi kas tercatat</p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card-double">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Rata-rata per Transaksi</span>
-            <span className="rounded-lg bg-teal-50 p-2 text-teal-600">
-              <Calculator className="h-4 w-4" />
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-400 truncate pr-1">Rata-rata/Trx</span>
+            <span className="rounded-lg bg-teal-50 p-1.5 sm:p-2 text-teal-600 shrink-0">
+              <Calculator className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
-          <div className="mt-3 text-2xl font-extrabold text-teal-600 font-mono tabular-num">
+          <div className="mt-2 sm:mt-3 text-sm sm:text-2xl font-extrabold text-teal-600 font-mono tabular-num truncate">
             {formatRupiah(rataRataTransaksi)}
           </div>
-          <p className="mt-1 text-xs text-slate-400">Rerata pengeluaran per voucher</p>
+          <p className="mt-1 text-[10px] sm:text-xs text-slate-400 truncate">Rerata per pengeluaran</p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card-double">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Kategori Terbesar</span>
-            <span className="rounded-lg bg-purple-50 p-2 text-purple-600">
-              <Layers className="h-4 w-4" />
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-400 truncate pr-1">Kategori Terbesar</span>
+            <span className="rounded-lg bg-purple-50 p-1.5 sm:p-2 text-purple-600 shrink-0">
+              <Layers className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
-          <div className="mt-3 text-base font-extrabold text-purple-700 truncate" title={String(kategoriTerbesar[0])}>
+          <div className="mt-2 sm:mt-3 text-xs sm:text-base font-extrabold text-purple-700 truncate" title={String(kategoriTerbesar[0])}>
             {kategoriTerbesar[0]}
           </div>
-          <p className="mt-1 text-xs font-mono font-semibold text-slate-500 tabular-num">
-            {formatRupiah(Number(kategoriTerbesar[1]))} ({jumlahKategori} pos aktif)
+          <p className="mt-1 text-[10px] sm:text-xs font-mono font-semibold text-slate-500 tabular-num truncate">
+            {formatRupiah(Number(kategoriTerbesar[1]))}
           </p>
         </div>
       </div>
@@ -586,34 +586,36 @@ export function CashOutflowSection({
           </div>
         </div>
 
-        {/* Mobile View: Outflow Transaction Cards (< 768px) */}
-        <div className="md:hidden divide-y divide-slate-100 p-3 space-y-3 bg-slate-50/30">
+        {/* Mobile View: Outflow Transaction Cards (< 768px, 2-Grid Layout) */}
+        <div className="md:hidden grid grid-cols-2 gap-2.5 p-2.5 sm:p-3 bg-slate-50/40">
           {filteredEntries.length === 0 ? (
-            <div className="py-8 text-center text-slate-400 text-xs">
+            <div className="col-span-2 py-8 text-center text-slate-400 text-xs">
               Tidak ada transaksi pengeluaran yang cocok dengan filter
             </div>
           ) : (
             filteredEntries.map((item) => (
-              <div key={item.id} className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs space-y-2 pt-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-mono text-slate-500 text-[11px] font-medium">{item.tanggal}</span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 border border-slate-200">
-                    {item.kategori}
-                  </span>
+              <div key={item.id} className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs flex flex-col justify-between gap-1.5">
+                <div>
+                  <div className="flex items-center justify-between text-xs gap-1">
+                    <span className="font-mono text-slate-400 text-[10px] font-medium truncate">{item.tanggal}</span>
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-700 border border-slate-200 truncate">
+                      {item.kategori}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs font-semibold text-slate-800 leading-snug line-clamp-2" title={item.keterangan}>
+                    {item.keterangan}
+                  </div>
                 </div>
-                <div className="text-xs font-semibold text-slate-800 leading-snug">
-                  {item.keterangan}
-                </div>
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                  <span className="font-mono font-bold text-sm text-rose-600">
+                <div className="flex items-center justify-between pt-1.5 border-t border-slate-100">
+                  <span className="font-mono font-bold text-xs text-rose-600 truncate">
                     -{formatRupiah(item.nominal)}
                   </span>
                   <button
                     onClick={() => handleDelete(item.id)}
                     title="Hapus Transaksi"
-                    className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
+                    className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer shrink-0"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>

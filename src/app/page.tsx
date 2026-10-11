@@ -585,68 +585,77 @@ function FinancialDashboardContent() {
               </div>
             </div>
 
-            {/* Header Right Action Controls */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <CustomSelect
-                value={bulan}
-                onValueChange={setBulan}
-                icon={<Calendar className="h-3.5 w-3.5" />}
-                options={[
-                  { value: 'all', label: 'Semua Bulan' },
-                  ...BULAN_LABEL.map((label, i) => ({ value: String(i + 1).padStart(2, '0'), label })),
-                ]}
-              />
-              <CustomSelect
-                value={tahun}
-                onValueChange={setTahun}
-                options={[
-                  { value: 'all', label: 'Semua Tahun' },
-                  ...yearOptions.map((y) => ({ value: y, label: y })),
-                ]}
-              />
+            {/* Header Right Action Controls (Structured Mobile 2-Row + Desktop Flex) */}
+            <div className="flex flex-col gap-2.5 w-full sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+              {/* Row 1: Filter Bulan & Tahun (Grid 2-Kolom Seimbang di HP) */}
+              <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+                <CustomSelect
+                  value={bulan}
+                  onValueChange={setBulan}
+                  icon={<Calendar className="h-3.5 w-3.5" />}
+                  className="w-full sm:w-auto"
+                  options={[
+                    { value: 'all', label: 'Semua Bulan' },
+                    ...BULAN_LABEL.map((label, i) => ({ value: String(i + 1).padStart(2, '0'), label })),
+                  ]}
+                />
+                <CustomSelect
+                  value={tahun}
+                  onValueChange={setTahun}
+                  className="w-full sm:w-auto"
+                  options={[
+                    { value: 'all', label: 'Semua Tahun' },
+                    ...yearOptions.map((y) => ({ value: y, label: y })),
+                  ]}
+                />
+              </div>
 
+              {/* Row 2: Tombol Aksi Utama (Tambahan Pemasukan & Export CSV) */}
               {tab === 'dashboard' && (
-                <>
+                <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
                   <button
                     onClick={() => setIsAddIncomeOpen(true)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 transition-all"
+                    className="flex-1 inline-flex h-9 min-h-[44px] sm:min-h-0 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 transition-all cursor-pointer"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    Tambahan Pemasukan
+                    <span className="truncate">Tambahan Pemasukan</span>
                   </button>
 
                   <button
                     onClick={handleExportCsv}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition-all"
+                    className="flex-1 inline-flex h-9 min-h-[44px] sm:min-h-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
                   >
                     <Download className="h-3.5 w-3.5 text-slate-500" />
-                    Export CSV
+                    <span>Export CSV</span>
                   </button>
-                </>
+                </div>
               )}
 
-              {/* Realtime Live Database Status Indicator */}
-              {syncState === 'live' ? (
-                <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-sm">
-                  <Radio className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
-                  Live Firestore ({rawOrders.length} Order)
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  Sinkron Rekening Bank
-                </span>
-              )}
+              {/* Row 3: Live Status & Logout Controls */}
+              <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+                {/* Realtime Live Database Status Indicator */}
+                {syncState === 'live' ? (
+                  <span className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-sm">
+                    <Radio className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
+                    <span className="truncate">Live Firestore ({rawOrders.length} Order)</span>
+                  </span>
+                ) : (
+                  <span className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <span>Sinkron Rekening Bank</span>
+                  </span>
+                )}
 
-              {/* Quick Logout Button */}
-              <button
-                onClick={logout}
-                title="Keluar dari Sesi"
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 shadow-xs hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
-              >
-                <LogOut className="h-3.5 w-3.5" />
-                <span className="hidden xl:inline">Keluar</span>
-              </button>
+                {/* Quick Logout Button */}
+                <button
+                  onClick={logout}
+                  title="Keluar dari Sesi"
+                  className="inline-flex h-9 min-h-[44px] sm:min-h-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 shadow-xs hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer shrink-0"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="inline sm:hidden xl:inline">Keluar</span>
+                </button>
+              </div>
             </div>
 
           </div>

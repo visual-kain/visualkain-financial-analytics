@@ -49,3 +49,11 @@ Spesifikasi ini menegakkan kaidah `/antislop-layoutmobile` (R-03, R-05, R-35) da
 
 ### 5. Charts & Analytics Mobile Adaptation
 - **5.1**: Charts in `AnalyticsCharts.tsx` and `CashOutflowSection.tsx` SHALL adapt height and legend layouts to stack on narrow viewports without clipping labels.
+
+---
+
+### 6. Mobile 2-Grid Ergonomics & High-Density Card Polish
+- **6.1**: On mobile (`< 640px`), KPI summary metric cards (`FinanceStatsGrid`, `CashOutflowSection`, `VendorPerformanceSection`) SHALL be organized in a 2-column grid (`grid grid-cols-2`) to reduce vertical scroll fatigue and provide a glanceable executive overview.
+- **6.2**: On mobile, Master Finance Order cards SHALL be rendered in a compact 2-column grid (`grid grid-cols-2`) displaying key identifiers (No Inv, Customer, Omzet, DP/Status, Profit) and 2 prominent touch action buttons (Edit Finansial & Detail Drawer).
+- **6.3**: `EscrowLiquidityBar` SHALL reflow its 2-pocket legend pills and footer audit metrics into balanced 2-column grids on mobile, eliminating awkward wrapping and misaligned bullet points.
+- **6.4**: The mobile top header controls SHALL be organized into a structured 2-row layout: Row 1 = Bulan & Tahun dropdowns in a balanced 2-col grid; Row 2 = '+ Tambahan Pemasukan' and 'Export CSV' paired neatly; with Live status and Logout arranged cleanly.

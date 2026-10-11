@@ -210,50 +210,50 @@ export function VendorPerformanceSection({
 
   return (
     <div className="space-y-6">
-      {/* Top Highlights: Most Used & Cost Efficiency */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-card-double">
+      {/* Top Highlights: Most Used & Cost Efficiency (2-Grid Mobile, 3-Col Desktop) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-4">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-800">Mitra Terbanyak Dipakai</span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-              <Crown className="h-4 w-4" />
+            <span className="text-[11px] sm:text-xs font-bold text-amber-800 truncate pr-1">Mitra Terbanyak</span>
+            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700 shrink-0">
+              <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
-          <div className="mt-3 text-xl font-extrabold text-amber-900">
+          <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-amber-900 truncate">
             {mostUsedVendor.nama}
           </div>
-          <p className="mt-1 text-xs text-amber-700 font-semibold font-mono">
-            {mostUsedVendor.orderCount} Order Aktif &bull; {mostUsedVendor.pcsTotal} Pcs Produksi
+          <p className="mt-1 text-[10px] sm:text-xs text-amber-700 font-semibold font-mono truncate">
+            {mostUsedVendor.orderCount} Order &bull; {mostUsedVendor.pcsTotal} Pcs
           </p>
         </div>
 
-        <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 shadow-card-double">
+        <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-teal-800">Efisiensi Belanja Terbesar</span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
-              <Sparkles className="h-4 w-4" />
+            <span className="text-[11px] sm:text-xs font-bold text-teal-800 truncate pr-1">Efisiensi Belanja</span>
+            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-teal-100 text-teal-700 shrink-0">
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
-          <div className="mt-3 text-xl font-extrabold text-teal-900">
+          <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-teal-900 truncate">
             CAHAYA BORDIR
           </div>
-          <p className="mt-1 text-xs text-teal-700 font-semibold font-mono">
-            Hemat Rp 170.000 di bawah estimasi awal
+          <p className="mt-1 text-[10px] sm:text-xs text-teal-700 font-semibold font-mono truncate">
+            Hemat Rp 170k dari estimasi
           </p>
         </div>
 
-        <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-5 shadow-card-double">
+        <div className="col-span-2 md:col-span-1 rounded-2xl border border-blue-200 bg-blue-50/60 p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-blue-800">Rata-rata Margin Mitra</span>
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
-              <TrendingUp className="h-4 w-4" />
+            <span className="text-[11px] sm:text-xs font-bold text-blue-800 truncate pr-1">Rata-rata Margin Mitra</span>
+            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-700 shrink-0">
+              <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
-          <div className="mt-3 text-xl font-extrabold text-blue-900 font-mono">
+          <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-blue-900 font-mono truncate">
             32.8%
           </div>
-          <p className="mt-1 text-xs text-blue-700 font-semibold">
-            Standar margin konveksi di atas target minimal 30%
+          <p className="mt-1 text-[10px] sm:text-xs text-blue-700 font-semibold truncate">
+            Standar margin di atas target 30%
           </p>
         </div>
       </div>
@@ -362,7 +362,53 @@ export function VendorPerformanceSection({
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile View: 2-Grid Vendor Cards (< 768px) */}
+        <div className="md:hidden grid grid-cols-2 gap-2.5 p-2.5 sm:p-3 bg-slate-50/40">
+          {sortedVendors.map((item) => (
+            <div
+              key={item.vendorId}
+              className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs flex flex-col justify-between gap-2"
+            >
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 text-[9px] font-bold">
+                    {item.vendorNama.slice(0, 2)}
+                  </span>
+                  <h4 className="text-xs font-bold text-slate-900 truncate" title={item.vendorNama}>
+                    {item.vendorNama}
+                  </h4>
+                </div>
+                <p className="mt-1 text-[10px] text-slate-500 font-semibold font-mono">
+                  {item.orderCount} Order &bull; {item.pcsTotal} Pcs
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-slate-50/90 p-2 space-y-1 text-[10px]">
+                <div className="flex justify-between items-center text-slate-500">
+                  <span>HPP:</span>
+                  <span className="font-mono font-bold text-slate-800 truncate">
+                    {formatRupiah(item.hppAktual > 0 ? item.hppAktual : item.hppQuotation)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-emerald-800 font-semibold">
+                  <span>Profit:</span>
+                  <span className="font-mono font-bold text-emerald-600 truncate">
+                    {formatRupiah(item.profit)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600 pt-0.5 border-t border-slate-200/60">
+                  <span>Margin:</span>
+                  <span className={`font-mono font-bold ${item.marginPercent < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                    {item.marginPercent.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View: Wide Spreadsheet Table (>= 768px) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
               <tr>

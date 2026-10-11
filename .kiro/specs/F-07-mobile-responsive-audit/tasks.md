@@ -75,3 +75,24 @@
 - [x] **Task 5.2: Production Build Verification**
   - Run `npm run build`.
   - Confirm production build succeeds.
+
+---
+
+## Phase 6: 2-Grid Mobile Layout & Ergonomic Action Polish (User Request)
+- [x] **Task 6.1: Header Filter & Action Buttons Mobile Restructure**
+  - Path: `src/app/page.tsx`
+  - Split mobile header controls into balanced rows: Row 1 = Bulan/Tahun grid 2-kolom, Row 2 = '+ Pemasukan' & 'Export CSV' row, Row 3 = Live status & Logout.
+- [x] **Task 6.2: Escrow Liquidity Bar Mobile Redesign**
+  - Path: `src/components/finance/EscrowLiquidityBar.tsx`
+  - Re-align 2-Pocket pills into `grid grid-cols-2 gap-2` and footer audit metrics into 2-grid box.
+- [x] **Task 6.3: FinanceStatsGrid 2-Grid Refactor**
+  - Path: `src/components/analytics/FinanceStatsGrid.tsx`
+  - Set mobile layout to `grid grid-cols-2 gap-2.5` with proportional font scale & touch area.
+- [x] **Task 6.4: MasterFinanceTable Compact 2-Grid Order Cards**
+  - Path: `src/components/finance/MasterFinanceTable.tsx`
+  - Transform mobile cards into a 2-column grid (`grid grid-cols-2 gap-2.5`) with compact card view (No Inv, Customer, Omzet, DP/Status, Profit, Edit & Detail buttons).
+- [x] **Task 6.5: 2-Grid Layout in Cash Outflow & Vendor Tabs**
+  - Path: `src/components/finance/CashOutflowSection.tsx`, `src/components/finance/VendorPerformanceSection.tsx`
+  - Refactor summary cards in Cash Outflow and Vendor Performance into 2-grid on mobile.
+- [x] **Task 6.6: Quality Gate Verification**
+  - Run `npx tsc --noEmit`, `npm test`, and `npm run build`.

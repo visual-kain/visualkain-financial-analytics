@@ -73,3 +73,33 @@ Perubahan ini tidak sekadar menambahkan CSS media query tambalan, melainkan meny
 - Seluruh tombol utama pada mobile memiliki dimensi minimum `44px x 44px`.
 - Jarak antar tombol (touch target spacing) minimal `8px`.
 - Seluruh elemen interaktif memiliki feedback sentuhan `active:scale-95 transition-all`.
+
+---
+
+## 4. Mobile 2-Grid Architecture & High-Density Visual Polish (Grill-Me Settled)
+
+### 4.1 Top Header Action Layout
+- **Mobile (< 768px)**:
+  - Row 1: Filter Bulan & Filter Tahun dalam `grid grid-cols-2 gap-2 w-full`.
+  - Row 2: Tombol `+ Tambahan Pemasukan` (`flex-1`) dan `Export CSV` berjejer seimbang.
+  - Sub-row: Status `Live Firestore` dan tombol logout `Keluar` berukuran proporsional.
+
+### 4.2 Escrow Liquidity Bar Redesign
+- Header: Shield icon + Judul rapi, badge `2-Pocket Accounting` ditaruh proporsional tanpa tabrakan teks.
+- Status Kantong (2-Pocket Pills): Menggunakan `grid grid-cols-2 gap-2 w-full`. Kiri = Kas Bebas (Emerald), Kanan = Terkunci Vendor (Amber).
+- Progress Bar: Full width rounded pill dengan pembagian persentase kontras.
+- Bottom Audit Box: Menggunakan `grid grid-cols-2 gap-2 pt-3 border-t border-slate-100`. Kiri = Saldo Bank Riil & Status BCA; Kanan = % Likuiditas & Status Utang Vendor.
+
+### 4.3 2-Grid KPI Summary Cards
+- `FinanceStatsGrid`, `CashOutflowSection`, dan `VendorPerformanceSection`:
+  - Mobile `< 640px`: `grid grid-cols-2 gap-2.5`.
+  - Tablet/Desktop `>= 640px`: responsif ke `sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6` / `lg:grid-cols-4`.
+  - Card internal padding `p-3.5 sm:p-5`, icon ringkas, font angka `text-base sm:text-2xl font-bold tabular-nums`.
+
+### 4.4 Compact 2-Grid Master Order Cards
+- Container: `grid grid-cols-2 gap-2.5 p-3 bg-slate-50/40`.
+- Setiap kartu berukuran seimbang:
+  - Header: No Inv pill + Status Badge (`PRODUKSI`, dll).
+  - Info: Nama Customer (font-extrabold, truncate) & Nama Project (truncate).
+  - Finansial: Total Invoice (bold), Status/Sisa DP (amber/teal), Profit (emerald).
+  - Tombol: 2 tombol sentuh responsif (`[✏️ Edit]` dan `[👁️ Detail]`). Drawer inspeksi menyajikan rincian lengkap, tombol WA, dan faktur.
