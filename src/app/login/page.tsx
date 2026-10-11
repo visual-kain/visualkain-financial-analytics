@@ -8,11 +8,8 @@ import {
   Mail,
   Eye,
   EyeOff,
-  ShieldCheck,
   ArrowRight,
   AlertCircle,
-  Building2,
-  CheckCircle2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -67,18 +64,12 @@ export default function LoginPage() {
           {/* Brand Header */}
           <div className="flex flex-col items-center text-center">
             {/* Logo Container with Refined Elevation */}
-            <div className="relative mb-3.5 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-sm ring-1 ring-slate-900/[0.04]">
+            <div className="relative mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-sm ring-1 ring-slate-900/[0.04]">
               <img
                 src="/img/logo.jpg"
                 alt="Logo Resmi Visual Kain"
                 className="h-full w-full object-contain rounded-xl"
               />
-            </div>
-
-            {/* Company Badge (Without PT) */}
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-teal-200/80 bg-teal-50/80 px-3 py-1 text-[11px] font-bold text-teal-800 tracking-wider mb-2.5 shadow-2xs">
-              <Building2 className="h-3.5 w-3.5 text-teal-600" />
-              VISUAL KAIN INDONESIA
             </div>
 
             {/* Executive Professional Greeting */}
@@ -191,20 +182,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Security & BCA Escrow Disclaimer */}
-          <div className="mt-6 flex items-center justify-between rounded-xl bg-slate-50 py-2.5 px-3 border border-slate-100 text-[11px] text-slate-600">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span>
-                Rekening Terhubung: <span className="font-semibold text-slate-800">BCA a.n. Glora Sawita</span>
-              </span>
-            </div>
-            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60">
-              <CheckCircle2 className="h-2.5 w-2.5" />
-              Terverifikasi
-            </span>
-          </div>
         </div>
 
         {/* Footer Copyright */}

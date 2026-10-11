@@ -1,0 +1,9 @@
+{
+  "slug": "F-07-mobile-responsive-audit",
+  "title": "Mobile-First Responsive & Touch Ergonomics Audit",
+  "status": "in_progress",
+  "priority": "critical",
+  "author": "Antigravity Agent",
+  "created_at": "2026-10-11T19:40:00+07:00",
+  "description": "Comprehensive mobile-first audit and refactor eliminating dual-sticky table collisions, restoring disappearing input buttons, and introducing thumb-friendly mobile navigation and card views."
+}
