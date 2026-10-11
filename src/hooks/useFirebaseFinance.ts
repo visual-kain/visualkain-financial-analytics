@@ -100,7 +100,9 @@ export function useFirebaseFinance(
               if (Array.isArray(d.riwayatPembayaran) && d.riwayatPembayaran.length > 0) {
                 d.riwayatPembayaran.forEach((p: any, idx: number) => {
                   const nominal = Number(p.jumlah || p.nominal || 0);
-                  if (nominal > 0) {
+                  const catatan = String(p.catatan || '').toLowerCase();
+                  // Saring pinjaman internal non-konsumen agar rincian pembayaran bersih
+                  if (nominal > 0 && !catatan.includes('pinjaman')) {
                     payments.push({
                       id: `${docSnap.id}-p-${idx}`,
                       orderId: docSnap.id,
@@ -173,10 +175,12 @@ export function useFirebaseFinance(
                 }
               }
 
-              // Hitung total uang masuk customer
-              const totalMasuk = payments.length > 0
-                ? payments.reduce((sum, p) => sum + p.nominal, 0)
-                : Number(d.dpNominal || totals.nominalDP || 0);
+              // DP Customer terverifikasi (SSOT VisualKainDB)
+              const lockedDpCustomer = d.dpNominal && Number(d.dpNominal) > 0
+                ? Number(d.dpNominal)
+                : totals.nominalDP;
+              const isOrderCompleted = d.status === 'completed' || d.statusOrder === 'SELESAI' || d.statusPembayaran === 'lunas';
+              const totalMasuk = isOrderCompleted ? totalInv : lockedDpCustomer;
 
               const resolvedVendorName =
                 (d.vendorId && vendorsMapRef.current.get(d.vendorId)) ||

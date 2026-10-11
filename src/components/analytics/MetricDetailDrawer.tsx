@@ -50,7 +50,7 @@ export function MetricDetailDrawer({
   summary,
   orders,
   transactions,
-  saldoAwal = 5000000,
+  saldoAwal = 0,
   initialVendorFilter = null,
   onOpenAddIncome,
   onSelectOrder,

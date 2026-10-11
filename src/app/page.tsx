@@ -293,7 +293,7 @@ function FinancialDashboardContent() {
   const [bulan, setBulan] = useState<string>('all');
   const [tahun, setTahun] = useState<string>('all');
   const [extraIncomes, setExtraIncomes] = useState<CashTransaction[]>([]);
-  const [saldoAwal] = useState<number>(5000000);
+  const [saldoAwal] = useState<number>(0);
 
   // Firestore live sync (seluruh koleksi orders + kas + vendors)
   const {

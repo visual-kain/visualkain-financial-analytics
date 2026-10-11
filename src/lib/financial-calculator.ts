@@ -101,6 +101,9 @@ export function calculateFinancialSummary(
     const profitOrder = order.profitAktual ?? (order.totalInvoice - order.totalHpp - opEx);
     totalProfitRealtime += profitOrder;
 
+    const allocation = calculateEscrowAllocation(order);
+    totalMarginTerealisasi += allocation.alokasiMarginVisualKain;
+
     const isLunas = order.statusOrder === 'completed' || order.statusPembayaran === 'lunas' || sisaPiutangCustomer <= 0;
     if (isLunas) {
       omzetLunasCount++;
@@ -117,11 +120,12 @@ export function calculateFinancialSummary(
     }
   }
 
-  // VisualKainDB Saldo Formula: Uang Masuk Customer - DP Vendor Dibayar - Kas Keluar Operasional
+  // VisualKainDB Saldo Formula:
+  // Saldo Kas Riil Bank = saldoAwal + Uang Masuk Customer - DP Vendor Dibayar - Beban Operasional Non-Vendor
   totalKasMasuk = totalUangMasukOrders;
-  const saldoKasRiil = totalKasMasuk - totalDibayarKeVendor - totalKasKeluar;
+  const saldoKasRiil = saldoAwal + totalKasMasuk - totalDibayarKeVendor - bebanOperasional;
   const profitMarginPercent = omzetTotal > 0 ? (totalProfitRealtime / omzetTotal) * 100 : 0;
-  const estimasiProfitBersih = totalProfitRealtime - totalKasKeluar;
+  const estimasiProfitBersih = totalMarginTerealisasi - bebanOperasional;
 
   return {
     saldoKasRiil,
@@ -139,7 +143,7 @@ export function calculateFinancialSummary(
     vendorDebtCount,
     unpaidCustomerCount,
     totalDibayarKeVendor,
-    bebanOperasionalNonVendor: totalKasKeluar,
+    bebanOperasionalNonVendor: bebanOperasional,
   };
 }
 
