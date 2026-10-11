@@ -69,7 +69,7 @@ export function InvoicePreviewModal({
           </div>
 
           {/* Laporan Finansial Paper (Porting SSOT VisualKainDB) */}
-          <div className="invoice-preview-wrapper w-full shadow-2xl rounded-xl" id="techpackPreviewWrapper">
+          <div className="invoice-preview-wrapper w-full max-w-full overflow-x-auto shadow-2xl rounded-xl" id="techpackPreviewWrapper">
             <FinanceReportPaper order={targetOrder} getVendorById={getVendorById} />
           </div>
         </motion.div>

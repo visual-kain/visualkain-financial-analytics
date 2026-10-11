@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQueryState } from 'nuqs';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { EscrowLiquidityBar } from '@/components/finance/EscrowLiquidityBar';
 import { FinanceStatsGrid } from '@/components/analytics/FinanceStatsGrid';
 import { AnalyticsCharts } from '@/components/analytics/AnalyticsCharts';
@@ -482,7 +483,7 @@ function FinancialDashboardContent() {
     <div className="flex min-h-screen bg-[#E8ECF2] text-slate-900">
       <Toaster richColors position="top-right" />
 
-      {/* 1. Collapsible / Persistent Executive Sidebar (Ctrl+B) */}
+      {/* 1. Collapsible / Persistent Executive Sidebar (Desktop) */}
       <Sidebar
         activeTab={tab}
         onSelectTab={setTab}
@@ -494,6 +495,12 @@ function FinancialDashboardContent() {
         showHiddenTabs={isDevMode}
       />
 
+      {/* 1.B Thumb-Friendly Fixed Bottom Navigation Bar (Mobile HP < 768px) */}
+      <MobileBottomNav
+        activeTab={tab}
+        onSelectTab={setTab}
+        showHiddenTabs={isDevMode}
+      />
 
       {/* 2. Slide-Over Order Inspection Drawer */}
       <OrderInspectionDrawer
@@ -548,22 +555,11 @@ function FinancialDashboardContent() {
       />
 
       {/* 4. Main Content View Area */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 transition-all duration-300">
+      <main className="flex-1 overflow-y-auto px-3.5 py-4 pb-28 sm:px-8 sm:py-8 sm:pb-8 transition-all duration-300">
         <div className="mx-auto max-w-7xl space-y-6">
           {/* Top Executive Header Bar */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/80 pb-5">
             <div className="flex items-start gap-3">
-              <button
-                onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-                title={isSidebarCollapsed ? 'Perluas Sidebar' : 'Perkecil Sidebar'}
-                className="mt-1 flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-800 md:hidden active:scale-95 transition-all"
-              >
-                {isSidebarCollapsed ? (
-                  <PanelLeftOpen className="h-4 w-4" />
-                ) : (
-                  <PanelLeftClose className="h-4 w-4" />
-                )}
-              </button>
 
               <div>
                 <div className="flex flex-wrap items-center gap-2">

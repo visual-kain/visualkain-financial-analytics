@@ -76,7 +76,7 @@ export function AnalyticsCharts({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       {/* 1. Grafik Tren Arus Kas Riil (Spline Area Chart) */}
       <div className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-6 shadow-card-double lg:col-span-2">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
               <TrendingUp className="h-5 w-5" />

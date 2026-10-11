@@ -319,7 +319,7 @@ export function MetricDetailDrawer({
         />
 
         {/* Slide-Over Panel */}
-        <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
+        <div className="fixed inset-y-0 right-0 flex max-w-full pl-0 sm:pl-10">
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}

@@ -62,7 +62,7 @@ export function AddIncomeModal({ isOpen, onClose, onAddIncome }: AddIncomeModalP
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -78,7 +78,7 @@ export function AddIncomeModal({ isOpen, onClose, onAddIncome }: AddIncomeModalP
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl z-10"
+          className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-2xl z-10 max-h-[92vh] flex flex-col my-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -175,17 +175,17 @@ export function AddIncomeModal({ isOpen, onClose, onAddIncome }: AddIncomeModalP
               />
             </div>
 
-            <div className="pt-2 flex items-center justify-end gap-2">
+            <div className="pt-2 flex items-center justify-end gap-2.5">
               <button
                 type="button"
                 onClick={onClose}
-                className="h-10 rounded-xl px-4 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                className="min-h-[44px] rounded-xl px-4 text-xs font-semibold text-slate-600 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="h-10 rounded-xl bg-teal-600 px-5 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 transition-all"
+                className="min-h-[44px] rounded-xl bg-teal-600 px-5 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 transition-all cursor-pointer"
               >
                 Simpan Pemasukan Kas
               </button>

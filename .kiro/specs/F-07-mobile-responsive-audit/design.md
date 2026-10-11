@@ -10,36 +10,18 @@ Perubahan ini tidak sekadar menambahkan CSS media query tambalan, melainkan meny
 
 ---
 
-## 1. Component State & Presentation Flow
+## 1. Confirmed Architecture Decisions (via /grill-me)
+1. **Data Display Strategy (< 768px)**:
+   - **Default**: Adaptive Mobile Order Card View (`MobileOrderCard`). Setiap pesanan dirender sebagai kartu interaktif dengan status order, progres DP, metrik keuangan kunci, dan 4 tombol aksi berukuran minimum 44px (Faktur, Edit, Detail Cicilan, WA).
+   - **Toggle Opsi**: Tombol toggle `[Kartu | Tabel]` di header tabel memungkinkan klien melihat tabel spreadsheet horizontal kapan saja tanpa tabrakan sticky kanan.
+2. **Mobile Navigation**:
+   - Fixed Bottom Navigation Bar (`MobileBottomNav.tsx`) terpasang permanen di bagian bawah layar HP (`md:hidden`) untuk 3 sub-modul utama: Dashboard, Cash Outflow, dan Vendor Performance.
+   - Kontainer `<main>` diberi safe-area padding `pb-24` agar tidak ada kartu atau tombol yang tertutup.
+3. **Primary Input Action Bar**:
+   - Header mobile diringkas: chip periode yang bersih dan tombol input transaksi menonjol ("+ Pemasukan" / "+ Catat Pengeluaran") langsung terlihat di bagian atas tanpa tumpukan vertikal berlebih.
+4. **Form Modal & Sheet Ergonomics**:
+   - `EditFinanceModal` dan `AddIncomeModal` menggunakan pola **Full-Screen Bottom Sheet**: panel memenuhi layar HP (`max-h-[95vh]` / `h-full`), isi formulir dapat di-scroll vertikal (`overflow-y-auto`), dan tombol aksi "Simpan" dipasang sebagai sticky footer di bawah sehingga tidak akan pernah terpotong oleh keyboard virtual.
 
-```
-+-------------------------------------------------------------------+
-|                        Viewport Width Detection                   |
-|                        (Tailwind `md:` / CSS Media)               |
-+---------------------------------+---------------------------------+
-                                  |
-            +---------------------+---------------------+
-            |                                           |
-            v (< 768px - Mobile HP)                     v (>= 768px - Desktop)
-+---------------------------------------+   +---------------------------------------+
-|  Mobile Header Bar (Compact)          |   |  Executive Topbar                     |
-|  - Brand & Profile Quick Chip         |   |  - Full Filter Selects                |
-|  - Period Chip (Opens Filter Sheet)   |   |  - Desktop Action Buttons             |
-|  - Primary Action Button ("+ Pemasukan")  |  - Persistent Collapsible Sidebar    |
-+---------------------------------------+   +---------------------------------------+
-|  Mobile Content View:                 |   |  Desktop Content View:                |
-|  - Escrow Bar (Stacked Legend)        |   |  - Escrow Bar (Horizontal)            |
-|  - 6 Metric Cards (1-col or 2-col)    |   |  - 6 Metric Cards (6-col grid)        |
-|  - Order Cards (Reflowed cards)       |   |  - Master Spreadsheet Table           |
-|    * Expandable detail & 4 actions    |   |    (Dual-sticky left & right frozen)  |
-|  - Option to view Horizontal Table    |   +---------------------------------------+
-|    (No right sticky, free scroll)     |
-+---------------------------------------+
-|  Fixed Bottom Navigation Bar          |
-|  - [Dashboard]  [Cash Out]  [Vendor]  |
-|  - Safe-area inset + 48px tap targets |
-+---------------------------------------+
-```
 
 ---
 

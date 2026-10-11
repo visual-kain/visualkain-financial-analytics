@@ -223,7 +223,7 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
           </div>
 
           {/* Form Scrollable Body */}
-          <form onSubmit={handleSubmit} className="mt-4 space-y-5 overflow-y-auto pr-1 flex-1">
+          <form id="edit-finance-form" onSubmit={handleSubmit} className="mt-4 space-y-5 overflow-y-auto pr-1 flex-1">
             {/* Read-Only Context Badges (Produksi & Volume) */}
             <div className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 p-3 text-xs text-slate-600">
               <span className="flex items-center gap-1 font-bold text-slate-700">
@@ -473,19 +473,18 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
                   </div>
                 </div>
               ) : (
-                <div className="mt-3 flex items-center justify-between">
-                  {/* Perbaikan: Hapus tanda '+' redundant pada teks tombol */}
+                <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                   <button
                     type="button"
                     onClick={() => setIsAddingPayment(true)}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-teal-300 bg-white px-3.5 py-2 text-xs font-bold text-teal-700 shadow-sm hover:bg-teal-50 active:scale-95 transition-all"
+                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-teal-300 bg-white px-3.5 py-2 text-xs font-bold text-teal-700 shadow-sm hover:bg-teal-50 active:scale-95 transition-all"
                   >
-                    <Plus className="h-3.5 w-3.5 text-teal-600" />
+                    <Plus className="h-4 w-4 text-teal-600" />
                     <span>Catat Pembayaran Baru (DP 1 / DP 2 / Pelunasan)</span>
                   </button>
 
                   <span className="text-xs text-slate-500">
-                    Sisa Pelunasan Konsumen: <strong className="text-amber-700 font-mono">{formatRupiah(sisaPelunasanCustomer)}</strong>
+                    Sisa Pelunasan: <strong className="text-amber-700 font-mono font-bold">{formatRupiah(sisaPelunasanCustomer)}</strong>
                   </span>
                 </div>
               )}
@@ -593,25 +592,26 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
                 </div>
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="pt-2 flex items-center justify-end gap-2.5 shrink-0">
-              <button
-                type="button"
-                onClick={onClose}
-                className="h-10 rounded-xl px-4 text-xs font-semibold text-slate-600 hover:bg-slate-100 active:scale-95 transition-all"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="h-10 rounded-xl bg-teal-600 px-6 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 disabled:opacity-50 transition-all"
-              >
-                {isSaving ? 'Menyimpan ke Firestore...' : 'Simpan Perubahan Finansial'}
-              </button>
-            </div>
           </form>
+
+          {/* Sticky Footer Action Buttons (Pin at bottom, always accessible) */}
+          <div className="border-t border-slate-100 bg-white pt-3 mt-1 flex items-center justify-end gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-h-[44px] rounded-xl px-4 text-xs font-semibold text-slate-600 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="edit-finance-form"
+              disabled={isSaving}
+              className="min-h-[44px] flex-1 sm:flex-none rounded-xl bg-teal-600 px-6 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              {isSaving ? 'Menyimpan...' : 'Simpan Perubahan Finansial'}
+            </button>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>

@@ -497,17 +497,17 @@ export function CashOutflowSection({
           <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => setIsDrawerOpen(true)}
-              className="h-9 gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 transition-all"
+              className="min-h-[44px] flex-1 sm:flex-none gap-1.5 rounded-xl bg-teal-600 px-4 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 transition-all cursor-pointer"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
               Catat Pengeluaran
             </Button>
             <Button
               onClick={handleExportExcel}
               variant="outline"
-              className="h-9 gap-1.5 rounded-xl border-slate-200 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition-all"
+              className="min-h-[44px] gap-1.5 rounded-xl border-slate-200 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
             >
-              <Download className="h-3.5 w-3.5" />
+              <Download className="h-4 w-4" />
               Export Excel
             </Button>
           </div>
@@ -586,7 +586,43 @@ export function CashOutflowSection({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile View: Outflow Transaction Cards (< 768px) */}
+        <div className="md:hidden divide-y divide-slate-100 p-3 space-y-3 bg-slate-50/30">
+          {filteredEntries.length === 0 ? (
+            <div className="py-8 text-center text-slate-400 text-xs">
+              Tidak ada transaksi pengeluaran yang cocok dengan filter
+            </div>
+          ) : (
+            filteredEntries.map((item) => (
+              <div key={item.id} className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs space-y-2 pt-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-mono text-slate-500 text-[11px] font-medium">{item.tanggal}</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 border border-slate-200">
+                    {item.kategori}
+                  </span>
+                </div>
+                <div className="text-xs font-semibold text-slate-800 leading-snug">
+                  {item.keterangan}
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="font-mono font-bold text-sm text-rose-600">
+                    -{formatRupiah(item.nominal)}
+                  </span>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    title="Hapus Transaksi"
+                    className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View: Spreadsheet Table (>= 768px) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs whitespace-nowrap">
             <thead className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-100">
               <tr>

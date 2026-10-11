@@ -131,6 +131,25 @@ body {
   border-radius: 0;
   margin: 0;
 }
+@media (max-width: 640px) {
+  .techpack-paper {
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 1rem !important;
+    font-size: 0.85rem !important;
+  }
+  .techpack-actions {
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+  .tp-header {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  .tp-info {
+    text-align: left !important;
+  }
+}
 .tp-header {
   display: flex;
   justify-content: space-between;
