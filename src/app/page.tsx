@@ -8,6 +8,7 @@ import { FinanceStatsGrid } from '@/components/analytics/FinanceStatsGrid';
 import { AnalyticsCharts } from '@/components/analytics/AnalyticsCharts';
 import { MasterFinanceTable } from '@/components/finance/MasterFinanceTable';
 import { OrderInspectionDrawer } from '@/components/finance/OrderInspectionDrawer';
+import { MetricDetailDrawer } from '@/components/analytics/MetricDetailDrawer';
 import { AddIncomeModal } from '@/components/finance/AddIncomeModal';
 import { EditFinanceModal } from '@/components/finance/EditFinanceModal';
 import { InvoicePreviewModal } from '@/components/finance/InvoicePreviewModal';
@@ -17,7 +18,14 @@ import { ProfitAktualSection } from '@/components/finance/ProfitAktualSection';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { calculateFinancialSummary } from '@/lib/financial-calculator';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
-import type { FinanceSubTab, Order, MasterFinanceRow, CashTransaction, ManualFinanceDraft } from '@/types';
+import type {
+  FinanceSubTab,
+  Order,
+  MasterFinanceRow,
+  CashTransaction,
+  ManualFinanceDraft,
+  MetricDrawerType,
+} from '@/types';
 import { Toaster, toast } from 'sonner';
 import {
   Calendar,
@@ -47,6 +55,7 @@ const initialOrdersData: Order[] = [
     biayaTambahanVendor: 34000,
     biayaTambahanCustomer: 0,
     diskon: 0,
+    vendorName: 'CAHAYA BORDIR',
     hppAktual: 1020000,
     profitAktual: 434000,
     catatanFinance: 'Revisi sablon aman',
@@ -83,6 +92,7 @@ const initialOrdersData: Order[] = [
     biayaTambahanVendor: 0,
     biayaTambahanCustomer: 0,
     diskon: 0,
+    vendorName: 'FJ MERCHANDISE',
     hppAktual: 2400000,
     profitAktual: 600000,
     catatanFinance: '',
@@ -119,6 +129,7 @@ const initialOrdersData: Order[] = [
     biayaTambahanVendor: 500000,
     biayaTambahanCustomer: 900000,
     diskon: 0,
+    vendorName: 'CAHAYA BORDIR',
     hppAktual: 5735000,
     profitAktual: 3100000,
     catatanFinance: 'Bordir emblem rapi',
@@ -165,6 +176,7 @@ const initialOrdersData: Order[] = [
     biayaTambahanVendor: 0,
     biayaTambahanCustomer: 0,
     diskon: 0,
+    vendorName: 'AMRIN',
     hppAktual: 2805000,
     profitAktual: 880000,
     catatanFinance: 'Ongkir tambahan Rp 100k',
@@ -254,6 +266,7 @@ function transformToMasterRows(orders: Order[]): MasterFinanceRow[] {
       sisaMenujuDp70,
       statusOrder,
       pembayaranList: o.pembayaranList,
+      vendorName: o.vendorName || '-',
     };
   });
 }
@@ -269,6 +282,8 @@ function FinancialDashboardContent() {
   const [editingOrder, setEditingOrder] = useState<MasterFinanceRow | null>(null);
   const [previewInvoiceOrder, setPreviewInvoiceOrder] = useState<MasterFinanceRow | null>(null);
   const [isAddIncomeOpen, setIsAddIncomeOpen] = useState(false);
+  const [activeMetricDrawer, setActiveMetricDrawer] = useState<MetricDrawerType | null>(null);
+  const [drawerVendorFilter, setDrawerVendorFilter] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('2026-10');
   const [extraIncomes, setExtraIncomes] = useState<CashTransaction[]>([]);
   const [saldoAwal] = useState<number>(5000000);
@@ -372,13 +387,33 @@ function FinancialDashboardContent() {
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
 
-      {/* 2. Slide-Over Inspection Drawer */}
+      {/* 2. Slide-Over Order Inspection Drawer */}
       <OrderInspectionDrawer
         order={selectedOrder}
         onClose={() => setSelectedOrder(null)}
       />
 
-      {/* 3. Modal Tambahan Pemasukan Kas Baru */}
+      {/* 3. Slide-Over Metric Detail Drawer (VisualKainDB 6-Card Drilldown) */}
+      <MetricDetailDrawer
+        isOpen={!!activeMetricDrawer}
+        metricType={activeMetricDrawer}
+        onClose={() => setActiveMetricDrawer(null)}
+        summary={summary}
+        orders={filteredOrders}
+        transactions={filteredCashTxs}
+        saldoAwal={saldoAwal}
+        initialVendorFilter={drawerVendorFilter}
+        onOpenAddIncome={() => {
+          setActiveMetricDrawer(null);
+          setIsAddIncomeOpen(true);
+        }}
+        onSelectOrder={(order) => {
+          setActiveMetricDrawer(null);
+          setSelectedOrder(order);
+        }}
+      />
+
+      {/* 4. Modal Tambahan Pemasukan Kas Baru */}
       <AddIncomeModal
         isOpen={isAddIncomeOpen}
         onClose={() => setIsAddIncomeOpen(false)}
@@ -495,11 +530,16 @@ function FinancialDashboardContent() {
                 totalKasKeluar={summary.totalKasKeluar}
               />
 
-              {/* 6 KPI Metric Cards */}
+              {/* 6 KPI Metric Cards with Interactive Slide-Over Detail Drawers */}
               <FinanceStatsGrid
                 summary={summary}
+                orders={filteredOrders}
                 orderCountWithDebt={filteredOrders.filter((o) => o.totalHpp > o.totalDibayarKeVendor).length}
                 activeOrderCount={filteredOrders.length}
+                onSelectMetric={(metric, vendorFilter) => {
+                  setActiveMetricDrawer(metric);
+                  setDrawerVendorFilter(vendorFilter || null);
+                }}
               />
 
               {/* Recharts Spline & Donut Escrow Allocation */}

@@ -49,3 +49,10 @@ features:
     status: completed
     spec_path: .kiro/specs/F-06-financial-order-editor
     active_phase: completed
+  - id: F-07
+    name: 6-Metric Executive Cards with Interactive Slide-Over Detail Drawers
+    track: engineering
+    status: completed
+    spec_path: .kiro/specs/F-07-metric-cards-detail-drawers
+    active_phase: completed
+

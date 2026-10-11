@@ -47,6 +47,9 @@ export interface Order {
   noWaCustomer?: string;     // Nomor WhatsApp Customer (format 08... atau 62...)
   targetDpPersen?: number;   // Ambang batas DP produksi (default 70%)
 
+  vendorId?: string;
+  vendorName?: string;
+
   // Realisasi Aktual
   hppAktual?: number | null;
   profitAktual?: number | null;
@@ -62,6 +65,23 @@ export interface Order {
   totalDibayarKeVendor: number;   // Akumulasi kas keluar ke vendor
   statusPembayaranVendor: 'belum_bayar' | 'dp_vendor' | 'lunas_vendor';
   statusOrder?: string;           // Status pengerjaan ('PRODUKSI', 'SELESAI', 'PEMBAYARAN', dll)
+}
+
+export type MetricDrawerType =
+  | 'omzet'
+  | 'profit'
+  | 'saldo'
+  | 'cashout'
+  | 'vendor_debt'
+  | 'outstanding';
+
+export interface VendorDebtBreakdown {
+  vendorName: string;
+  totalHpp: number;
+  totalDibayar: number;
+  sisaUtang: number;
+  orderCount: number;
+  orders: Order[];
 }
 
 export interface MasterFinanceRow {
@@ -89,6 +109,7 @@ export interface MasterFinanceRow {
   sisaMenujuDp70: number;
   statusOrder: string;
   pembayaranList?: CustomerPayment[];
+  vendorName?: string;
 }
 
 export interface KasAdjustment {
@@ -138,6 +159,18 @@ export interface FinancialSummary {
   totalUtangVendor: number;
   totalPiutangCustomer: number;
   estimasiProfitBersih: number;
+
+  // VisualKainDB 6-Card Executive Extensions
+  omzetTotal: number;
+  omzetLunasCount: number;
+  omzetBerjalanCount: number;
+  totalProfitRealtime: number;
+  profitMarginPercent: number;
+  kasKeluarCount: number;
+  vendorDebtCount: number;
+  unpaidCustomerCount: number;
+  totalDibayarKeVendor: number;
+  bebanOperasionalNonVendor: number;
 }
 
 export interface VendorPerformanceItem {

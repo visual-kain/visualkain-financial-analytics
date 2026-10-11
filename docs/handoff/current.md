@@ -27,6 +27,7 @@ Akses fitur edit finansial bagi staf/manajer keuangan telah dipulihkan dan disem
 | **F-04** | Vendor Performance Intelligence & Cost Ranking | `completed` | `VendorPerformanceSection.tsx`, Best Price Ranking per Category, Dual Chart |
 | **F-05** | Profit & HPP Aktual Reconciliation | `completed` | `ProfitAktualSection.tsx`, Firestore sync, Field override margin |
 | **F-06** | Financial Order Editor & Multi-Termin DP Management | `completed` | `EditFinanceModal.tsx` (Sub-tabel DP), `InvoicePreviewModal.tsx` (Riwayat Pembayaran & SOP 70%), `OrderInspectionDrawer.tsx` (3 Template WA Dinamis), 4-Action Column |
+| **F-07** | 6-Metric Executive Cards & Slide-Over Detail Drawers | `completed` | `FinanceStatsGrid.tsx` (6 Kartu Revamp & Inline Vendor Select), `MetricDetailDrawer.tsx` (Traceability Audit Box, Filter & 1-Klik WA), `financial-calculator.ts` |
 
 ---
 

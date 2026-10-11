@@ -154,6 +154,18 @@ describe('VisualKain Financial Calculator Engine', () => {
       expect(summary.totalPiutangCustomer).toBe(920000);
       // Estimasi Profit Bersih = Margin Masuk (152.817) - Beban Ops (150.000) ~ 2.817
       expect(Math.round(summary.estimasiProfitBersih)).toBe(2817);
+
+      // Verifikasi VisualKainDB 6-Card Metrics
+      expect(summary.omzetTotal).toBe(1420000);
+      expect(summary.omzetBerjalanCount).toBe(1);
+      expect(summary.omzetLunasCount).toBe(0);
+      expect(summary.totalProfitRealtime).toBe(434000);
+      expect(summary.kasKeluarCount).toBe(2);
+      expect(summary.vendorDebtCount).toBe(1);
+      expect(summary.unpaidCustomerCount).toBe(1);
+      expect(summary.totalDibayarKeVendor).toBe(300000);
+      expect(summary.bebanOperasionalNonVendor).toBe(150000);
     });
   });
 });
+

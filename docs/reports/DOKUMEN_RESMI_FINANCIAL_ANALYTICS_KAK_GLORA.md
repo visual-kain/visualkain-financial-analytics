@@ -77,10 +77,18 @@ Sistem dibagi ke dalam 5 sub-tab navigasi utama yang dapat diakses melalui Sideb
 │ [Ctrl + B]    │                                                        │
 │               │ 1. [Overview & Arus Kas]                               │
 │ • Arus Kas    │    - Escrow Liquidity Bar (Kas Riil vs Tertahan)       │
-│ • Master Data │    - 4 Kartu KPI Keuangan Utama                        │
-│ • Pengeluaran │    - Grafik Tren Pendapatan vs Beban Bulanan           │
-│ • Vendor      │                                                        │
-│ • Rekonsiliasi│ 2. [Master Data Finansial (Orders)]                    │
+│ • Master Data │    - 6 Kartu Eksekutif Berstandar VisualKainDB:        │
+│ • Pengeluaran │      1. Omzet (Realtime) (Lunas + Berjalan)            │
+│ • Vendor      │      2. Profit (Realtime) (% Net Margin)               │
+│ • Rekonsiliasi│      3. Saldo Periode (Kas Riil Masuk - Keluar)        │
+│               │      4. Uang Keluar (Beban Operasional & Mutasi)       │
+│               │      5. Utang Vendor (dengan Inline Vendor Select)     │
+│               │      6. Outstanding Customer (Hak Tagih Piutang)       │
+│ [Collapse <]  │    - 6 Slide-Over Inspection Drawers (Traceability Box)│
+│               │    - Tombol 1-Klik WhatsApp Follow-Up Tagihan Konsumen │
+│               │    - Grafik Tren Pendapatan vs Beban Bulanan           │
+│               │                                                        │
+│               │ 2. [Master Data Finansial (Orders)]                    │
 │               │    - Dual Sticky Freeze Table (No. Inv & Customer)     │
 │               │    - Kolom STATUS Order (Pill PRODUKSI & SELESAI)      │
 │ [Collapse <]  │    - Fullscreen Expand Mode                            │
