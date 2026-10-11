@@ -278,10 +278,24 @@ function transformToMasterRows(orders: Order[]): MasterFinanceRow[] {
 
 function FinancialDashboardContent() {
   const { profile, logout } = useAuth();
+  const [dev] = useQueryState('dev', { defaultValue: '' });
+  const isDevMode = dev === 'true';
+
   const [tab, setTab] = useQueryState<FinanceSubTab>('tab', {
     defaultValue: 'dashboard',
-    parse: (v) => (['dashboard', 'cashout', 'vendor', 'manual'].includes(v) ? (v as FinanceSubTab) : 'dashboard'),
+    parse: (v) => {
+      if (['dashboard', 'cashout', 'vendor'].includes(v)) return v as FinanceSubTab;
+      if (v === 'manual') return 'manual';
+      return 'dashboard';
+    },
   });
+
+  // Guard: Jika tab manual diakses tanpa dev=true, otomatis arahkan kembali ke dashboard
+  React.useEffect(() => {
+    if (tab === 'manual' && !isDevMode) {
+      setTab('dashboard');
+    }
+  }, [tab, isDevMode, setTab]);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -456,6 +470,7 @@ function FinancialDashboardContent() {
         userName={profile?.name || 'Glora Sawita Br Panjaitan'}
         userRole={profile?.role || 'Head of Finance & Accounting'}
         onLogout={logout}
+        showHiddenTabs={isDevMode}
       />
 
 
@@ -692,8 +707,13 @@ function FinancialDashboardContent() {
             </div>
           )}
 
-          {tab === 'manual' && (
+          {tab === 'manual' && isDevMode && (
             <div className="animate-fadeIn">
+              <div className="mb-4 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+                <span className="font-semibold">
+                  ⚠️ Mode Pengembang Aktif: Fitur ini disembunyikan dari antarmuka klien dan hanya dapat diakses melalui parameter <code className="rounded bg-amber-100 px-1 py-0.5 font-mono font-bold">?tab=manual&dev=true</code>.
+                </span>
+              </div>
               <ProfitAktualSection
                 orders={rawOrders}
                 onSave={handleSaveProfitAktual}

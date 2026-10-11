@@ -22,6 +22,7 @@ interface SidebarProps {
   userName?: string;
   userRole?: string;
   onLogout?: () => void;
+  showHiddenTabs?: boolean;
 }
 
 export function Sidebar({
@@ -32,6 +33,7 @@ export function Sidebar({
   userName = 'Glora Sawita Br Panjaitan',
   userRole = 'Head of Finance & Accounting',
   onLogout,
+  showHiddenTabs = false,
 }: SidebarProps) {
   const tabs = [
     {
@@ -52,12 +54,16 @@ export function Sidebar({
       icon: Award,
       badge: 'Ranking',
     },
-    {
-      id: 'manual' as FinanceSubTab,
-      label: 'Profit Aktual (Manual)',
-      icon: FileSpreadsheet,
-      badge: 'Audit',
-    },
+    ...(showHiddenTabs
+      ? [
+          {
+            id: 'manual' as FinanceSubTab,
+            label: 'Profit Aktual (Manual)',
+            icon: FileSpreadsheet,
+            badge: 'Dev',
+          },
+        ]
+      : []),
   ];
 
   // Shortcut Ctrl+B / Cmd+B listener
