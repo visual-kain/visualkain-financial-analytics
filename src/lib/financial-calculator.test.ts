@@ -167,5 +167,86 @@ describe('VisualKain Financial Calculator Engine', () => {
       expect(summary.bebanOperasionalNonVendor).toBe(150000);
     });
   });
+
+  describe('Vendor Performance & Kategori Termurah SSOT Engine', () => {
+    const mockVendors = [
+      { id: 'v1', nama: 'AMRIN' },
+      { id: 'v2', nama: 'LAJUWARNA' },
+      { id: 'v3', nama: 'HARMONY INDUSTRY' }, // Tanpa order
+    ];
+
+    const mockOrders: Order[] = [
+      {
+        id: 'o1',
+        noInv: 'VK01',
+        customerName: 'Cust A',
+        tanggalOrder: '2026-10-01',
+        totalInvoice: 3000000,
+        totalHpp: 2000000,
+        targetMargin: 1000000,
+        totalQty: 40,
+        vendorId: 'v1',
+        vendorName: 'AMRIN',
+        kategoriOrder: 'T Shirt',
+        hargaVendorPendek: 50000,
+        hargaVendorPanjang: 55000,
+        pembayaranList: [],
+        totalUangMasukCustomer: 3000000,
+        statusPembayaran: 'lunas',
+        totalDibayarKeVendor: 2000000,
+        statusPembayaranVendor: 'lunas_vendor',
+      },
+      {
+        id: 'o2',
+        noInv: 'VK02',
+        customerName: 'Cust B',
+        tanggalOrder: '2026-10-02',
+        totalInvoice: 1800000,
+        totalHpp: 1200000,
+        targetMargin: 600000,
+        totalQty: 20,
+        vendorId: 'v2',
+        vendorName: 'LAJUWARNA',
+        kategoriOrder: 'T Shirt',
+        hargaVendorPendek: 60000,
+        hargaVendorTanpaLengan: 65000,
+        pembayaranList: [],
+        totalUangMasukCustomer: 1800000,
+        statusPembayaran: 'lunas',
+        totalDibayarKeVendor: 1200000,
+        statusPembayaranVendor: 'lunas_vendor',
+      },
+    ];
+
+    it('Menghitung komparasi performa vendor dan mengidentifikasi vendor tanpa order', async () => {
+      const { computeVendorPerformance } = await import('./calculations');
+      const perf = computeVendorPerformance(mockOrders, mockVendors);
+
+      expect(perf.vendors).toHaveLength(2);
+      expect(perf.mostUsed?.vendorNama).toBe('AMRIN');
+      expect(perf.mostUsed?.orderCount).toBe(1);
+      expect(perf.mostUsed?.pcsTotal).toBe(40);
+
+      // Vendor tanpa order
+      expect(perf.tanpaOrder).toHaveLength(1);
+      expect(perf.tanpaOrder[0].vendorNama).toBe('HARMONY INDUSTRY');
+
+      // Cheapest by sleeve
+      expect(perf.cheapest.pendek?.vendorNama).toBe('AMRIN');
+      expect(perf.cheapest.tanpaLengan?.vendorNama).toBe('LAJUWARNA');
+    });
+
+    it('Menghitung highlight termurah per kategori produk secara presisi', async () => {
+      const { computeCheapestByKategori } = await import('./calculations');
+      const cheapest = computeCheapestByKategori(mockOrders, (id) =>
+        mockVendors.find((v) => v.id === id)?.nama || 'Tanpa Vendor'
+      );
+
+      expect(cheapest).toHaveLength(1);
+      expect(cheapest[0].kategori).toBe('T Shirt');
+      expect(cheapest[0].vendorNama).toBe('AMRIN'); // 2.000.000 / 40 = 50.000 vs 1.200.000 / 20 = 60.000
+      expect(cheapest[0].avgCost).toBe(50000);
+    });
+  });
 });
 

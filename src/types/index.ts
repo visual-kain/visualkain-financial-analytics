@@ -49,6 +49,10 @@ export interface Order {
 
   vendorId?: string;
   vendorName?: string;
+  kategoriOrder?: string;
+  hargaVendorPendek?: number;
+  hargaVendorPanjang?: number;
+  hargaVendorTanpaLengan?: number;
 
   // Realisasi Aktual
   hppAktual?: number | null;
@@ -192,6 +196,19 @@ export interface CheapestByCategory {
   kategori: string;
   vendorNama: string;
   avgCost: number;
+  orderCount?: number;
+  pcs?: number;
+}
+
+export interface VendorPerformanceResult {
+  vendors: VendorPerformanceItem[];
+  cheapest: {
+    pendek?: VendorPerformanceItem;
+    panjang?: VendorPerformanceItem;
+    tanpaLengan?: VendorPerformanceItem;
+  };
+  mostUsed?: VendorPerformanceItem;
+  tanpaOrder: Array<{ vendorId: string; vendorNama: string }>;
 }
 
 export interface ManualFinanceDraft {

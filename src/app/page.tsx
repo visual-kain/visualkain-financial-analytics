@@ -17,6 +17,7 @@ import { VendorPerformanceSection } from '@/components/finance/VendorPerformance
 import { ProfitAktualSection } from '@/components/finance/ProfitAktualSection';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { calculateFinancialSummary } from '@/lib/financial-calculator';
+import { computeVendorPerformance, computeCheapestByKategori } from '@/lib/calculations';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { useAuth } from '@/context/AuthContext';
 import type {
@@ -299,9 +300,26 @@ function FinancialDashboardContent() {
   const {
     orders: rawOrders,
     cashTransactions: rawCashTxs,
+    vendors: rawVendors,
     syncState,
     updateOrderFinance,
+    addKas,
+    deleteKas,
   } = useFirebaseFinance(initialOrdersData, initialCashTransactions);
+
+  // Performa vendor dihitung secara menyeluruh (seluruh data order dan vendor terdaftar SSOT)
+  const vendorPerformance = useMemo(
+    () => computeVendorPerformance(rawOrders, rawVendors),
+    [rawOrders, rawVendors]
+  );
+  const cheapestCategories = useMemo(
+    () =>
+      computeCheapestByKategori(rawOrders, (id) => {
+        const v = rawVendors.find((item) => item.id === id);
+        return v ? v.nama : 'Tanpa Vendor';
+      }),
+    [rawOrders, rawVendors]
+  );
 
   // Periode kartu: default (Semua Bulan + Semua Tahun) = bulan berjalan,
   // sedangkan tabel menampilkan SELURUH data. Aturan sama dengan VisualKainDB.
@@ -646,22 +664,38 @@ function FinancialDashboardContent() {
           {tab === 'cashout' && (
             <div className="animate-fadeIn">
               <CashOutflowSection
-                initialEntries={filteredCashTxs}
+                initialEntries={allCashTransactions}
                 selectedPeriod={selectedPeriod}
+                onAddTransaction={addKas}
+                onDeleteTransaction={deleteKas}
               />
             </div>
           )}
 
           {tab === 'vendor' && (
             <div className="animate-fadeIn">
-              <VendorPerformanceSection />
+              <VendorPerformanceSection
+                vendors={vendorPerformance.vendors}
+                cheapestList={cheapestCategories}
+                mostUsedVendor={
+                  vendorPerformance.mostUsed
+                    ? {
+                        nama: vendorPerformance.mostUsed.vendorNama,
+                        orderCount: vendorPerformance.mostUsed.orderCount,
+                        pcsTotal: vendorPerformance.mostUsed.pcsTotal,
+                      }
+                    : undefined
+                }
+                cheapestBySleeve={vendorPerformance.cheapest}
+                tanpaOrder={vendorPerformance.tanpaOrder}
+              />
             </div>
           )}
 
           {tab === 'manual' && (
             <div className="animate-fadeIn">
               <ProfitAktualSection
-                orders={filteredOrders}
+                orders={rawOrders}
                 onSave={handleSaveProfitAktual}
               />
             </div>

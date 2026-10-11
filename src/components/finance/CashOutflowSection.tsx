@@ -39,18 +39,37 @@ import {
 interface CashOutflowSectionProps {
   initialEntries?: CashTransaction[];
   selectedPeriod?: string;
+  onAddTransaction?: (data: Omit<CashTransaction, 'id'>) => Promise<string>;
+  onDeleteTransaction?: (id: string) => Promise<void>;
 }
 
 const defaultOutflow: CashTransaction[] = [
-  { id: 'out-1', tanggal: '2026-10-10', tipe: 'keluar', nominal: 300000, kategori: 'Gaji/Upah', keterangan: 'Biaya finance' },
-  { id: 'out-2', tanggal: '2026-10-10', tipe: 'keluar', nominal: 484000, kategori: 'Biaya Lain', keterangan: 'Biaya Handphone raja' },
-  { id: 'out-3', tanggal: '2026-10-09', tipe: 'keluar', nominal: 177500, kategori: 'Biaya Lain', keterangan: 'Biaya Illustrator' },
-  { id: 'out-4', tanggal: '2026-10-09', tipe: 'keluar', nominal: 201000, kategori: 'Biaya Lain', keterangan: 'Biaya pinjaman wawa' },
-  { id: 'out-5', tanggal: '2026-10-08', tipe: 'keluar', nominal: 100000, kategori: 'Biaya Lain', keterangan: 'Operasional RAJA PURNAMA' },
-  { id: 'out-6', tanggal: '2026-10-06', tipe: 'keluar', nominal: 102500, kategori: 'Biaya Lain', keterangan: 'Biaya illustrator' },
-  { id: 'out-7', tanggal: '2026-10-02', tipe: 'keluar', nominal: 14000, kategori: 'Biaya Lain', keterangan: 'Biaya Admin atm' },
-  { id: 'out-8', tanggal: '2026-10-01', tipe: 'keluar', nominal: 24278500, kategori: 'Gaji/Upah', keterangan: 'Payroll staff & penjahit' },
-  { id: 'out-9', tanggal: '2026-10-01', tipe: 'keluar', nominal: 3973000, kategori: 'Operasional', keterangan: 'Perawatan Web & Server' },
+  { id: 'wen92gulvQUW9yE3ktnm', tanggal: '2026-10-10', tipe: 'keluar', nominal: 300000, kategori: 'Gaji/Upah', keterangan: 'Biaya finance' },
+  { id: 'Wi3wSI3nMTDqUQi1tRUL', tanggal: '2026-10-10', tipe: 'keluar', nominal: 484000, kategori: 'Biaya Lain', keterangan: 'Biaya Handphone raja' },
+  { id: '2gKnX7DhgSk5P379qW3t', tanggal: '2026-10-09', tipe: 'keluar', nominal: 201000, kategori: 'Biaya Lain', keterangan: 'Biaya pinjaman wawa' },
+  { id: 'izvwZCDBWMtx01ev9UH7', tanggal: '2026-10-09', tipe: 'keluar', nominal: 177500, kategori: 'Biaya Lain', keterangan: 'Biaya Illustrator' },
+  { id: 'n2ONMpgwR49uAan8XcVu', tanggal: '2026-10-08', tipe: 'keluar', nominal: 100000, kategori: 'Biaya Lain', keterangan: 'Operasional RAJA PURNAMA' },
+  { id: 'TTL7nqMl60SjX0n4ZU1X', tanggal: '2026-10-06', tipe: 'keluar', nominal: 102500, kategori: 'Biaya Lain', keterangan: 'biaya illustrator' },
+  { id: '7oIJTgUlHTWaAWFhY0jN', tanggal: '2026-10-02', tipe: 'keluar', nominal: 14000, kategori: 'Biaya Lain', keterangan: 'Biaya Admin atm' },
+  { id: '02LAWvzNesKiHte49l39', tanggal: '2026-09-23', tipe: 'keluar', nominal: 3973000, kategori: 'Operasional', keterangan: 'Penyesuaiann saldo awal' },
+  { id: 'rbYnkw81slTzuzHllmz1', tanggal: '2026-09-15', tipe: 'keluar', nominal: 500000, kategori: 'Gaji/Upah', keterangan: 'Pengambilan dana pemilik untuk kebutuhan pribadi' },
+  { id: 'kh7G6XjebbSssoJWukvI', tanggal: '2025-10-10', tipe: 'keluar', nominal: 23778500, kategori: 'Gaji/Upah', keterangan: 'penyesuasiaan web system' },
+];
+
+const BULAN_FILTER_OPTIONS = [
+  { value: 'all', label: 'Semua Bulan' },
+  { value: '01', label: 'Januari' },
+  { value: '02', label: 'Februari' },
+  { value: '03', label: 'Maret' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'Mei' },
+  { value: '06', label: 'Juni' },
+  { value: '07', label: 'Juli' },
+  { value: '08', label: 'Agustus' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -86,6 +105,8 @@ const CATEGORY_FORM_OPTIONS = [
 export function CashOutflowSection({
   initialEntries = defaultOutflow,
   selectedPeriod = '2026-10',
+  onAddTransaction,
+  onDeleteTransaction,
 }: CashOutflowSectionProps) {
   const [entries, setEntries] = useState<CashTransaction[]>(initialEntries);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -93,6 +114,8 @@ export function CashOutflowSection({
   // Filter Toolbar State
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [bulanFilter, setBulanFilter] = useState('all');
+  const [tahunFilter, setTahunFilter] = useState('all');
 
   // Synchronize with parent period updates
   React.useEffect(() => {
@@ -105,19 +128,28 @@ export function CashOutflowSection({
   const [keterangan, setKeterangan] = useState('');
   const [nominal, setNominal] = useState<number>(0);
 
+  const yearOptions = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => e.tanggal && set.add(e.tanggal.slice(0, 4)));
+    const sorted = [...set].sort().reverse();
+    return [{ value: 'all', label: 'Semua Tahun' }, ...sorted.map((y) => ({ value: y, label: y }))];
+  }, [entries]);
+
   // Filtered dataset for table and charts
   const filteredEntries = useMemo(() => {
     return entries.filter((item) => {
       const matchesCategory = categoryFilter === 'all' || item.kategori === categoryFilter;
+      const matchesTahun = tahunFilter === 'all' || (item.tanggal || '').startsWith(tahunFilter);
+      const matchesBulan = bulanFilter === 'all' || (item.tanggal || '').slice(5, 7) === bulanFilter;
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
         item.keterangan.toLowerCase().includes(q) ||
         item.tanggal.includes(q) ||
         item.id.toLowerCase().includes(q);
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesTahun && matchesBulan && matchesSearch;
     });
-  }, [entries, categoryFilter, searchQuery]);
+  }, [entries, categoryFilter, tahunFilter, bulanFilter, searchQuery]);
 
   // Metric calculations based on active filter
   const totalDanaKeluar = filteredEntries.reduce((acc, curr) => acc + curr.nominal, 0);
@@ -172,32 +204,53 @@ export function CashOutflowSection({
       ? 'September 2026'
       : selectedPeriod;
 
-  const handleDelete = (id: string) => {
-    setEntries((prev) => prev.filter((e) => e.id !== id));
-    toast.success('Pengeluaran berhasil dihapus');
+  const handleDelete = async (id: string) => {
+    try {
+      if (onDeleteTransaction) {
+        await onDeleteTransaction(id);
+      }
+      setEntries((prev) => prev.filter((e) => e.id !== id));
+      toast.success('Pengeluaran berhasil dihapus');
+    } catch {
+      toast.error('Gagal menghapus pengeluaran');
+    }
   };
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nominal || nominal <= 0 || !keterangan) {
       toast.error('Mohon isi nominal dan keterangan dengan benar');
       return;
     }
 
-    const newTx: CashTransaction = {
-      id: `out-${Date.now()}`,
-      tanggal,
-      tipe: 'keluar',
-      nominal,
-      kategori,
-      keterangan,
-    };
-
-    setEntries((prev) => [newTx, ...prev]);
-    setIsDrawerOpen(false);
-    setKeterangan('');
-    setNominal(0);
-    toast.success('Pengeluaran berhasil dicatat');
+    try {
+      if (onAddTransaction) {
+        const newId = await onAddTransaction({
+          tanggal,
+          tipe: 'keluar',
+          nominal,
+          kategori,
+          keterangan,
+        });
+        setEntries((prev) => [{ id: newId, tanggal, tipe: 'keluar', nominal, kategori, keterangan }, ...prev]);
+      } else {
+        const newTx: CashTransaction = {
+          id: `out-${Date.now()}`,
+          tanggal,
+          tipe: 'keluar',
+          nominal,
+          kategori,
+          keterangan,
+        };
+        setEntries((prev) => [newTx, ...prev]);
+      }
+      setIsDrawerOpen(false);
+      setKeterangan('');
+      setNominal(0);
+      toast.success('Pengeluaran berhasil dicatat');
+    } catch {
+      toast.error('Gagal menyimpan pengeluaran');
+    }
   };
 
   const handleExportExcel = () => {
@@ -443,19 +496,37 @@ export function CashOutflowSection({
               )}
             </div>
 
+            {/* CustomSelect Bulan Filter */}
+            <CustomSelect
+              value={bulanFilter}
+              onValueChange={setBulanFilter}
+              options={BULAN_FILTER_OPTIONS}
+              className="min-w-[135px]"
+            />
+
+            {/* CustomSelect Tahun Filter */}
+            <CustomSelect
+              value={tahunFilter}
+              onValueChange={setTahunFilter}
+              options={yearOptions}
+              className="min-w-[125px]"
+            />
+
             {/* CustomSelect Kategori Beban Filter */}
             <CustomSelect
               value={categoryFilter}
               onValueChange={setCategoryFilter}
               icon={<Filter className="h-3.5 w-3.5" />}
               options={CATEGORY_FILTER_OPTIONS}
-              className="min-w-[190px]"
+              className="min-w-[185px]"
             />
 
-            {(categoryFilter !== 'all' || searchQuery) && (
+            {(categoryFilter !== 'all' || bulanFilter !== 'all' || tahunFilter !== 'all' || searchQuery) && (
               <button
                 onClick={() => {
                   setCategoryFilter('all');
+                  setBulanFilter('all');
+                  setTahunFilter('all');
                   setSearchQuery('');
                 }}
                 className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 active:scale-95 transition-all"

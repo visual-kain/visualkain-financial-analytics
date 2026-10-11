@@ -6,6 +6,8 @@ import {
   onSnapshot,
   doc,
   updateDoc,
+  addDoc,
+  deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -30,6 +32,8 @@ interface UseFirebaseFinanceResult {
     orderId: string,
     data: { hppAktual?: number | null; profitAktual?: number | null; catatanFinance?: string }
   ) => Promise<boolean>;
+  addKas: (data: Omit<CashTransaction, 'id'>) => Promise<string>;
+  deleteKas: (id: string) => Promise<void>;
 }
 
 export function useFirebaseFinance(
@@ -204,6 +208,10 @@ export function useFirebaseFinance(
                 biayaTambahanVendor: Number(d.biayaTambahanVendor || d.biayaLainnya || 0),
                 biayaTambahanCustomer: Number(d.biayaTambahanCustomer || d.biayaTambahanCust || 0),
                 diskon: totals.diskon,
+                kategoriOrder: (d.kategoriOrder || '').trim(),
+                hargaVendorPendek: Number(d.hargaVendorPendek || 0),
+                hargaVendorPanjang: Number(d.hargaVendorPanjang || 0),
+                hargaVendorTanpaLengan: Number(d.hargaVendorTanpaLengan || 0),
                 hppAktual: d.hppAktual !== undefined ? Number(d.hppAktual) : totalHpp,
                 profitAktual: d.profitAktual !== undefined && d.profitAktual !== null ? Number(d.profitAktual) : totals.profit,
                 catatanFinance: d.catatanFinance || '',
@@ -301,6 +309,32 @@ export function useFirebaseFinance(
     []
   );
 
+  const addKas = useCallback(async (data: Omit<CashTransaction, 'id'>): Promise<string> => {
+    try {
+      const ref = await addDoc(collection(db, 'kas'), {
+        tanggal: data.tanggal,
+        jenis: data.tipe,
+        kategori: data.kategori,
+        keterangan: data.keterangan,
+        jumlah: data.nominal,
+        createdAt: serverTimestamp(),
+      });
+      return ref.id;
+    } catch (err: unknown) {
+      console.error('[Firestore] addKas failed:', err);
+      throw err;
+    }
+  }, []);
+
+  const deleteKas = useCallback(async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, 'kas', id));
+    } catch (err: unknown) {
+      console.error('[Firestore] deleteKas failed:', err);
+      throw err;
+    }
+  }, []);
+
   return {
     orders,
     cashTransactions,
@@ -309,5 +343,7 @@ export function useFirebaseFinance(
     lastSyncAt,
     error,
     updateOrderFinance,
+    addKas,
+    deleteKas,
   };
 }

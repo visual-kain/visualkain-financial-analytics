@@ -18,6 +18,12 @@ interface VendorPerformanceSectionProps {
   vendors?: VendorPerformanceItem[];
   cheapestList?: CheapestByCategory[];
   mostUsedVendor?: { nama: string; orderCount: number; pcsTotal: number };
+  cheapestBySleeve?: {
+    pendek?: VendorPerformanceItem;
+    panjang?: VendorPerformanceItem;
+    tanpaLengan?: VendorPerformanceItem;
+  };
+  tanpaOrder?: Array<{ vendorId: string; vendorNama: string }>;
 }
 
 const defaultCheapest: CheapestByCategory[] = [
@@ -38,56 +44,126 @@ const defaultVendors: VendorPerformanceItem[] = [
     vendorNama: 'AMRIN',
     orderCount: 11,
     pcsTotal: 462,
-    avgLenganPendek: 52000,
-    avgLenganPanjang: 58000,
-    avgTanpaLengan: 48000,
-    hppQuotation: 25102770,
-    hppAktual: 25102770,
+    avgLenganPendek: 60000,
+    avgLenganPanjang: 63571,
+    avgTanpaLengan: 0,
+    hppQuotation: 26840000,
+    hppAktual: 26840000,
     selisihQuotation: 0,
-    profit: 12450000,
-    marginPercent: 33.2,
+    profit: 9266000,
+    marginPercent: 25.6,
   },
   {
     vendorId: 'v-2',
-    vendorNama: 'CAHAYA BORDIR',
+    vendorNama: 'LAJUWARNA',
     orderCount: 8,
-    pcsTotal: 315,
-    avgLenganPendek: 88000,
-    avgLenganPanjang: 125000,
-    avgTanpaLengan: 75000,
-    hppQuotation: 18420000,
-    hppAktual: 18250000,
-    selisihQuotation: -170000,
-    profit: 8920000,
-    marginPercent: 32.8,
+    pcsTotal: 169,
+    avgLenganPendek: 71250,
+    avgLenganPanjang: 81100,
+    avgTanpaLengan: 73500,
+    hppQuotation: 12670500,
+    hppAktual: 12670500,
+    selisihQuotation: 0,
+    profit: 5405500,
+    marginPercent: 30.0,
   },
   {
     vendorId: 'v-3',
     vendorNama: 'FJ MERCHANDISE',
-    orderCount: 6,
-    pcsTotal: 210,
-    avgLenganPendek: 70000,
-    avgLenganPanjang: 85000,
-    avgTanpaLengan: 62000,
-    hppQuotation: 11950000,
-    hppAktual: 12100000,
-    selisihQuotation: 150000,
-    profit: 5830000,
-    marginPercent: 32.5,
+    orderCount: 7,
+    pcsTotal: 163,
+    avgLenganPendek: 85000,
+    avgLenganPanjang: 92500,
+    avgTanpaLengan: 0,
+    hppQuotation: 16995000,
+    hppAktual: 16995000,
+    selisihQuotation: 0,
+    profit: 5467000,
+    marginPercent: 24.2,
   },
   {
     vendorId: 'v-4',
-    vendorNama: 'CITITEX',
-    orderCount: 4,
-    pcsTotal: 140,
-    avgLenganPendek: 65000,
-    avgLenganPanjang: 75000,
-    avgTanpaLengan: 55000,
-    hppQuotation: 8200000,
-    hppAktual: 8200000,
+    vendorNama: 'Vendor Wisnu',
+    orderCount: 5,
+    pcsTotal: 102,
+    avgLenganPendek: 120000,
+    avgLenganPanjang: 166667,
+    avgTanpaLengan: 0,
+    hppQuotation: 13395000,
+    hppAktual: 13395000,
     selisihQuotation: 0,
-    profit: 3950000,
-    marginPercent: 32.5,
+    profit: 5590000,
+    marginPercent: 29.3,
+  },
+  {
+    vendorId: 'v-5',
+    vendorNama: 'CAHAYA BORDIR',
+    orderCount: 5,
+    pcsTotal: 289,
+    avgLenganPendek: 115500,
+    avgLenganPanjang: 100667,
+    avgTanpaLengan: 0,
+    hppQuotation: 20705000,
+    hppAktual: 20705000,
+    selisihQuotation: 0,
+    profit: 4393000,
+    marginPercent: 17.4,
+  },
+  {
+    vendorId: 'v-6',
+    vendorNama: "INDI'S COLLECTION",
+    orderCount: 2,
+    pcsTotal: 20,
+    avgLenganPendek: 135000,
+    avgLenganPanjang: 145000,
+    avgTanpaLengan: 320000,
+    hppQuotation: 2915000,
+    hppAktual: 2915000,
+    selisihQuotation: 0,
+    profit: 75000,
+    marginPercent: 2.0,
+  },
+  {
+    vendorId: 'v-7',
+    vendorNama: 'VENDOR TOPI PK UCI',
+    orderCount: 1,
+    pcsTotal: 20,
+    avgLenganPendek: 30000,
+    avgLenganPanjang: 0,
+    avgTanpaLengan: 0,
+    hppQuotation: 600000,
+    hppAktual: 600000,
+    selisihQuotation: 0,
+    profit: 600000,
+    marginPercent: 50.0,
+  },
+  {
+    vendorId: 'v-8',
+    vendorNama: 'FITRA F',
+    orderCount: 1,
+    pcsTotal: 16,
+    avgLenganPendek: 130000,
+    avgLenganPanjang: 0,
+    avgTanpaLengan: 0,
+    hppQuotation: 2100000,
+    hppAktual: 2100000,
+    selisihQuotation: 0,
+    profit: 220000,
+    marginPercent: 9.1,
+  },
+  {
+    vendorId: 'v-9',
+    vendorNama: 'CITITEX',
+    orderCount: 1,
+    pcsTotal: 1,
+    avgLenganPendek: 0,
+    avgLenganPanjang: 176000,
+    avgTanpaLengan: 0,
+    hppQuotation: 176000,
+    hppAktual: 176000,
+    selisihQuotation: 0,
+    profit: 54000,
+    marginPercent: 23.0,
   },
 ];
 
@@ -95,6 +171,8 @@ export function VendorPerformanceSection({
   vendors = defaultVendors,
   cheapestList = defaultCheapest,
   mostUsedVendor = { nama: 'AMRIN', orderCount: 11, pcsTotal: 462 },
+  cheapestBySleeve,
+  tanpaOrder = [{ vendorId: 'mQKvwQPf4eXLin4aaK9z', vendorNama: 'HARMONY INDUSTRY' }],
 }: VendorPerformanceSectionProps) {
   const [sortField, setSortField] = useState<keyof VendorPerformanceItem>('orderCount');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -335,23 +413,44 @@ export function VendorPerformanceSection({
                     {item.pcsTotal}
                   </td>
                   <td className="px-4 py-3.5 font-mono tabular-num">
-                    {formatRupiah(item.avgLenganPendek)}
+                    {item.avgLenganPendek > 0 ? (
+                      <>
+                        {formatRupiah(item.avgLenganPendek)}
+                        {cheapestBySleeve?.pendek?.vendorId === item.vendorId ? ' 🏆' : ''}
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="px-4 py-3.5 font-mono tabular-num">
-                    {formatRupiah(item.avgLenganPanjang)}
+                    {item.avgLenganPanjang > 0 ? (
+                      <>
+                        {formatRupiah(item.avgLenganPanjang)}
+                        {cheapestBySleeve?.panjang?.vendorId === item.vendorId ? ' 🏆' : ''}
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="px-4 py-3.5 font-mono tabular-num">
-                    {formatRupiah(item.avgTanpaLengan)}
+                    {item.avgTanpaLengan > 0 ? (
+                      <>
+                        {formatRupiah(item.avgTanpaLengan)}
+                        {cheapestBySleeve?.tanpaLengan?.vendorId === item.vendorId ? ' 🏆' : ''}
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="px-4 py-3.5 font-mono tabular-num text-slate-500">
                     {formatRupiah(item.hppQuotation)}
                   </td>
                   <td className="px-4 py-3.5 font-mono tabular-num font-bold text-slate-800">
-                    {formatRupiah(item.hppAktual)}
+                    {item.hppAktual > 0 ? formatRupiah(item.hppAktual) : '—'}
                   </td>
                   <td className="px-4 py-3.5 text-center font-mono tabular-num font-bold">
                     {item.selisihQuotation < 0 ? (
-                      <span className="text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                      <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                         Hemat {formatRupiah(Math.abs(item.selisihQuotation))}
                       </span>
                     ) : item.selisihQuotation > 0 ? (
@@ -362,17 +461,37 @@ export function VendorPerformanceSection({
                       <span className="text-slate-400">Sesuai Budget</span>
                     )}
                   </td>
-                  <td className="px-4 py-3.5 font-mono tabular-num font-bold text-emerald-600">
-                    {formatRupiah(item.profit)}
+                  <td className="px-4 py-3.5 font-mono tabular-num font-bold">
+                    {item.profit < 0 ? (
+                      <span className="text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                        {formatRupiah(item.profit)}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-600">{formatRupiah(item.profit)}</span>
+                    )}
                   </td>
-                  <td className="px-4 py-3.5 font-mono tabular-num text-center font-bold text-emerald-700">
-                    {item.marginPercent.toFixed(1)}%
+                  <td className="px-4 py-3.5 font-mono tabular-num text-center font-bold">
+                    {item.marginPercent < 0 ? (
+                      <span className="text-rose-600">{item.marginPercent.toFixed(1)}%</span>
+                    ) : (
+                      <span className="text-slate-800">{item.marginPercent.toFixed(1)}%</span>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {/* Footer note: Vendor tanpa order */}
+        {tanpaOrder && tanpaOrder.length > 0 && (
+          <div className="border-t border-slate-100 bg-slate-50/70 px-5 py-3 text-xs text-slate-500 flex items-center gap-2">
+            <span className="font-medium">Vendor tanpa order:</span>
+            <span className="font-semibold text-slate-700">
+              {tanpaOrder.map((v) => v.vendorNama).join(', ')}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
