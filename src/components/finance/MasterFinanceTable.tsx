@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { formatRupiah } from '@/lib/utils';
+import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
 import type { MasterFinanceRow } from '@/types';
 import {
   TableProperties,
@@ -110,31 +110,51 @@ export function MasterFinanceTable({
     toast.success('File Master Finansial berhasil diekspor!');
   };
 
-  const renderStatusBadge = (status: string) => {
+  const renderStatusBadge = (status: string, compact = false) => {
     const s = (status || '').toUpperCase();
     if (s === 'PRODUKSI' || s === 'PRODUCTION') {
       return (
-        <span className="inline-flex items-center justify-center rounded-full bg-blue-50 px-3.5 py-1 text-xs font-bold text-blue-600 border border-blue-200 shadow-sm">
+        <span
+          className={cn(
+            'inline-flex items-center justify-center rounded-full bg-blue-50 font-bold text-blue-600 border border-blue-200',
+            compact ? 'px-2 py-0.5 text-[9px]' : 'px-3.5 py-1 text-xs shadow-sm'
+          )}
+        >
           PRODUKSI
         </span>
       );
     }
     if (s === 'SELESAI' || s === 'LUNAS' || s === 'COMPLETED') {
       return (
-        <span className="inline-flex items-center justify-center rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-bold text-emerald-600 border border-emerald-200 shadow-sm">
+        <span
+          className={cn(
+            'inline-flex items-center justify-center rounded-full bg-emerald-50 font-bold text-emerald-600 border border-emerald-200',
+            compact ? 'px-2 py-0.5 text-[9px]' : 'px-3.5 py-1 text-xs shadow-sm'
+          )}
+        >
           SELESAI
         </span>
       );
     }
     if (s === 'PEMBAYARAN' || s === 'PAYMENT' || s === 'DP') {
       return (
-        <span className="inline-flex items-center justify-center rounded-full bg-amber-50 px-3.5 py-1 text-xs font-bold text-amber-700 border border-amber-200 shadow-sm">
+        <span
+          className={cn(
+            'inline-flex items-center justify-center rounded-full bg-amber-50 font-bold text-amber-700 border border-amber-200',
+            compact ? 'px-2 py-0.5 text-[9px]' : 'px-3.5 py-1 text-xs shadow-sm'
+          )}
+        >
           PEMBAYARAN
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 border border-slate-200 shadow-sm">
+      <span
+        className={cn(
+          'inline-flex items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-700 border border-slate-200',
+          compact ? 'px-2 py-0.5 text-[9px]' : 'px-3 py-1 text-xs shadow-sm'
+        )}
+      >
         {s || 'ANTREAN'}
       </span>
     );
@@ -157,7 +177,7 @@ export function MasterFinanceTable({
       case 'dp1_parsial':
         return (
           <div className="flex flex-col items-center">
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
               {row.dpPersenCustomer.toFixed(1)}% (DP 1)
             </span>
             {row.sisaMenujuDp70 > 0 && (
@@ -188,66 +208,74 @@ export function MasterFinanceTable({
         filteredRows.map((row) => (
           <div
             key={row.id}
-            className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-3 shadow-2xs hover:border-teal-300 transition-all gap-2"
+            className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-3 shadow-card-double hover:border-teal-300 transition-all duration-200 gap-2.5"
           >
-            {/* 1. Header: No Inv & Status */}
+            {/* 1. Header: No Inv & Status Badge (Untruncated, clean alignment) */}
             <div className="flex items-center justify-between gap-1 border-b border-slate-100 pb-2">
-              <span className="font-mono text-[11px] font-extrabold px-1.5 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 truncate">
+              <span className="font-mono text-[11px] font-black tracking-tight text-teal-900 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200/90 whitespace-nowrap">
                 {row.noInv}
               </span>
-              <div className="shrink-0 scale-90 origin-right">{renderStatusBadge(row.statusOrder)}</div>
+              <div className="shrink-0">{renderStatusBadge(row.statusOrder, true)}</div>
             </div>
 
-            {/* 2. Customer & Project */}
-            <div>
-              <h4 className="text-xs font-extrabold text-slate-900 tracking-tight truncate" title={row.namaCustomer}>
+            {/* 2. Customer & Project Info */}
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-bold text-slate-900 leading-snug line-clamp-1" title={row.namaCustomer}>
                 {row.namaCustomer}
               </h4>
-              <p className="text-[10px] text-slate-500 font-medium truncate mt-0.5" title={row.namaProject}>
-                {row.namaProject} &bull; <span className="font-bold text-slate-700">{row.totalQty} pcs</span>
+              <p className="text-[10px] text-slate-400 font-medium truncate" title={row.namaProject}>
+                {row.namaProject} &bull; <span className="font-bold text-slate-600">{row.totalQty} pcs</span>
               </p>
             </div>
 
-            {/* 3. Status DP Badge */}
-            <div className="scale-95 origin-left">
-              {renderDpBadge(row)}
-            </div>
-
-            {/* 4. Financial Mini Highlights Box */}
-            <div className="rounded-xl border border-slate-150 bg-slate-50/80 p-2 space-y-1 text-[11px]">
-              <div className="flex justify-between items-center text-slate-500">
-                <span className="text-[10px]">Omzet:</span>
-                <span className="font-mono font-bold text-slate-900 truncate">
-                  {formatRupiah(row.totalJumlah)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-teal-700">
-                <span className="text-[10px]">Terbayar:</span>
-                <span className="font-mono font-semibold truncate">
-                  {formatRupiah(row.nominalDpCustomer)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-amber-800">
-                <span className="text-[10px]">Sisa:</span>
-                <span className="font-mono font-bold text-amber-700 truncate">
-                  {row.sisaPelunasanCustomer > 0 ? formatRupiah(row.sisaPelunasanCustomer) : 'LUNAS'}
-                </span>
-              </div>
-              <div className="border-t border-slate-200/80 pt-1 flex justify-between items-center text-emerald-800">
-                <span className="text-[10px] font-bold">Profit:</span>
-                <span className="font-mono font-extrabold text-emerald-600 truncate">
-                  {formatRupiah(row.profitBersih)}
-                </span>
+            {/* 3. Hero Metric: Omzet Order (Clean, Spacious, High-Contrast) */}
+            <div>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">
+                Total Omzet
+              </span>
+              <div className="font-mono text-sm sm:text-base font-extrabold text-slate-900 tracking-tight tabular-nums">
+                {formatRupiah(row.totalJumlah)}
               </div>
             </div>
 
-            {/* 5. Touch Action Buttons (2 buttons: Edit & Detail Drawer) */}
-            <div className="pt-0.5 grid grid-cols-2 gap-1.5">
+            {/* 4. Sub-Metrics: Terbayar vs Sisa (Clean 2-Box Tile) */}
+            <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+              <div className="rounded-lg bg-teal-50/70 p-1.5 border border-teal-100/90">
+                <span className="text-teal-700/80 block text-[9px] font-medium">Terbayar</span>
+                <span className="font-mono font-bold text-teal-800 tabular-nums truncate block">
+                  {formatCompactRupiah(row.nominalDpCustomer)}
+                </span>
+              </div>
+              <div className={cn(
+                "rounded-lg p-1.5 border",
+                row.sisaPelunasanCustomer > 0
+                  ? "bg-amber-50/70 border-amber-100/90 text-amber-800"
+                  : "bg-emerald-50/70 border-emerald-100/90 text-emerald-800"
+              )}>
+                <span className="block text-[9px] font-medium opacity-80">
+                  {row.sisaPelunasanCustomer > 0 ? 'Sisa Piutang' : 'Status'}
+                </span>
+                <span className="font-mono font-bold tabular-nums truncate block">
+                  {row.sisaPelunasanCustomer > 0 ? formatCompactRupiah(row.sisaPelunasanCustomer) : 'LUNAS'}
+                </span>
+              </div>
+            </div>
+
+            {/* 5. Profit Row */}
+            <div className="flex items-center justify-between text-[10px] px-0.5 text-slate-500">
+              <span className="font-medium">Profit ({row.profitPercent.toFixed(0)}%):</span>
+              <span className="font-mono font-bold text-emerald-600">
+                +{formatCompactRupiah(row.profitBersih)}
+              </span>
+            </div>
+
+            {/* 6. Touch Action Buttons */}
+            <div className="pt-1 grid grid-cols-2 gap-1.5 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => onEditFinance?.(row)}
                 title="Edit Finansial"
-                className="min-h-[40px] flex items-center justify-center gap-1 rounded-xl bg-teal-600 px-2 text-[11px] font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-95 transition-all cursor-pointer"
+                className="h-8.5 min-h-[36px] flex items-center justify-center gap-1 rounded-xl bg-teal-600 px-2 text-[11px] font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-[0.97] transition-transform duration-150 cursor-pointer"
               >
                 <Pencil className="h-3.5 w-3.5 shrink-0" />
                 <span>Edit</span>
@@ -257,7 +285,7 @@ export function MasterFinanceTable({
                 type="button"
                 onClick={() => onSelectRow?.(row)}
                 title="Inspeksi Detail Order"
-                className="min-h-[40px] flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2 text-[11px] font-bold text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+                className="h-8.5 min-h-[36px] flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2 text-[11px] font-bold text-slate-700 hover:bg-slate-100 active:scale-[0.97] transition-transform duration-150 cursor-pointer"
               >
                 <Eye className="h-3.5 w-3.5 shrink-0 text-slate-500" />
                 <span>Detail</span>

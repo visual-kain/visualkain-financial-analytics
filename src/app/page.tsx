@@ -557,107 +557,113 @@ function FinancialDashboardContent() {
       {/* 4. Main Content View Area */}
       <main className="flex-1 overflow-y-auto px-3.5 py-4 pb-28 sm:px-8 sm:py-8 sm:pb-8 transition-all duration-300">
         <div className="mx-auto max-w-7xl space-y-6">
-          {/* Top Executive Header Bar */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/80 pb-5">
-            <div className="flex items-start gap-3">
-
-              <div>
+          {/* Top Executive Header Card (Elevated Surface, Refined Typography & Matched Control Heights) */}
+          <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-4 sm:p-6 shadow-card-double backdrop-blur-md transition-all">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              {/* Header Left: Brand Chips, Title & Subtitle */}
+              <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-700 border border-teal-200">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-800 border border-teal-200/80 shadow-2xs">
+                    <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse" />
                     VisualKain Financial 2026
                   </span>
                   <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-slate-800 border border-slate-200/90 shadow-2xs">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-800 border border-slate-200/90 shadow-2xs">
                     <UserCheck className="h-3.5 w-3.5 text-teal-600" />
                     <span>Glora Sawita</span>
                   </span>
                   <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
-                  <span className="text-xs text-slate-500 font-medium">
+                  <span className="rounded-lg bg-slate-100/80 px-2 py-0.5 text-xs text-slate-600 font-semibold font-mono">
                     {selectedPeriod}
                   </span>
                 </div>
-                <h1 className="mt-1 text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
+                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
                   {viewTitles[tab].title}
                 </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
                   {viewTitles[tab].subtitle}
                 </p>
               </div>
-            </div>
 
-            {/* Header Right Action Controls (Structured Mobile 2-Row + Desktop Flex) */}
-            <div className="flex flex-col gap-2.5 w-full sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
-              {/* Row 1: Filter Bulan & Tahun (Grid 2-Kolom Seimbang di HP) */}
-              <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
-                <CustomSelect
-                  value={bulan}
-                  onValueChange={setBulan}
-                  icon={<Calendar className="h-3.5 w-3.5" />}
-                  className="w-full sm:w-auto"
-                  options={[
-                    { value: 'all', label: 'Semua Bulan' },
-                    ...BULAN_LABEL.map((label, i) => ({ value: String(i + 1).padStart(2, '0'), label })),
-                  ]}
-                />
-                <CustomSelect
-                  value={tahun}
-                  onValueChange={setTahun}
-                  className="w-full sm:w-auto"
-                  options={[
-                    { value: 'all', label: 'Semua Tahun' },
-                    ...yearOptions.map((y) => ({ value: y, label: y })),
-                  ]}
-                />
-              </div>
-
-              {/* Row 2: Tombol Aksi Utama (Tambahan Pemasukan & Export CSV) */}
-              {tab === 'dashboard' && (
+              {/* Header Right Action Controls */}
+              <div className="flex flex-col gap-2.5 w-full sm:w-auto sm:flex-row sm:flex-wrap sm:items-center pt-2 lg:pt-0 border-t border-slate-100 lg:border-t-0">
+                {/* Row 1: Filter Bulan & Tahun (Grid 2-Kolom Seimbang di HP) */}
                 <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
-                  <button
-                    onClick={() => setIsAddIncomeOpen(true)}
-                    className="flex-1 inline-flex h-9 min-h-[44px] sm:min-h-0 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span className="truncate">Tambahan Pemasukan</span>
-                  </button>
-
-                  <button
-                    onClick={handleExportCsv}
-                    className="flex-1 inline-flex h-9 min-h-[44px] sm:min-h-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Download className="h-3.5 w-3.5 text-slate-500" />
-                    <span>Export CSV</span>
-                  </button>
+                  <CustomSelect
+                    value={bulan}
+                    onValueChange={setBulan}
+                    icon={<Calendar className="h-3.5 w-3.5" />}
+                    className="w-full sm:w-auto h-10"
+                    options={[
+                      { value: 'all', label: 'Semua Bulan' },
+                      ...BULAN_LABEL.map((label, i) => ({ value: String(i + 1).padStart(2, '0'), label })),
+                    ]}
+                  />
+                  <CustomSelect
+                    value={tahun}
+                    onValueChange={setTahun}
+                    className="w-full sm:w-auto h-10"
+                    options={[
+                      { value: 'all', label: 'Semua Tahun' },
+                      ...yearOptions.map((y) => ({ value: y, label: y })),
+                    ]}
+                  />
                 </div>
-              )}
 
-              {/* Row 3: Live Status & Logout Controls */}
-              <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-                {/* Realtime Live Database Status Indicator */}
-                {syncState === 'live' ? (
-                  <span className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-sm">
-                    <Radio className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
-                    <span className="truncate">Live Firestore ({rawOrders.length} Order)</span>
-                  </span>
-                ) : (
-                  <span className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-sm">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    <span>Sinkron Rekening Bank</span>
-                  </span>
+                {/* Row 2: Tombol Aksi Utama (Tambahan Pemasukan & Export CSV) */}
+                {tab === 'dashboard' && (
+                  <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+                    <button
+                      onClick={() => setIsAddIncomeOpen(true)}
+                      className="flex-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="truncate">Tambah Kas</span>
+                    </button>
+
+                    <button
+                      onClick={handleExportCsv}
+                      className="flex-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+                    >
+                      <Download className="h-4 w-4 text-slate-500" />
+                      <span>Export CSV</span>
+                    </button>
+                  </div>
                 )}
 
-                {/* Quick Logout Button */}
-                <button
-                  onClick={logout}
-                  title="Keluar dari Sesi"
-                  className="inline-flex h-9 min-h-[44px] sm:min-h-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 shadow-xs hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer shrink-0"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                  <span className="inline sm:hidden xl:inline">Keluar</span>
-                </button>
+                {/* Row 3: Live Status Card & Logout Controls (Matched height h-10, solid executive look) */}
+                <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+                  {/* Realtime Live Database Status Card */}
+                  {syncState === 'live' ? (
+                    <div className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-emerald-300/90 bg-emerald-50/80 px-3.5 text-xs font-bold text-emerald-900 shadow-2xs">
+                      <span className="relative flex h-2 w-2 shrink-0">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                      </span>
+                      <span className="truncate font-semibold">Live Firestore</span>
+                      <span className="rounded-md bg-emerald-100/90 px-1.5 py-0.5 text-[10px] font-mono font-extrabold text-emerald-800 shrink-0">
+                        {rawOrders.length} Order
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-semibold text-emerald-700 shadow-2xs">
+                      <ShieldCheck className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Sinkron Rekening</span>
+                    </div>
+                  )}
+
+                  {/* Quick Logout Button */}
+                  <button
+                    onClick={logout}
+                    title="Keluar dari Sesi"
+                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-700 shadow-2xs hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.98] transition-transform duration-150 cursor-pointer shrink-0"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Keluar</span>
+                  </button>
+                </div>
               </div>
             </div>
-
           </div>
 
           {/* Conditional Sub-Tab Rendering */}
