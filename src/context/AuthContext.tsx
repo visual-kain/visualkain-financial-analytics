@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 function buildProfile(firebaseUser: User): UserProfile {
   return {
     name: firebaseUser.displayName || 'Glora Sawita Br Panjaitan',
-    shortName: 'Ibu Glora',
+    shortName: 'Glora Sawita',
     role: 'Head of Finance & Accounting',
     email: firebaseUser.email || '',
     initials: 'GS',

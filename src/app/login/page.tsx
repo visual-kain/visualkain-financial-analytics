@@ -83,7 +83,7 @@ export default function LoginPage() {
 
             {/* Executive Professional Greeting */}
             <h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
-              Selamat Datang Kembali, Ibu Glora
+              Selamat Datang Kembali
             </h1>
 
             {/* Executive Identity & Role Chip */}
