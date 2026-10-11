@@ -49,7 +49,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#E8ECF2] p-4 sm:p-6 lg:p-8 select-none">
+    <div className="relative flex min-h-screen items-center justify-center bg-[#E8ECF2] p-4 sm:p-6 lg:p-8 select-none overflow-hidden">
+      {/* Ambient Lighting Depth */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+
       {/* Background Subtle Accent Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:24px_24px] opacity-25 pointer-events-none" />
 
@@ -60,33 +63,41 @@ export default function LoginPage() {
         className="relative z-10 w-full max-w-md"
       >
         {/* Main Card */}
-        <div className="rounded-3xl border border-slate-200/90 bg-white p-7 sm:p-8 shadow-xl shadow-slate-900/5">
+        <div className="rounded-3xl border border-slate-200/90 bg-white/95 backdrop-blur-sm p-7 sm:p-8 shadow-xl shadow-slate-900/5">
           {/* Brand Header */}
           <div className="flex flex-col items-center text-center">
-            <div className="relative mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-md">
+            {/* Logo Container with Refined Elevation */}
+            <div className="relative mb-3.5 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-sm ring-1 ring-slate-900/[0.04]">
               <img
                 src="/img/logo.jpg"
-                alt="Logo Resmi VisualKain"
-                className="h-full w-full object-cover rounded-xl"
+                alt="Logo Resmi Visual Kain"
+                className="h-full w-full object-contain rounded-xl"
               />
             </div>
 
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-[11px] font-bold text-teal-800 tracking-wide mb-2.5">
+            {/* Company Badge (Without PT) */}
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-teal-200/80 bg-teal-50/80 px-3 py-1 text-[11px] font-bold text-teal-800 tracking-wider mb-2.5 shadow-2xs">
               <Building2 className="h-3.5 w-3.5 text-teal-600" />
-              PT VISUAL KAIN INDONESIA
+              VISUAL KAIN INDONESIA
             </div>
 
-            {/* Personalized Greeting for Kak Glora */}
+            {/* Executive Professional Greeting */}
             <h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
-              Selamat Datang, Kak Glora Sawita 👋
+              Selamat Datang Kembali, Ibu Glora
             </h1>
 
-            <div className="mt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50/80 px-2.5 py-1 rounded-lg border border-teal-100">
-              <CheckCircle2 className="h-3.5 w-3.5 text-teal-600" />
-              GLORA SAWITA BR PANJAITAN &bull; Head of Finance
+            {/* Executive Identity & Role Chip */}
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-slate-50/80 px-3.5 py-1 text-xs text-slate-700 shadow-2xs">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span className="font-semibold text-slate-900">Glora Sawita Br Panjaitan</span>
+              <span className="text-slate-300 font-normal">&bull;</span>
+              <span className="font-medium text-teal-700">Head of Finance</span>
             </div>
 
-            <p className="mt-2 text-xs text-slate-500 leading-relaxed max-w-xs">
+            <p className="mt-2.5 text-xs text-slate-500 leading-relaxed max-w-xs">
               Portal data keuangan terpadu, arus kas operasional riil &amp; rekonsiliasi vendor escrow.
             </p>
           </div>
@@ -129,8 +140,9 @@ export default function LoginPage() {
                 <label className="block text-xs font-bold text-slate-700">
                   Kata Sandi Otorisasi
                 </label>
-                <span className="text-[11px] text-slate-400 font-medium">
-                  Firebase Encrypted
+                <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+                  <Lock className="h-3 w-3 text-slate-400" />
+                  Terenkripsi 256-bit
                 </span>
               </div>
               <div className="relative">
@@ -169,7 +181,7 @@ export default function LoginPage() {
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>Memverifikasi Akun...</span>
+                  <span>Memverifikasi Otorisasi...</span>
                 </div>
               ) : (
                 <>
@@ -180,18 +192,30 @@ export default function LoginPage() {
             </button>
           </form>
 
-
           {/* Security & BCA Escrow Disclaimer */}
-          <div className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-slate-50 py-2.5 px-3 border border-slate-100 text-[11px] text-slate-500 text-center">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-            <span>Rekening Terhubung: BCA a.n. Glora Sawita Br Panjaitan</span>
+          <div className="mt-6 flex items-center justify-between rounded-xl bg-slate-50 py-2.5 px-3 border border-slate-100 text-[11px] text-slate-600">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span>
+                Rekening Terhubung: <span className="font-semibold text-slate-800">BCA a.n. Glora Sawita</span>
+              </span>
+            </div>
+            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60">
+              <CheckCircle2 className="h-2.5 w-2.5" />
+              Terverifikasi
+            </span>
           </div>
         </div>
 
         {/* Footer Copyright */}
-        <p className="mt-4 text-center text-[11px] font-medium text-slate-400">
-          &copy; 2026 PT Visual Kain Indonesia &bull; All Rights Reserved
-        </p>
+        <div className="mt-4 text-center space-y-1">
+          <p className="text-[11px] font-medium text-slate-400">
+            &copy; 2026 Visual Kain Indonesia &bull; All Rights Reserved
+          </p>
+          <p className="text-[10px] text-slate-400/80">
+            Sistem Finansial Eksekutif &bull; Akses Terenkripsi
+          </p>
+        </div>
       </motion.div>
     </div>
   );

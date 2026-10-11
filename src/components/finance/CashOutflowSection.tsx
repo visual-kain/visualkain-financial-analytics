@@ -195,6 +195,11 @@ export function CashOutflowSection({
       }));
   }, [filteredEntries]);
 
+  const peakDay = useMemo(() => {
+    if (!dailyTrendData.length) return null;
+    return [...dailyTrendData].sort((a, b) => b.nominal - a.nominal)[0];
+  }, [dailyTrendData]);
+
   const periodLabel =
     selectedPeriod === 'all'
       ? 'Semua Periode'
@@ -345,7 +350,7 @@ export function CashOutflowSection({
             </p>
           </div>
 
-          <div className="h-56 w-full my-2">
+          <div className="h-56 w-full my-2 relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -362,18 +367,41 @@ export function CashOutflowSection({
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value: unknown) => [formatRupiah(Number(value)), 'Jumlah']}
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    border: 'none',
-                    borderRadius: '0.75rem',
-                    color: '#fff',
-                    fontSize: '11px',
-                    fontFamily: 'monospace',
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const item = payload[0];
+                    const val = Number(item.value) || 0;
+                    const pct = totalDanaKeluar > 0 ? ((val / totalDanaKeluar) * 100).toFixed(1) : '0';
+                    return (
+                      <div className="rounded-xl border border-slate-700 bg-slate-900/95 p-2.5 shadow-xl backdrop-blur-sm text-xs min-w-[170px]">
+                        <div className="flex items-center gap-2 mb-1.5 border-b border-slate-800 pb-1">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: (item.payload as { color?: string })?.color || '#14b8a6' }}
+                          />
+                          <span className="font-semibold text-slate-200 truncate">{item.name}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-300">
+                          <span className="text-slate-400">Total:</span>
+                          <span className="font-mono font-bold text-white">{formatRupiah(val)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-400 text-[11px] mt-0.5">
+                          <span>Proporsi:</span>
+                          <span className="font-mono font-semibold text-teal-400">{pct}%</span>
+                        </div>
+                      </div>
+                    );
                   }}
                 />
               </PieChart>
             </ResponsiveContainer>
+            {/* Center Donut Label */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Kas</span>
+              <span className="text-sm font-extrabold text-slate-800 font-mono tabular-num">
+                {formatCompactRupiah(totalDanaKeluar)}
+              </span>
+            </div>
           </div>
 
           <div className="space-y-1.5 pt-2 border-t border-slate-100">
@@ -425,14 +453,21 @@ export function CashOutflowSection({
                   tickFormatter={formatCompactRupiah}
                 />
                 <Tooltip
-                  formatter={(val: unknown) => [formatRupiah(Number(val)), 'Pengeluaran']}
-                  labelFormatter={(lbl) => `Tanggal: ${lbl}`}
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    border: 'none',
-                    borderRadius: '0.75rem',
-                    color: '#fff',
-                    fontSize: '11px',
+                  cursor={{ fill: 'rgba(37, 99, 235, 0.08)' }}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    const val = Number(payload[0].value) || 0;
+                    return (
+                      <div className="rounded-xl border border-slate-700 bg-slate-900/95 p-2.5 shadow-xl backdrop-blur-sm text-xs min-w-[150px]">
+                        <div className="font-medium text-slate-400 border-b border-slate-800 pb-1 mb-1.5">
+                          Tanggal: <span className="text-white font-mono font-bold">{label}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Pengeluaran:</span>
+                          <span className="font-mono font-bold text-blue-400">{formatRupiah(val)}</span>
+                        </div>
+                      </div>
+                    );
                   }}
                 />
                 <Bar dataKey="nominal" fill="#2563eb" radius={[6, 6, 0, 0]} maxBarSize={36} />
@@ -441,7 +476,12 @@ export function CashOutflowSection({
           </div>
 
           <div className="text-[11px] text-slate-400 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 flex items-center justify-between">
-            <span>Puncak Kas Keluar: <strong>01 Okt (Gaji & Payroll)</strong></span>
+            <span>
+              Puncak Kas Keluar:{' '}
+              <strong className="text-slate-700">
+                {peakDay ? `${peakDay.fullDate} (${formatCompactRupiah(peakDay.nominal)})` : '-'}
+              </strong>
+            </span>
             <span className="text-blue-700 font-semibold">Terkontrol Sesuai Budget</span>
           </div>
         </div>

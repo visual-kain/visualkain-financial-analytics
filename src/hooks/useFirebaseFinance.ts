@@ -202,7 +202,7 @@ export function useFirebaseFinance(
                 tanggalOrder: tanggalInv,
                 totalInvoice: totalInv,
                 totalHpp: totalHpp,
-                targetMargin: Math.max(0, totalInv - totalHpp),
+                targetMargin: totals.profit,
                 totalQty: totals.totalPesanan,
                 biayaOperasional: Number(d.biayaOperasional || 0),
                 biayaTambahanVendor: Number(d.biayaTambahanVendor || d.biayaLainnya || 0),

@@ -533,7 +533,7 @@ function FinancialDashboardContent() {
                   <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
                   <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-slate-800 border border-slate-200/90 shadow-2xs">
                     <UserCheck className="h-3.5 w-3.5 text-teal-600" />
-                    <span>Halo, Kak Glora Sawita 👋</span>
+                    <span>Ibu Glora Sawita</span>
                   </span>
                   <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
                   <span className="text-xs text-slate-500 font-medium">

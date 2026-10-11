@@ -138,11 +138,14 @@ export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: Prof
     });
   }, [orders]);
 
+  const [filterMode, setFilterMode] = useState<'all' | 'deviated'>('all');
+
   // Variance & Analytics Calculations
   const varianceData = useMemo(() => {
     return orders.map((o) => {
-      const estimasi = o.targetMargin || Math.max(0, o.totalInvoice - o.totalHpp);
-      const aktual = o.profitAktual != null ? Number(o.profitAktual) : estimasi;
+      const estimasi = o.targetMargin ?? 0;
+      const hasManual = o.profitAktual != null && (o.profitAktual as unknown) !== '';
+      const aktual = hasManual ? Number(o.profitAktual) : estimasi;
       const delta = aktual - estimasi;
       return {
         id: o.id,
@@ -152,6 +155,7 @@ export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: Prof
         aktual,
         delta,
         isPositive: delta >= 0,
+        hasManual,
       };
     });
   }, [orders]);
@@ -159,6 +163,14 @@ export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: Prof
   const totalEstimasi = useMemo(() => varianceData.reduce((acc, v) => acc + v.estimasi, 0), [varianceData]);
   const totalAktual = useMemo(() => varianceData.reduce((acc, v) => acc + v.aktual, 0), [varianceData]);
   const netDelta = totalAktual - totalEstimasi;
+  const deviatedItems = useMemo(() => varianceData.filter((v) => v.delta !== 0), [varianceData]);
+
+  const chartData = useMemo(() => {
+    if (filterMode === 'deviated' && deviatedItems.length > 0) {
+      return deviatedItems;
+    }
+    return varianceData;
+  }, [varianceData, filterMode, deviatedItems]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return orders;
@@ -206,7 +218,7 @@ export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: Prof
           <div className="mt-2 text-xl font-extrabold text-slate-800 font-mono tabular-num">
             {formatRupiah(totalEstimasi)}
           </div>
-          <p className="mt-1 text-xs text-slate-400">Target laba kotor sebelum potongan</p>
+          <p className="mt-1 text-xs text-slate-400">Target laba bersih estimasi SPK ({orders.length} order)</p>
         </div>
 
         <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 shadow-card-double">
@@ -214,7 +226,7 @@ export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: Prof
           <div className="mt-2 text-xl font-extrabold text-teal-700 font-mono tabular-num">
             {formatRupiah(totalAktual)}
           </div>
-          <p className="mt-1 text-xs text-teal-800 font-medium">Realisasi bersih setelah belanja riil</p>
+          <p className="mt-1 text-xs text-teal-800 font-medium">Realisasi bersih setelah belanja riil lapangan</p>
         </div>
 
         <div
@@ -250,16 +262,16 @@ export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: Prof
               netDelta >= 0 ? 'text-emerald-800' : 'text-rose-800'
             }`}
           >
-            {netDelta >= 0
-              ? 'Surplus margin: efisiensi biaya vendor aman'
-              : 'Terjadi kebocoran biaya di luar quotation awal'}
+            {deviatedItems.length > 0
+              ? `Penyesuaian riil: ${deviatedItems.length} invoice (${deviatedItems.map((d) => d.noInv).join(', ')})`
+              : '100% On-Track: Sesuai estimasi SPK'}
           </p>
         </div>
       </div>
 
       {/* 🆕 VARIANCE DELTA WATERFALL BAR CHART */}
       <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-card-double">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 gap-3">
           <div>
             <div className="flex items-center gap-2">
               <BarChart2 className="h-4 w-4 text-teal-600" />
@@ -271,21 +283,47 @@ export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: Prof
               Grafik selisih keuntungan: Bar hijau = Surplus efisiensi &bull; Bar merah = Kebocoran biaya (ongkir/sablon tambahan)
             </p>
           </div>
-          <div className="flex items-center gap-3 text-xs">
-            <span className="flex items-center gap-1.5 text-emerald-700 font-bold">
-              <span className="h-3 w-3 rounded bg-emerald-500" />
-              Surplus (+Rp)
-            </span>
-            <span className="flex items-center gap-1.5 text-rose-700 font-bold">
-              <span className="h-3 w-3 rounded bg-rose-500" />
-              Defisit (-Rp)
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setFilterMode('all')}
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+                  filterMode === 'all'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Semua ({varianceData.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode('deviated')}
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+                  filterMode === 'deviated'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Hanya Berdeviasi ({deviatedItems.length})
+              </button>
+            </div>
+            <div className="hidden sm:flex items-center gap-3 text-xs pl-2">
+              <span className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                <span className="h-3 w-3 rounded bg-emerald-500" />
+                Surplus (+Rp)
+              </span>
+              <span className="flex items-center gap-1.5 text-rose-700 font-bold">
+                <span className="h-3 w-3 rounded bg-rose-500" />
+                Defisit (-Rp)
+              </span>
+            </div>
           </div>
         </div>
 
         <div className="h-64 w-full mt-4">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={varianceData} margin={{ top: 15, right: 20, left: 15, bottom: 0 }}>
+            <BarChart data={chartData} margin={{ top: 15, right: 20, left: 15, bottom: 0 }}>
               <XAxis dataKey="noInv" tick={{ fontSize: 11, fill: '#334155' }} axisLine={{ stroke: '#cbd5e1' }} />
               <YAxis
                 width={68}
@@ -294,25 +332,43 @@ export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: Prof
                 tickFormatter={formatCompactRupiah}
               />
               <Tooltip
-                formatter={(val: unknown) => [
-                  `${Number(val) >= 0 ? '+' : ''}${formatRupiah(Number(val))}`,
-                  'Deviasi Laba',
-                ]}
-                labelFormatter={(lbl) => `Invoice: ${lbl}`}
-                contentStyle={{
-                  backgroundColor: '#0f172a',
-                  border: 'none',
-                  borderRadius: '0.75rem',
-                  color: '#fff',
-                  fontSize: '11px',
+                cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const data = payload[0].payload;
+                  const isPositive = data.delta >= 0;
+                  return (
+                    <div className="rounded-xl border border-slate-700 bg-slate-900/95 p-3 shadow-xl backdrop-blur-sm text-xs min-w-[210px]">
+                      <div className="font-semibold text-slate-300 border-b border-slate-800 pb-1.5 mb-2 flex items-center justify-between">
+                        <span className="font-mono text-teal-400 font-bold">{data.noInv}</span>
+                        <span className="text-slate-400 truncate max-w-[120px]">{data.customer}</span>
+                      </div>
+                      <div className="space-y-1.5 text-slate-300">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400">Profit Estimasi:</span>
+                          <span className="font-mono font-medium text-slate-200">{formatRupiah(data.estimasi)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400">Profit Aktual:</span>
+                          <span className="font-mono font-medium text-teal-300">{formatRupiah(data.aktual)}</span>
+                        </div>
+                        <div className="flex justify-between items-center border-t border-slate-800 pt-1.5 font-bold">
+                          <span className={isPositive ? 'text-emerald-400' : 'text-rose-400'}>Deviasi Laba:</span>
+                          <span className={`font-mono ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {isPositive ? '+' : ''}{formatRupiah(data.delta)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
                 }}
               />
               <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
               <Bar dataKey="delta" maxBarSize={36} radius={[4, 4, 0, 0]}>
-                {varianceData.map((entry, index) => (
+                {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={entry.delta >= 0 ? '#10b981' : '#f43f5e'}
+                    fill={entry.delta === 0 ? '#cbd5e1' : entry.delta > 0 ? '#10b981' : '#f43f5e'}
                   />
                 ))}
               </Bar>
@@ -389,9 +445,9 @@ export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: Prof
                     </td>
                     <td className="px-4 py-2 bg-teal-50/30">
                       <CurrencyInput
-                        value={draft.hppAktual ? Number(draft.hppAktual) : 0}
+                        value={draft.hppAktual !== '' ? Number(draft.hppAktual) : ''}
                         onValueChange={(val) => updateDraft(o.id, { hppAktual: String(val) })}
-                        placeholder="Rp 0"
+                        placeholder={formatRupiah(o.totalHpp)}
                         className="h-8 w-32 rounded-lg border border-slate-200 bg-white px-2.5 font-mono text-xs tabular-num text-slate-800 focus:border-teal-500 focus:outline-none"
                       />
                     </td>
@@ -400,9 +456,9 @@ export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: Prof
                     </td>
                     <td className="px-4 py-2 bg-emerald-50/30">
                       <CurrencyInput
-                        value={draft.profitAktual ? Number(draft.profitAktual) : 0}
+                        value={draft.profitAktual !== '' ? Number(draft.profitAktual) : ''}
                         onValueChange={(val) => updateDraft(o.id, { profitAktual: String(val) })}
-                        placeholder="Rp 0"
+                        placeholder={formatRupiah(o.targetMargin)}
                         className="h-8 w-32 rounded-lg border border-slate-200 bg-white px-2.5 font-mono text-xs tabular-num text-emerald-700 font-bold focus:border-teal-500 focus:outline-none"
                       />
                     </td>
