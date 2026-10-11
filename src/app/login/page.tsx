@@ -16,11 +16,13 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+const DEFAULT_LOGIN_EMAIL = 'glora.sawita@visualkain.com';
+
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState(process.env.NEXT_PUBLIC_LOGIN_EMAIL_HINT || '');
+  const [email, setEmail] = useState(process.env.NEXT_PUBLIC_LOGIN_EMAIL_HINT || DEFAULT_LOGIN_EMAIL);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
