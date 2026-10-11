@@ -290,11 +290,12 @@ function FinancialDashboardContent() {
   const [isAddIncomeOpen, setIsAddIncomeOpen] = useState(false);
   const [activeMetricDrawer, setActiveMetricDrawer] = useState<MetricDrawerType | null>(null);
   const [drawerVendorFilter, setDrawerVendorFilter] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('2026-10');
+  const [bulan, setBulan] = useState<string>('all');
+  const [tahun, setTahun] = useState<string>('all');
   const [extraIncomes, setExtraIncomes] = useState<CashTransaction[]>([]);
   const [saldoAwal] = useState<number>(5000000);
 
-  // Firestore live sync
+  // Firestore live sync (seluruh koleksi orders + kas + vendors)
   const {
     orders: rawOrders,
     cashTransactions: rawCashTxs,
@@ -302,22 +303,65 @@ function FinancialDashboardContent() {
     updateOrderFinance,
   } = useFirebaseFinance(initialOrdersData, initialCashTransactions);
 
-  // Filter Data Berdasarkan Periode yang Dipilih
-  const filteredOrders = useMemo(() => {
-    if (selectedPeriod === 'all') return rawOrders;
-    return rawOrders.filter((o) => o.tanggalOrder.startsWith(selectedPeriod));
-  }, [rawOrders, selectedPeriod]);
+  // Periode kartu: default (Semua Bulan + Semua Tahun) = bulan berjalan,
+  // sedangkan tabel menampilkan SELURUH data. Aturan sama dengan VisualKainDB.
+  const now = new Date();
+  const curBulan = String(now.getMonth() + 1).padStart(2, '0');
+  const curTahun = String(now.getFullYear());
+  const isDefaultMode = bulan === 'all' && tahun === 'all';
+  const cardBulan = isDefaultMode ? curBulan : bulan;
+  const cardTahun = isDefaultMode ? curTahun : tahun;
+
+  const matchPeriod = (tanggal: string, b: string, y: string) => {
+    if (!tanggal) return false;
+    if (y !== 'all' && !tanggal.startsWith(y)) return false;
+    if (b !== 'all' && tanggal.slice(5, 7) !== b) return false;
+    return true;
+  };
+
+  const yearOptions = useMemo(() => {
+    const set = new Set<string>();
+    rawOrders.forEach((o) => o.tanggalOrder && set.add(o.tanggalOrder.slice(0, 4)));
+    rawCashTxs.forEach((t) => t.tanggal && set.add(t.tanggal.slice(0, 4)));
+    return [...set].sort().reverse();
+  }, [rawOrders, rawCashTxs]);
 
   const allCashTransactions = useMemo(() => {
     return [...extraIncomes, ...rawCashTxs];
   }, [extraIncomes, rawCashTxs]);
 
-  const filteredCashTxs = useMemo(() => {
-    if (selectedPeriod === 'all') return allCashTransactions;
-    return allCashTransactions.filter((t) => t.tanggal.startsWith(selectedPeriod));
-  }, [allCashTransactions, selectedPeriod]);
+  // Data tabel & seksi lain: mengikuti dropdown (default = semua data)
+  const filteredOrders = useMemo(
+    () => rawOrders.filter((o) => matchPeriod(o.tanggalOrder, bulan, tahun)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rawOrders, bulan, tahun]
+  );
+  const filteredCashTxs = useMemo(
+    () => allCashTransactions.filter((t) => matchPeriod(t.tanggal, bulan, tahun)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allCashTransactions, bulan, tahun]
+  );
 
-  const summary = calculateFinancialSummary(saldoAwal, filteredCashTxs, filteredOrders);
+  // Data kartu: mengikuti periode kartu
+  const cardOrders = useMemo(
+    () => rawOrders.filter((o) => matchPeriod(o.tanggalOrder, cardBulan, cardTahun)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rawOrders, cardBulan, cardTahun]
+  );
+  const cardCashTxs = useMemo(
+    () => allCashTransactions.filter((t) => matchPeriod(t.tanggal, cardBulan, cardTahun)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allCashTransactions, cardBulan, cardTahun]
+  );
+
+  const BULAN_LABEL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const cardPeriodLabel = `${cardBulan === 'all' ? 'Semua Bulan' : BULAN_LABEL[Number(cardBulan) - 1]} ${cardTahun === 'all' ? 'Semua Tahun' : cardTahun}`;
+  const selectedPeriod =
+    bulan === 'all' && tahun === 'all'
+      ? 'Semua Periode'
+      : `${bulan === 'all' ? 'Semua Bulan' : BULAN_LABEL[Number(bulan) - 1]} ${tahun === 'all' ? 'Semua Tahun' : tahun}`;
+
+  const summary = calculateFinancialSummary(saldoAwal, cardCashTxs, cardOrders);
   const masterRows = transformToMasterRows(filteredOrders);
 
   const viewTitles: Record<FinanceSubTab, { title: string; subtitle: string }> = {
@@ -409,8 +453,8 @@ function FinancialDashboardContent() {
         metricType={activeMetricDrawer}
         onClose={() => setActiveMetricDrawer(null)}
         summary={summary}
-        orders={filteredOrders}
-        transactions={filteredCashTxs}
+        orders={cardOrders}
+        transactions={cardCashTxs}
         saldoAwal={saldoAwal}
         initialVendorFilter={drawerVendorFilter}
         onOpenAddIncome={() => {
@@ -475,7 +519,7 @@ function FinancialDashboardContent() {
                   </span>
                   <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
                   <span className="text-xs text-slate-500 font-medium">
-                    {selectedPeriod === 'all' ? 'Semua Periode' : selectedPeriod === '2026-10' ? 'Oktober 2026' : 'September 2026'}
+                    {selectedPeriod}
                   </span>
                 </div>
                 <h1 className="mt-1 text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
@@ -490,13 +534,20 @@ function FinancialDashboardContent() {
             {/* Header Right Action Controls */}
             <div className="flex flex-wrap items-center gap-2.5">
               <CustomSelect
-                value={selectedPeriod}
-                onValueChange={setSelectedPeriod}
+                value={bulan}
+                onValueChange={setBulan}
                 icon={<Calendar className="h-3.5 w-3.5" />}
                 options={[
-                  { value: '2026-10', label: 'Oktober 2026', badge: 'Aktif' },
-                  { value: '2026-09', label: 'September 2026' },
-                  { value: 'all', label: 'Semua Periode' },
+                  { value: 'all', label: 'Semua Bulan' },
+                  ...BULAN_LABEL.map((label, i) => ({ value: String(i + 1).padStart(2, '0'), label })),
+                ]}
+              />
+              <CustomSelect
+                value={tahun}
+                onValueChange={setTahun}
+                options={[
+                  { value: 'all', label: 'Semua Tahun' },
+                  ...yearOptions.map((y) => ({ value: y, label: y })),
                 ]}
               />
 
@@ -556,12 +607,23 @@ function FinancialDashboardContent() {
                 totalKasKeluar={summary.totalKasKeluar}
               />
 
+              {/* Banner periode kartu (kartu = periode berjalan, tabel = seluruh data) */}
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white/70 px-3.5 py-2 text-xs text-slate-600">
+                <span>
+                  Laporan Update: <strong className="text-slate-900">{cardPeriodLabel}</strong>
+                  <span className="text-slate-400"> (kartu mengikuti bulan berjalan; ubah filter untuk periode lain)</span>
+                </span>
+                <span className="font-semibold text-slate-500 tabular-nums">
+                  Tabel: {filteredOrders.length} dari {rawOrders.length} order
+                </span>
+              </div>
+
               {/* 6 KPI Metric Cards with Interactive Slide-Over Detail Drawers */}
               <FinanceStatsGrid
                 summary={summary}
-                orders={filteredOrders}
-                orderCountWithDebt={filteredOrders.filter((o) => o.totalHpp > o.totalDibayarKeVendor).length}
-                activeOrderCount={filteredOrders.length}
+                orders={cardOrders}
+                orderCountWithDebt={cardOrders.filter((o) => o.totalHpp > o.totalDibayarKeVendor).length}
+                activeOrderCount={cardOrders.length}
                 onSelectMetric={(metric) => {
                   setActiveMetricDrawer(metric);
                 }}

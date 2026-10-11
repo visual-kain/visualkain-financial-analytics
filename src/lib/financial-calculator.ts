@@ -61,9 +61,10 @@ export function calculateFinancialSummary(
   let bebanOperasional = 0;
   let kasKeluarCount = 0;
 
+  // 1. Hitung seluruh kas keluar dari transaksi kas (Cash Outflow)
   for (const tx of transactions) {
     if (tx.tipe === 'masuk') {
-      totalKasMasuk += tx.nominal;
+      // transaksi kas masuk non-order
     } else {
       totalKasKeluar += tx.nominal;
       kasKeluarCount++;
@@ -72,8 +73,6 @@ export function calculateFinancialSummary(
       }
     }
   }
-
-  const saldoKasRiil = saldoAwal + totalKasMasuk - totalKasKeluar;
 
   let totalUtangVendor = 0;
   let totalPiutangCustomer = 0;
@@ -85,13 +84,16 @@ export function calculateFinancialSummary(
   let vendorDebtCount = 0;
   let unpaidCustomerCount = 0;
   let totalDibayarKeVendor = 0;
+  let totalUangMasukOrders = 0;
 
   for (const order of orders) {
-    const allocation = calculateEscrowAllocation(order);
-    totalUtangVendor += allocation.sisaUtangVendor;
-    totalPiutangCustomer += allocation.sisaPiutangCustomer;
-    totalMarginTerealisasi += allocation.alokasiMarginVisualKain;
+    const sisaUtangVendor = Math.max(0, order.totalHpp - (order.totalDibayarKeVendor || 0));
+    const sisaPiutangCustomer = Math.max(0, order.totalInvoice - (order.totalUangMasukCustomer || 0));
+
+    totalUtangVendor += sisaUtangVendor;
+    totalPiutangCustomer += sisaPiutangCustomer;
     totalDibayarKeVendor += order.totalDibayarKeVendor || 0;
+    totalUangMasukOrders += order.totalUangMasukCustomer || 0;
 
     omzetTotal += order.totalInvoice;
 
@@ -99,24 +101,27 @@ export function calculateFinancialSummary(
     const profitOrder = order.profitAktual ?? (order.totalInvoice - order.totalHpp - opEx);
     totalProfitRealtime += profitOrder;
 
-    const isLunas = order.statusPembayaran === 'lunas' || order.totalUangMasukCustomer >= order.totalInvoice;
+    const isLunas = order.statusOrder === 'completed' || order.statusPembayaran === 'lunas' || sisaPiutangCustomer <= 0;
     if (isLunas) {
       omzetLunasCount++;
     } else {
       omzetBerjalanCount++;
     }
 
-    if (allocation.sisaUtangVendor > 0) {
+    if (sisaUtangVendor > 0) {
       vendorDebtCount++;
     }
 
-    if (allocation.sisaPiutangCustomer > 0) {
+    if (sisaPiutangCustomer > 0) {
       unpaidCustomerCount++;
     }
   }
 
+  // VisualKainDB Saldo Formula: Uang Masuk Customer - DP Vendor Dibayar - Kas Keluar Operasional
+  totalKasMasuk = totalUangMasukOrders;
+  const saldoKasRiil = totalKasMasuk - totalDibayarKeVendor - totalKasKeluar;
   const profitMarginPercent = omzetTotal > 0 ? (totalProfitRealtime / omzetTotal) * 100 : 0;
-  const estimasiProfitBersih = totalMarginTerealisasi - bebanOperasional;
+  const estimasiProfitBersih = totalProfitRealtime - totalKasKeluar;
 
   return {
     saldoKasRiil,
@@ -134,9 +139,10 @@ export function calculateFinancialSummary(
     vendorDebtCount,
     unpaidCustomerCount,
     totalDibayarKeVendor,
-    bebanOperasionalNonVendor: bebanOperasional,
+    bebanOperasionalNonVendor: totalKasKeluar,
   };
 }
+
 
 /**
  * Mengelompokkan utang vendor per mitra untuk inspeksi drilldown
