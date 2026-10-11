@@ -372,42 +372,42 @@ export function VendorPerformanceSection({
         </div>
 
         {/* Mobile View: 2-Grid Vendor Cards (< 768px) */}
-        <div className="md:hidden grid grid-cols-2 gap-2.5 p-2.5 sm:p-3 bg-slate-50/40">
+        <div className="md:hidden grid grid-cols-2 gap-2 sm:gap-2.5 p-2 sm:p-3 bg-slate-50/40">
           {sortedVendors.map((item) => (
             <div
               key={item.vendorId}
-              className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs flex flex-col justify-between gap-2"
+              className="rounded-xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-2xs flex flex-col justify-between gap-1.5 overflow-hidden"
             >
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 text-[9px] font-bold">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 text-[8.5px] font-bold">
                     {item.vendorNama.slice(0, 2)}
                   </span>
-                  <h4 className="text-xs font-bold text-slate-900 truncate" title={item.vendorNama}>
+                  <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 truncate" title={item.vendorNama}>
                     {item.vendorNama}
                   </h4>
                 </div>
-                <p className="mt-1 text-[10px] text-slate-500 font-semibold font-mono">
+                <p className="mt-0.5 text-[9px] sm:text-[9.5px] text-slate-500 font-semibold font-mono truncate">
                   {item.orderCount} Order &bull; {item.pcsTotal} Pcs
                 </p>
               </div>
 
-              <div className="rounded-lg bg-slate-50/90 p-2 space-y-1 text-[10px]">
-                <div className="flex justify-between items-center text-slate-500">
-                  <span>HPP:</span>
-                  <span className="font-mono font-bold text-slate-800 truncate">
+              <div className="rounded-lg bg-slate-50/90 p-1.5 sm:p-2 space-y-0.5 text-[9px] sm:text-[9.5px]">
+                <div className="flex justify-between items-center text-slate-500 min-w-0">
+                  <span className="truncate">HPP:</span>
+                  <span className="font-mono font-bold text-slate-800 truncate text-[9px] sm:text-[9.5px]">
                     {formatRupiah(item.hppAktual > 0 ? item.hppAktual : item.hppQuotation)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-emerald-800 font-semibold">
-                  <span>Profit:</span>
-                  <span className="font-mono font-bold text-emerald-600 truncate">
+                <div className="flex justify-between items-center text-emerald-800 font-semibold min-w-0">
+                  <span className="truncate">Profit:</span>
+                  <span className="font-mono font-bold text-emerald-600 truncate text-[9px] sm:text-[9.5px]">
                     {formatRupiah(item.profit)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-slate-600 pt-0.5 border-t border-slate-200/60">
-                  <span>Margin:</span>
-                  <span className={`font-mono font-bold ${item.marginPercent < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                <div className="flex justify-between items-center text-slate-600 pt-0.5 border-t border-slate-200/60 min-w-0">
+                  <span className="truncate">Margin:</span>
+                  <span className={`font-mono font-bold text-[9px] sm:text-[9.5px] ${item.marginPercent < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
                     {item.marginPercent.toFixed(1)}%
                   </span>
                 </div>

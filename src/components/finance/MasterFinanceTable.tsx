@@ -117,7 +117,7 @@ export function MasterFinanceTable({
         <span
           className={cn(
             'inline-flex items-center justify-center rounded-full bg-blue-50 font-bold text-blue-600 border border-blue-200',
-            compact ? 'px-2 py-0.5 text-[9px]' : 'px-3.5 py-1 text-xs shadow-sm'
+            compact ? 'px-1.5 py-0.5 text-[8px] sm:text-[8.5px] leading-tight tracking-tight' : 'px-3.5 py-1 text-xs shadow-sm'
           )}
         >
           PRODUKSI
@@ -129,7 +129,7 @@ export function MasterFinanceTable({
         <span
           className={cn(
             'inline-flex items-center justify-center rounded-full bg-emerald-50 font-bold text-emerald-600 border border-emerald-200',
-            compact ? 'px-2 py-0.5 text-[9px]' : 'px-3.5 py-1 text-xs shadow-sm'
+            compact ? 'px-1.5 py-0.5 text-[8px] sm:text-[8.5px] leading-tight tracking-tight' : 'px-3.5 py-1 text-xs shadow-sm'
           )}
         >
           SELESAI
@@ -141,7 +141,7 @@ export function MasterFinanceTable({
         <span
           className={cn(
             'inline-flex items-center justify-center rounded-full bg-amber-50 font-bold text-amber-700 border border-amber-200',
-            compact ? 'px-2 py-0.5 text-[9px]' : 'px-3.5 py-1 text-xs shadow-sm'
+            compact ? 'px-1.5 py-0.5 text-[8px] sm:text-[8.5px] leading-tight tracking-tight' : 'px-3.5 py-1 text-xs shadow-sm'
           )}
         >
           PEMBAYARAN
@@ -152,7 +152,7 @@ export function MasterFinanceTable({
       <span
         className={cn(
           'inline-flex items-center justify-center rounded-full bg-slate-100 font-semibold text-slate-700 border border-slate-200',
-          compact ? 'px-2 py-0.5 text-[9px]' : 'px-3 py-1 text-xs shadow-sm'
+          compact ? 'px-1.5 py-0.5 text-[8px] sm:text-[8.5px] leading-tight tracking-tight' : 'px-3 py-1 text-xs shadow-sm'
         )}
       >
         {s || 'ANTREAN'}
@@ -199,7 +199,7 @@ export function MasterFinanceTable({
 
   // Mobile Order Card View (< 768px - Adaptive Ergonomic 2-Grid Layout)
   const renderMobileCardContent = () => (
-    <div className="p-2.5 sm:p-3 grid grid-cols-2 gap-2.5 bg-slate-50/40">
+    <div className="p-2 sm:p-3 grid grid-cols-2 gap-2 sm:gap-2.5 bg-slate-50/40">
       {filteredRows.length === 0 ? (
         <div className="col-span-2 py-12 text-center text-slate-400 text-xs">
           Tidak ada order yang cocok dengan kriteria pencarian / filter.
@@ -208,76 +208,76 @@ export function MasterFinanceTable({
         filteredRows.map((row) => (
           <div
             key={row.id}
-            className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-3 shadow-card-double hover:border-teal-300 transition-all duration-200 gap-2.5"
+            className="flex flex-col justify-between rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-card-double hover:border-teal-300 transition-all duration-200 gap-2 overflow-hidden"
           >
-            {/* 1. Header: No Inv & Status Badge (Untruncated, clean alignment) */}
-            <div className="flex items-center justify-between gap-1 border-b border-slate-100 pb-2">
-              <span className="font-mono text-[11px] font-black tracking-tight text-teal-900 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200/90 whitespace-nowrap">
+            {/* 1. Header: No Inv & Status Badge (Clean fit, anti-overflow) */}
+            <div className="flex items-center justify-between gap-1 border-b border-slate-100 pb-1.5 min-w-0">
+              <span className="font-mono text-[9.5px] sm:text-[10px] font-black tracking-tight text-teal-900 bg-teal-50 px-1.5 py-0.5 rounded-md border border-teal-200/90 whitespace-nowrap shrink-0">
                 {row.noInv}
               </span>
               <div className="shrink-0">{renderStatusBadge(row.statusOrder, true)}</div>
             </div>
 
             {/* 2. Customer & Project Info */}
-            <div className="space-y-0.5">
-              <h4 className="text-xs font-bold text-slate-900 leading-snug line-clamp-1" title={row.namaCustomer}>
+            <div className="space-y-0.5 min-w-0">
+              <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 leading-snug truncate" title={row.namaCustomer}>
                 {row.namaCustomer}
               </h4>
-              <p className="text-[10px] text-slate-400 font-medium truncate" title={row.namaProject}>
+              <p className="text-[9px] sm:text-[9.5px] text-slate-400 font-medium truncate" title={row.namaProject}>
                 {row.namaProject} &bull; <span className="font-bold text-slate-600">{row.totalQty} pcs</span>
               </p>
             </div>
 
-            {/* 3. Hero Metric: Omzet Order (Clean, Spacious, High-Contrast) */}
-            <div>
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">
+            {/* 3. Hero Metric: Omzet Order */}
+            <div className="min-w-0">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400 block leading-tight">
                 Total Omzet
               </span>
-              <div className="font-mono text-sm sm:text-base font-extrabold text-slate-900 tracking-tight tabular-nums">
+              <div className="font-mono text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight tabular-nums truncate">
                 {formatRupiah(row.totalJumlah)}
               </div>
             </div>
 
             {/* 4. Sub-Metrics: Terbayar vs Sisa (Clean 2-Box Tile) */}
-            <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-              <div className="rounded-lg bg-teal-50/70 p-1.5 border border-teal-100/90">
-                <span className="text-teal-700/80 block text-[9px] font-medium">Terbayar</span>
-                <span className="font-mono font-bold text-teal-800 tabular-nums truncate block">
+            <div className="grid grid-cols-2 gap-1 text-[9px] min-w-0">
+              <div className="rounded-md bg-teal-50/70 p-1 sm:p-1.5 border border-teal-100/90 min-w-0">
+                <span className="text-teal-700/80 block text-[8px] font-medium leading-none mb-0.5 truncate">Terbayar</span>
+                <span className="font-mono font-bold text-teal-800 tabular-nums truncate block text-[9px] sm:text-[10px]">
                   {formatCompactRupiah(row.nominalDpCustomer)}
                 </span>
               </div>
               <div className={cn(
-                "rounded-lg p-1.5 border",
+                "rounded-md p-1 sm:p-1.5 border min-w-0",
                 row.sisaPelunasanCustomer > 0
                   ? "bg-amber-50/70 border-amber-100/90 text-amber-800"
                   : "bg-emerald-50/70 border-emerald-100/90 text-emerald-800"
               )}>
-                <span className="block text-[9px] font-medium opacity-80">
+                <span className="block text-[8px] font-medium opacity-80 leading-none mb-0.5 truncate">
                   {row.sisaPelunasanCustomer > 0 ? 'Sisa Piutang' : 'Status'}
                 </span>
-                <span className="font-mono font-bold tabular-nums truncate block">
+                <span className="font-mono font-bold tabular-nums truncate block text-[9px] sm:text-[10px]">
                   {row.sisaPelunasanCustomer > 0 ? formatCompactRupiah(row.sisaPelunasanCustomer) : 'LUNAS'}
                 </span>
               </div>
             </div>
 
             {/* 5. Profit Row */}
-            <div className="flex items-center justify-between text-[10px] px-0.5 text-slate-500">
-              <span className="font-medium">Profit ({row.profitPercent.toFixed(0)}%):</span>
-              <span className="font-mono font-bold text-emerald-600">
+            <div className="flex items-center justify-between text-[8.5px] sm:text-[9px] px-0.5 text-slate-500 min-w-0">
+              <span className="font-medium truncate">Profit ({row.profitPercent.toFixed(0)}%):</span>
+              <span className="font-mono font-bold text-emerald-600 shrink-0 text-[9px] sm:text-[9.5px]">
                 +{formatCompactRupiah(row.profitBersih)}
               </span>
             </div>
 
             {/* 6. Touch Action Buttons */}
-            <div className="pt-1 grid grid-cols-2 gap-1.5 border-t border-slate-100">
+            <div className="pt-1 grid grid-cols-2 gap-1 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => onEditFinance?.(row)}
                 title="Edit Finansial"
-                className="h-8.5 min-h-[36px] flex items-center justify-center gap-1 rounded-xl bg-teal-600 px-2 text-[11px] font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-[0.97] transition-transform duration-150 cursor-pointer"
+                className="h-7 sm:h-7.5 flex items-center justify-center gap-1 rounded-lg bg-teal-600 px-1.5 text-[10px] font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-[0.97] transition-transform duration-150 cursor-pointer"
               >
-                <Pencil className="h-3.5 w-3.5 shrink-0" />
+                <Pencil className="h-3 w-3 shrink-0" />
                 <span>Edit</span>
               </button>
 
@@ -285,9 +285,9 @@ export function MasterFinanceTable({
                 type="button"
                 onClick={() => onSelectRow?.(row)}
                 title="Inspeksi Detail Order"
-                className="h-8.5 min-h-[36px] flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2 text-[11px] font-bold text-slate-700 hover:bg-slate-100 active:scale-[0.97] transition-transform duration-150 cursor-pointer"
+                className="h-7 sm:h-7.5 flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1.5 text-[10px] font-bold text-slate-700 hover:bg-slate-100 active:scale-[0.97] transition-transform duration-150 cursor-pointer"
               >
-                <Eye className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                <Eye className="h-3 w-3 shrink-0 text-slate-500" />
                 <span>Detail</span>
               </button>
             </div>
