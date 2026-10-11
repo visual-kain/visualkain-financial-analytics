@@ -19,6 +19,9 @@ interface SidebarProps {
   onSelectTab: (tab: FinanceSubTab) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  userName?: string;
+  userRole?: string;
+  onLogout?: () => void;
 }
 
 export function Sidebar({
@@ -26,6 +29,9 @@ export function Sidebar({
   onSelectTab,
   isCollapsed,
   onToggleCollapse,
+  userName = 'Glora Sawita Br Panjaitan',
+  userRole = 'Head of Finance & Accounting',
+  onLogout,
 }: SidebarProps) {
   const tabs = [
     {
@@ -74,54 +80,63 @@ export function Sidebar({
     >
       <div>
         {/* Brand Logo, Title & Collapse Toggle */}
-        <div
-          className={`flex items-center border-b border-slate-100 pb-4 pt-1 ${
-            isCollapsed ? 'justify-center' : 'justify-between px-1'
-          }`}
-        >
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
+        {isCollapsed ? (
+          <div className="flex flex-col items-center border-b border-slate-100 pb-3 pt-1 gap-2.5">
+            <button
+              onClick={onToggleCollapse}
+              title="Perluas Sidebar (Ctrl+B)"
+              className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-xs hover:border-teal-500 hover:shadow-sm transition-all active:scale-95 group cursor-pointer"
+            >
               <img
                 src="/img/logo.jpg"
                 alt="VisualKain Logo"
                 className="h-full w-full object-cover"
               />
+            </button>
+            <button
+              onClick={onToggleCollapse}
+              title="Perluas Sidebar (Ctrl+B)"
+              className="flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 active:scale-95 transition-all cursor-pointer"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4 pt-1 px-1">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
+                <img
+                  src="/img/logo.jpg"
+                  alt="VisualKain Logo"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden whitespace-nowrap"
+              >
+                <h1 className="text-sm font-bold tracking-tight text-slate-900 leading-none">
+                  VisualKain
+                </h1>
+                <p className="text-[11px] font-medium text-slate-400 mt-1">
+                  Financial &amp; Analytics 2026
+                </p>
+              </motion.div>
             </div>
 
-            <AnimatePresence>
-              {!isCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden whitespace-nowrap"
-                >
-                  <h1 className="text-sm font-bold tracking-tight text-slate-900 leading-none">
-                    VisualKain
-                  </h1>
-                  <p className="text-[11px] font-medium text-slate-400 mt-1">
-                    Financial & Analytics 2026
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <button
-            onClick={onToggleCollapse}
-            title={isCollapsed ? 'Perluas Sidebar (Ctrl+B)' : 'Perkecil Sidebar (Ctrl+B)'}
-            className={`flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800 active:scale-95 transition-all ${
-              isCollapsed ? 'mt-3' : ''
-            }`}
-          >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
+            <button
+              onClick={onToggleCollapse}
+              title="Perkecil Sidebar (Ctrl+B)"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800 active:scale-95 transition-all cursor-pointer"
+            >
               <ChevronLeft className="h-4 w-4" />
-            )}
-          </button>
-        </div>
+            </button>
+          </div>
+        )}
 
         {/* Navigation Group */}
         <div className="mt-6">
@@ -214,35 +229,53 @@ export function Sidebar({
 
       {/* User Profile & Logout */}
       <div className="border-t border-slate-100 pt-3">
-        <div
-          className={`flex items-center ${
-            isCollapsed ? 'justify-center flex-col gap-2' : 'justify-between'
-          }`}
-        >
-          <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white font-bold text-xs shadow-sm">
-              RP
+        {isCollapsed ? (
+          <div className="flex flex-col items-center gap-2">
+            <div
+              title={`${userName} (${userRole})`}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-800 text-white font-bold text-xs shadow-sm"
+            >
+              GS
             </div>
-            {!isCollapsed && (
-              <div className="truncate">
-                <div className="text-xs font-bold text-slate-800 leading-none">
-                  Raja Purnama
-                </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">
-                  Owner & Director
-                </div>
-              </div>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                title="Keluar Sesi"
+                className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
             )}
           </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-800 text-white font-bold text-xs shadow-sm">
+                GS
+              </div>
+              <div className="truncate">
+                <div className="text-xs font-bold text-slate-800 leading-none truncate">
+                  {userName}
+                </div>
+                <div className="text-[10px] text-teal-700 font-medium mt-0.5 truncate">
+                  {userRole}
+                </div>
+              </div>
+            </div>
 
-          <button
-            title="Keluar"
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 active:scale-95 transition-all"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                title="Keluar Sesi"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </aside>
+
   );
 }

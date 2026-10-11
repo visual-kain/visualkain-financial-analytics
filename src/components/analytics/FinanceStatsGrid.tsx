@@ -12,7 +12,6 @@ import {
   HandCoins,
   Receipt,
   ArrowRight,
-  ChevronDown,
 } from 'lucide-react';
 
 interface FinanceStatsGridProps {
@@ -21,7 +20,7 @@ interface FinanceStatsGridProps {
   orders?: Order[];
   orderCountWithDebt?: number;
   activeOrderCount?: number;
-  onSelectMetric?: (metric: MetricDrawerType, vendorFilter?: string) => void;
+  onSelectMetric?: (metric: MetricDrawerType) => void;
 }
 
 export function FinanceStatsGrid({
@@ -32,40 +31,7 @@ export function FinanceStatsGrid({
   activeOrderCount = 6,
   onSelectMetric,
 }: FinanceStatsGridProps) {
-  const [selectedVendor, setSelectedVendor] = useState<string>('all');
 
-  // Vendor list unik dari orders
-  const vendorList = useMemo(() => {
-    const map = new Map<string, { debt: number; count: number }>();
-    orders.forEach((o) => {
-      const v = o.vendorName || 'Umum';
-      const debt = Math.max(0, o.totalHpp - o.totalDibayarKeVendor);
-      const current = map.get(v) ?? { debt: 0, count: 0 };
-      current.debt += debt;
-      if (debt > 0) current.count += 1;
-      map.set(v, current);
-    });
-    return Array.from(map.entries()).map(([name, data]) => ({
-      name,
-      debt: data.debt,
-      count: data.count,
-    }));
-  }, [orders]);
-
-  // Kalkulasi utang vendor berdasarkan vendor terpilih di kartu
-  const vendorCardData = useMemo(() => {
-    if (selectedVendor === 'all') {
-      return {
-        amount: summary?.totalUtangVendor ?? 0,
-        count: summary?.vendorDebtCount ?? orderCountWithDebt,
-      };
-    }
-    const found = vendorList.find((v) => v.name === selectedVendor);
-    return {
-      amount: found?.debt ?? 0,
-      count: found?.count ?? 0,
-    };
-  }, [selectedVendor, vendorList, summary, orderCountWithDebt]);
 
   if (isLoading || !summary) {
     return (
@@ -207,15 +173,12 @@ export function FinanceStatsGrid({
         </p>
       </div>
 
-      {/* 5. Utang Vendor (dengan Inline Vendor Select Filter) */}
+      {/* 5. Utang Vendor */}
       <div
         role="button"
         tabIndex={0}
-        onClick={() => onSelectMetric?.('vendor_debt', selectedVendor !== 'all' ? selectedVendor : undefined)}
-        onKeyDown={(e) =>
-          (e.key === 'Enter' || e.key === ' ') &&
-          onSelectMetric?.('vendor_debt', selectedVendor !== 'all' ? selectedVendor : undefined)
-        }
+        onClick={() => onSelectMetric?.('vendor_debt')}
+        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectMetric?.('vendor_debt')}
         className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-4 shadow-card-double transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-card-hover cursor-pointer"
       >
         <div>
@@ -231,37 +194,16 @@ export function FinanceStatsGrid({
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-1">
-            <h4 className="text-xs font-semibold text-slate-500">
-              Utang Vendor
-            </h4>
-            {vendorList.length > 0 && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="relative inline-block"
-              >
-                <select
-                  value={selectedVendor}
-                  onChange={(e) => setSelectedVendor(e.target.value)}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-bold text-slate-700 focus:border-amber-400 focus:outline-none"
-                >
-                  <option value="all">Semua</option>
-                  {vendorList.map((v) => (
-                    <option key={v.name} value={v.name}>
-                      {v.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
+          <h4 className="mt-3 text-xs font-semibold text-slate-500">
+            Utang Vendor
+          </h4>
 
           <div className="mt-1 text-lg font-bold tracking-tight text-slate-900 tabular-nums">
-            {formatRupiah(vendorCardData.amount)}
+            {formatRupiah(summary.totalUtangVendor)}
           </div>
         </div>
         <p className="mt-2 text-[11px] text-slate-400 font-medium">
-          {vendorCardData.count} PO berjalan
+          {summary.vendorDebtCount} PO berjalan
         </p>
       </div>
 

@@ -18,6 +18,7 @@ import { ProfitAktualSection } from '@/components/finance/ProfitAktualSection';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { calculateFinancialSummary } from '@/lib/financial-calculator';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
+import { useAuth } from '@/context/AuthContext';
 import type {
   FinanceSubTab,
   Order,
@@ -35,8 +36,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Radio,
+  LogOut,
+  UserCheck,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+
 
 // Initial Seed Dataset (Fallback & Ground Truth)
 const initialOrdersData: Order[] = [
@@ -272,12 +276,14 @@ function transformToMasterRows(orders: Order[]): MasterFinanceRow[] {
 }
 
 function FinancialDashboardContent() {
+  const { profile, logout } = useAuth();
   const [tab, setTab] = useQueryState<FinanceSubTab>('tab', {
     defaultValue: 'dashboard',
     parse: (v) => (['dashboard', 'cashout', 'vendor', 'manual'].includes(v) ? (v as FinanceSubTab) : 'dashboard'),
   });
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   const [selectedOrder, setSelectedOrder] = useState<MasterFinanceRow | null>(null);
   const [editingOrder, setEditingOrder] = useState<MasterFinanceRow | null>(null);
   const [previewInvoiceOrder, setPreviewInvoiceOrder] = useState<MasterFinanceRow | null>(null);
@@ -385,7 +391,11 @@ function FinancialDashboardContent() {
         onSelectTab={setTab}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
+        userName={profile?.name || 'Glora Sawita Br Panjaitan'}
+        userRole={profile?.role || 'Head of Finance & Accounting'}
+        onLogout={logout}
       />
+
 
       {/* 2. Slide-Over Order Inspection Drawer */}
       <OrderInspectionDrawer
@@ -454,11 +464,16 @@ function FinancialDashboardContent() {
               </button>
 
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-700 border border-teal-200">
                     VisualKain Financial 2026
                   </span>
-                  <span className="text-xs text-slate-400">&bull;</span>
+                  <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-slate-800 border border-slate-200/90 shadow-2xs">
+                    <UserCheck className="h-3.5 w-3.5 text-teal-600" />
+                    <span>Halo, Kak Glora Sawita 👋</span>
+                  </span>
+                  <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
                   <span className="text-xs text-slate-500 font-medium">
                     {selectedPeriod === 'all' ? 'Semua Periode' : selectedPeriod === '2026-10' ? 'Oktober 2026' : 'September 2026'}
                   </span>
@@ -517,7 +532,18 @@ function FinancialDashboardContent() {
                   Sinkron Rekening Bank
                 </span>
               )}
+
+              {/* Quick Logout Button */}
+              <button
+                onClick={logout}
+                title="Keluar dari Sesi"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 shadow-xs hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden xl:inline">Keluar</span>
+              </button>
             </div>
+
           </div>
 
           {/* Conditional Sub-Tab Rendering */}
@@ -536,9 +562,8 @@ function FinancialDashboardContent() {
                 orders={filteredOrders}
                 orderCountWithDebt={filteredOrders.filter((o) => o.totalHpp > o.totalDibayarKeVendor).length}
                 activeOrderCount={filteredOrders.length}
-                onSelectMetric={(metric, vendorFilter) => {
+                onSelectMetric={(metric) => {
                   setActiveMetricDrawer(metric);
-                  setDrawerVendorFilter(vendorFilter || null);
                 }}
               />
 

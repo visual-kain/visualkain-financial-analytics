@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import { AppProviders } from '@/components/providers/AppProviders';
 
 export const metadata: Metadata = {
   title: 'VisualKain Financial Data & Analytics',
@@ -28,8 +28,9 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-[#e6ecf2] antialiased">
-        <NuqsAdapter>{children}</NuqsAdapter>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
 }
+

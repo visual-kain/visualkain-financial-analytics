@@ -28,6 +28,7 @@ import {
   Plus,
   Filter,
 } from 'lucide-react';
+import { CustomSelect } from '@/components/ui/custom-select';
 
 interface MetricDetailDrawerProps {
   isOpen: boolean;
@@ -92,6 +93,13 @@ export function MetricDetailDrawer({
     });
     return Array.from(set).sort();
   }, [orders]);
+
+  const vendorOptions = useMemo(() => {
+    return [
+      { value: 'all', label: 'Semua Vendor' },
+      ...vendorList.map((v) => ({ value: v, label: v })),
+    ];
+  }, [vendorList]);
 
   // Filter Orders sesuai pencarian dan filter aktif
   const filteredOrders = useMemo(() => {
@@ -438,19 +446,14 @@ export function MetricDetailDrawer({
                   )}
 
                   {metricType === 'vendor_debt' && vendorList.length > 0 && (
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                      <select
+                    <div className="w-full sm:w-52 shrink-0">
+                      <CustomSelect
                         value={selectedVendorFilter}
-                        onChange={(e) => setSelectedVendorFilter(e.target.value)}
-                        className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:border-teal-500 focus:outline-none"
-                      >
-                        <option value="all">Semua Vendor</option>
-                        {vendorList.map((v) => (
-                          <option key={v} value={v}>
-                            {v}
-                          </option>
-                        ))}
-                      </select>
+                        onValueChange={setSelectedVendorFilter}
+                        icon={<Building2 className="h-3.5 w-3.5" />}
+                        options={vendorOptions}
+                        placeholder="Semua Vendor"
+                      />
                     </div>
                   )}
                 </div>
