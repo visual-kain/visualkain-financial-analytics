@@ -783,6 +783,9 @@ const htmlContent = `<!DOCTYPE html>
       <li><strong>Format Input Nominal Rupiah Baku (Rp 1.420.000):</strong> Seluruh formulir finansial dilengkapi pemisah ribuan otomatis dengan kursor halus, mencegah kesalahan ketik nilai nol (<em>zero-digit human error</em>).</li>
       <li><strong>Freeze Column & Mode Layar Penuh (Expanded Table):</strong> Tabel master finansial dilengkapi pembekuan kolom No. Invoice & Nama Customer, serta tombol ekspansi penuh untuk audit data besar.</li>
       <li><strong>Follow-Up Tagihan 1-Klik via WhatsApp:</strong> 3 draf pesan formal terintegrasi otomatis untuk menagih kekurangan DP, mengabarkan pesanan naik potong, dan konfirmasi pelunasan.</li>
+      <li><strong>Otentikasi Khusus & Sapaan Eksekutif Kak Glora:</strong> Dilengkapi halaman login elegan dengan hint email otomatis (<code>glora.sawita@visualkain.com</code>), password default (<code>Glora32145</code>), dan sapaan personal eksklusif <em>"Ibu Glora"</em> (Head of Finance & Accounting).</li>
+      <li><strong>Pengakuan DP Kas Riil Real-Time & Aturan Peringatan Defisit:</strong> Seluruh uang transfer DP atau termin cicilan langsung diakui dan menambah saldo kas riil saat itu juga (tidak di-hold sampai lunas). Jika kas mengalami posisi minus, sistem secara otomatis menampilkan warna <strong>Merah Rose Warning</strong> dengan ikon peringatan informatif.</li>
+      <li><strong>Sinkronisasi Penuh Database Live Firebase:</strong> Menarik seluruh 41 data order live (VK260001 s/d VK260041), seluruh rekanan vendor (Sablon, Bordir, CMT), dan mutasi kas keluar secara lengkap tanpa ada transaksi yang terlewat.</li>
     </ol>
   </div>
 
@@ -953,25 +956,34 @@ Nett Profit (Laba Bersih Operasional) = Gross Profit - Biaya Operasional Invoice
 
   <div class="formula-box">
     <div class="formula-header">
-      <span>4.7. Formula Rekonsiliasi & Deviasi Laba Lapangan (Variance)</span>
-      <span class="badge-pill badge-slate">Audit Laba</span>
+      <span>4.7. Formula Rekonsiliasi & Deviasi Laba Lapangan (Variance Analysis)</span>
+      <span class="badge-pill badge-slate">Audit Laba 3 Kartu</span>
     </div>
-    <div class="formula-math">Deviasi Margin Lapangan (Δ) = Profit Aktual Lapangan - Target Margin Estimasi</div>
+    <div class="formula-math">Deviasi Margin Lapangan (Δ) = Profit Aktual Lapangan - Target Margin Estimasi SPK</div>
     <div class="formula-desc">
-      <ul>
-        <li>Jika <strong>Δ ≥ 0</strong>: <strong>Efisiensi Positif (Surplus)</strong> $\rightarrow$ Diagram batang hijau emerald.</li>
-        <li>Jika <strong>Δ &lt; 0</strong>: <strong>Pembengkakan Biaya (Defisit)</strong> $\rightarrow$ Diagram batang merah rose sebagai bahan audit.</li>
+      <p style="margin: 2px 0 4px 0;"><strong>Penjelasan 3 Kartu Indikator Rekonsiliasi Finansial:</strong></p>
+      <ul style="margin: 0; padding-left: 16px;">
+        <li><strong>Total Profit Estimasi (Rp 31.136.500):</strong> Target laba bersih sah SPK dari seluruh 41 pesanan aktif.</li>
+        <li><strong>Total Profit Aktual (Rp 31.070.500):</strong> Realisasi bersih setelah memperhitungkan nota belanja riil lapangan.</li>
+        <li><strong>Net Deviasi Margin (-Rp 66.000):</strong> Selisih riil penyesuaian belanja riil lapangan.</li>
       </ul>
+      <p style="margin: 4px 0 2px 0;"><strong>Hasil Audit Database Live (41 Pesanan):</strong> 39 pesanan berjalan 100% on-track (Δ = Rp 0). Deviasi riil hanya berasal dari 2 pesanan lapangan: <code>VK260038</code> (ongkir tambahan, defisit -Rp 100.000) dan <code>VK260041</code> (surplus sablon +Rp 34.000). Rumus lama yang membandingkan gross margin dengan net profit (-Rp 1.331.000 semu) telah diperbaiki 100%.</p>
+      <p style="margin: 2px 0 0 0;"><em>Fitur Visual:</em> Dilengkapi custom tooltip kontras tinggi serta toggle filter <strong>[Semua (41)]</strong> vs <strong>[Hanya Berdeviasi (2)]</strong>.</p>
     </div>
   </div>
 
   <div class="formula-box">
     <div class="formula-header">
-      <span>4.8. Formula Arus Kas Likuiditas Riil</span>
-      <span class="badge-pill badge-blue">Likuiditas Kas</span>
+      <span>4.8. Formula Arus Kas Likuiditas Riil & Pengakuan DP Real-Time</span>
+      <span class="badge-pill badge-blue">Likuiditas Kas Riil</span>
     </div>
-    <div class="formula-math">Saldo Kas Riil Akhir = Saldo Kas Awal + Σ(Kas Masuk Riil) - Σ(Kas Keluar Operasional)</div>
-    <div class="formula-desc">Saldo riil di bank dan kas tunai perusahaan yang siap dipergunakan untuk operasional harian.</div>
+    <div class="formula-math">Saldo Kas Riil Akhir = Saldo Kas Awal + Σ(Kas Masuk Riil Customer) - Σ(Kas Keluar Operasional Riil)</div>
+    <div class="formula-desc">
+      <ul style="margin: 0; padding-left: 16px;">
+        <li><strong>Pengakuan DP Real-Time:</strong> Seluruh uang transfer DP dan cicilan customer <strong>LANGSUNG MASUK KE PERHITUNGAN SALDO KAS RIIL</strong> saat dana diterima (tidak di-hold sampai order lunas), karena uang fisik telah tersedia di rekening bank perusahaan.</li>
+        <li><strong>Aturan Indikator Saldo Minus:</strong> Apabila posisi kas atau selisih bernilai negatif/defisit, sistem secara otomatis merender warna <strong>Merah Rose Warning</strong> dengan ikon bahaya informatif untuk memicu tindakan audit cepat.</li>
+      </ul>
+    </div>
   </div>
 
   <div class="page-break"></div>
@@ -1112,6 +1124,26 @@ Nett Profit (Laba Bersih Operasional) = Gross Profit - Biaya Operasional Invoice
     <li><strong>Format Sumbu Y Grafik:</strong> Diformat ringkas proporsional (<code>Rp 2,4 jt</code>, <code>Rp 1,8 jt</code>, <code>Rp 600 rb</code>, <code>Rp 0</code>) dengan wadah sumbu horizontal yang lega sehingga tidak terjadi pembungkusan teks (<em>wrapping</em>).</li>
   </ul>
 
+  <h3 class="subsection-title">8.3. Kredensial Otentikasi & Akun Eksekutif Kak Glora</h3>
+  <div class="meta-card" style="margin-bottom: 12px;">
+    <div class="meta-row">
+      <span class="meta-label">Email Resmi Akun:</span>
+      <span class="meta-value"><strong>glora.sawita@visualkain.com</strong></span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Kata Sandi Default:</span>
+      <span class="meta-value"><strong>Glora32145</strong></span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Kemudahan Akses:</span>
+      <span class="meta-value">Dilengkapi <em>Hint Otomatis</em> di form login sehingga user tidak perlu mengetik ulang email</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">Sapaan Dashboard:</span>
+      <span class="meta-value">Personal <em>"Selamat Datang, Ibu Glora"</em> (Head of Finance & Accounting)</span>
+    </div>
+  </div>
+
   <!-- ================= 9. PANDUAN OPERASIONAL HARIAN ================= -->
   <h2 class="section-title">9. Panduan Operasional Harian Tim Finance (Step-by-Step SOP)</h2>
 
@@ -1174,13 +1206,22 @@ Nett Profit (Laba Bersih Operasional) = Gross Profit - Biaya Operasional Invoice
   </div>
 
   <div class="scenario-box">
-    <div class="scenario-title">📌 Skenario F: Melakukan Audit HPP Aktual & Rekonsiliasi Lapangan</div>
+    <div class="scenario-title">📌 Skenario F: Melakukan Audit HPP Aktual & Membaca 3 Kartu Rekonsiliasi</div>
     <ol class="step-list">
       <li>Buka sub-tab <strong>Rekonsiliasi Profit Aktual</strong>.</li>
-      <li>Setelah pesanan selesai dikirim, masukkan angka <strong>HPP Aktual</strong> dan <strong>Profit Aktual</strong> riil.</li>
-      <li>Tuliskan catatan penting jika ada perubahan (misal: <em>Ongkir tambahan ditanggung vendor</em>).</li>
-      <li>Klik tombol <strong>Simpan</strong> (ikon centang hijau) pada baris yang bersangkutan.</li>
-      <li>Grafik deviasi laba akan langsung memetakan apakah pesanan tersebut surplus atau defisit.</li>
+      <li>Perhatikan 3 Kartu KPI: <strong>Total Profit Estimasi SPK</strong> (Rp 31.136.500), <strong>Total Profit Aktual</strong> (Rp 31.070.500), dan <strong>Net Deviasi Margin</strong> (-Rp 66.000).</li>
+      <li>Pada Waterfall Bar Chart, gunakan tombol filter <strong>[Hanya Berdeviasi (2)]</strong> untuk langsung memeriksa <code>VK260038</code> (-Rp 100rb) dan <code>VK260041</code> (+Rp 34rb). Arahkan kursor pada diagram untuk melihat tooltip kontras tinggi.</li>
+      <li>Pada tabel rekonsiliasi, input field yang belum diedit menyajikan placeholder angka estimasi default SPK sebagai acuan.</li>
+      <li>Ketik penyesuaian angka riil jika ada, lalu klik tombol centang hijau untuk menyimpan langsung ke Firestore.</li>
+    </ol>
+  </div>
+
+  <div class="scenario-box">
+    <div class="scenario-title">📌 Skenario G: Memonitor Komposisi Beban Kas Keluar & Tren Harian</div>
+    <ol class="step-list">
+      <li>Buka sub-tab <strong>Beban Kas Keluar (Cash Outflow)</strong>.</li>
+      <li>Lihat <strong>Donut Chart Komposisi Beban</strong>: bagian tengah memuat metrik permanen <strong>Total Kas</strong> (Rp 37,8 Jt), arahkan kursor untuk melihat persentase proporsi pos beban.</li>
+      <li>Perhatikan <strong>Grafik Tren Pengeluaran Harian</strong>: dilengkapi deteksi otomatis tanggal puncak kas keluar untuk memantau waktu pencairan beban terbesar.</li>
     </ol>
   </div>
 

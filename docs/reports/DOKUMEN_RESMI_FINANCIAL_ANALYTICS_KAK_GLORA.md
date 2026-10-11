@@ -45,6 +45,9 @@ Sistem **VisualKain Financial Data & Executive Analytics** dibangun khusus untuk
 4. **Format Input Nominal Rupiah Baku (`Rp 1.420.000`)**: Seluruh formulir finansial telah dilengkapi pemisah ribuan otomatis dengan kursor halus, mencegah potensi kesalahan ketik nilai nol (*zero-digit human error*).
 5. **Freeze Column & Mode Layar Penuh (Expanded Table)**: Tabel master finansial dilengkapi pembekuan kolom No. Invoice & Nama Customer, serta tombol ekspansi penuh untuk kenyamanan audit data besar.
 6. **Follow-Up Tagihan 1-Klik via WhatsApp**: 3 draf pesan formal terintegrasi otomatis untuk menagih kekurangan DP, mengabarkan pesanan naik potong, dan konfirmasi pelunasan.
+7. **Otentikasi Khusus & Sapaan Eksekutif Kak Glora**: Dilengkapi halaman login elegan dengan hint email otomatis (`glora.sawita@visualkain.com`), password note (`Glora32145`), dan sapaan personal eksklusif *"Ibu Glora"* (Head of Finance & Accounting) di dashboard.
+8. **Pengakuan DP Kas Riil Real-Time & Aturan Peringatan Defisit**: Setiap uang DP atau termin cicilan yang diterima langsung diakui dan menambah saldo kas riil saat itu juga (tidak di-hold sampai lunas). Jika kas mengalami posisi minus, sistem secara otomatis menampilkan warna **Merah Rose Warning** dengan ikon bahaya informatif.
+9. **Sinkronisasi 100% Database Live Firebase**: Menarik seluruh 41 data order live (VK260001 s/d VK260041), seluruh rekanan vendor (Sablon, Bordir, CMT), dan mutasi kas keluar secara lengkap tanpa ada transaksi yang terlewat.
 
 ---
 
@@ -145,14 +148,27 @@ $$\% \text{ Gross Profit Margin} = \left( \frac{\text{Gross Profit}}{\text{Net I
 
 $$\text{Nett Profit (Laba Bersih Operasional)} = \text{Gross Profit} - \text{Biaya Operasional Invoice}$$
 
-### 4.7. Formula Rekonsiliasi & Deviasi Laba Lapangan (Variance)
-$$\text{Deviasi Margin Lapangan } (\Delta) = \text{Profit Aktual Lapangan} - \text{Target Margin Estimasi}$$
-*Kaidah Klasifikasi*:
-* Jika $\Delta \ge 0$: **Efisiensi Positif (Surplus)** $\rightarrow$ Ditampilkan pada diagram batang berwarna hijau emerald.
-* Jika $\Delta < 0$: **Pembengkakan Biaya (Defisit / Loss)** $\rightarrow$ Ditampilkan pada diagram batang berwarna merah rose sebagai bahan audit ketidaksesuaian ongkos lapangan.
+### 4.7. Formula Rekonsiliasi & Deviasi Laba Lapangan (Variance Analysis)
+$$\text{Deviasi Margin Lapangan } (\Delta) = \text{Profit Aktual Lapangan} - \text{Target Margin Estimasi SPK}$$
 
-### 4.8. Formula Arus Kas Likuiditas Riil
-$$\text{Saldo Kas Riil Akhir} = \text{Saldo Kas Awal} + \sum \text{Kas Masuk Riil} - \sum \text{Kas Keluar Operasional}$$
+#### Penjelasan 3 Kartu Indikator Rekonsiliasi Finansial:
+1. **Total Profit Estimasi (`Rp 31.136.500`)**: Target laba bersih sah yang disepakati saat penerbitan SPK awal untuk seluruh 41 pesanan aktif.
+2. **Total Profit Aktual (`Rp 31.070.500`)**: Realisasi laba bersih nyata setelah memperhitungkan pengeluaran nota riil di lapangan.
+3. **Net Deviasi Margin (`-Rp 66.000`)**: Selisih bersih antara realisasi vs estimasi SPK.
+
+#### Catatan Audit Lapangan (41 Pesanan Live):
+* Dari 41 pesanan di database, **39 pesanan berjalan 100% tepat sasaran sesuai estimasi ($\Delta = \text{Rp } 0$)**.
+* Deviasi -Rp 66.000 murni berasal dari 2 pesanan yang memiliki catatan belanja riil:
+  1. `VK260038` (OM SEDORF): Target Rp 980.000, Realisasi Rp 880.000 $\rightarrow$ **Defisit -Rp 100.000** (terdapat beban ekspedisi/ongkir tambahan di lapangan).
+  2. `VK260041` (XBI SUKABUMI): Target Rp 400.000, Realisasi Rp 434.000 $\rightarrow$ **Surplus +Rp 34.000** (penghematan bahan pada revisi sablon).
+* *Klarifikasi Audit*: Selisih semu terdahulu (-Rp 1.331.000) terjadi akibat rumus lama membandingkan Gross Margin (sebelum operasional) dengan Net Profit, sehingga biaya operasional sah SPK (seperti Rp 700.000 pada `VK260030`) keliru dianggap kebocoran. Seluruh formula kini telah diselaraskan membandingkan Net Profit secara konsisten.
+* *Fitur Visual*: Bar Chart deviasi dilengkapi Custom Tooltip kontras tinggi serta tombol switch **`[Semua (41)]`** dan **`[Hanya Berdeviasi (2)]`** agar Kak Glora dapat langsung memfokuskan audit pada invoice yang memiliki selisih.
+
+### 4.8. Formula Arus Kas Likuiditas Riil & Pengakuan DP Real-Time
+$$\text{Saldo Kas Riil Akhir} = \text{Saldo Kas Awal} + \sum \text{Kas Masuk Riil Customer (DP + Cicilan)} - \sum \text{Kas Keluar Operasional Riil}$$
+
+* **Pengakuan DP Real-Time**: Seluruh dana transfer konsumen (DP 1, DP 2, maupun cicilan kecil) **LANGSUNG MASUK KE PERHITUNGAN SALDO KAS RIIL SECARA REAL-TIME**. Uang kas tidak ditahan (*hold*) hingga order berstatus lunas, karena secara riil fisik uang telah berada di rekening bank VisualKain dan siap digunakan untuk membiayai operasional dan pembelian bahan.
+* **Aturan Visual Saldo Defisit / Minus**: Apabila terjadi kondisi kas keluar melebihi kas masuk (saldo bernilai minus), sistem secara kaku menerapkan aturan warna **Merah Rose Warning** (`border-rose-200 bg-rose-50 text-rose-700`) disertai ikon peringatan darurat agar manajemen segera melakukan pengawasan likuiditas.
 
 ---
 
@@ -262,6 +278,13 @@ Seluruh konfigurasi keuangan terpusat pada file konstanta tunggal ([`src/lib/con
 * `PELUNASAN_PERCENT`: **30%** (Ambang batas sebelum rilis pengiriman barang).
 * `TARGET_MINIMUM_MARGIN_PERCENT`: **30%** (Ambang batas margin sehat perusahaan).
 
+### 8.4. Kredensial Otentikasi & Akun Eksekutif Kak Glora
+Sistem telah dilengkapi modul otentikasi Firebase yang aman dan personal:
+* **Email Resmi Akun**: `glora.sawita@visualkain.com`
+* **Password Default**: `Glora32145`
+* **Fitur Kemudahan Login**: Pada formulir login (`/login`), kotak input telah dilengkapi *Hint Otomatis* sehingga Kak Glora tidak perlu mengetikkan alamat email berulang kali. Cukup masukkan kata sandi dan klik **Masuk ke Dashboard**.
+* **Personalisasi Eksekutif**: Setelah berhasil masuk, dashboard secara otomatis menyematkan sapaan personal *"Selamat Datang, Ibu Glora"* dengan inisial *"GS"* dan identitas struktural *"Head of Finance & Accounting"*.
+
 ---
 
 ## 9. PANDUAN OPERASIONAL HARIAN TIM FINANCE (STEP-BY-STEP SOP)
@@ -304,12 +327,26 @@ Panduan praktis bagi Kak Glora dan staf keuangan dalam mengoperasikan dashboard:
 4. Klik **Simpan Transaksi Pengeluaran**.
 5. Untuk audit mingguan/bulanan, klik tombol **Ekspor Excel (.xlsx)** di sudut kanan atas untuk mengunduh rekapitulasi pembukuan kas keluar.
 
-### Skenario F: Melakukan Audit HPP Aktual & Rekonsiliasi Lapangan
+### Skenario F: Melakukan Audit HPP Aktual & Membaca 3 Kartu Rekonsiliasi
 1. Buka sub-tab **Rekonsiliasi Profit Aktual**.
-2. Setelah pesanan selesai dikirim dan seluruh biaya riil lapangan tercatat, masukkan angka **HPP Aktual** dan **Profit Aktual** riil yang diperoleh.
-3. Tuliskan catatan penting jika ada perubahan (misal: *Ongkir tambahan ditanggung vendor*).
-4. Klik tombol **Simpan (Ikon Centang)** pada baris yang bersangkutan.
-5. Grafik deviasi laba akan langsung memetakan apakah pesanan tersebut menghasilkan efisiensi surplus atau defisit.
+2. Perhatikan 3 Kartu Ringkasan Eksekutif di bagian atas:
+   * **Total Profit Estimasi**: Rp 31.136.500 (Target laba bersih sah SPK dari 41 pesanan).
+   * **Total Profit Aktual**: Rp 31.070.500 (Realisasi laba bersih setelah belanja riil lapangan).
+   * **Net Deviasi Margin**: -Rp 66.000 (Selisih penyesuaian belanja riil lapangan).
+3. Pada **Visualisasi Deviasi Margin (Waterfall Bar Chart)**, gunakan tombol filter:
+   * Klik **[Hanya Berdeviasi (2)]** untuk langsung melihat invoice `VK260038` (-Rp 100rb) dan `VK260041` (+Rp 34rb).
+   * Arahkan kursor (*hover*) pada diagram batang untuk melihat tooltip kontras tinggi yang merinci nomor invoice, nama konsumen, profit estimasi, profit aktual, dan nilai deviasi.
+4. Pada tabel rekonsiliasi, input field yang belum terisi kini menampilkan *placeholder* nilai estimasi SPK (warna abu-abu) sebagai panduan nominal.
+5. Masukkan angka riil dan catatan jika terjadi penyesuaian, lalu klik tombol **Simpan (Ikon Centang)** untuk memperbarui data ke Firebase Firestore secara real-time.
+
+### Skenario G: Memonitor Komposisi Beban Kas Keluar & Tren Harian
+1. Buka sub-tab **Beban Kas Keluar (Cash Outflow)**.
+2. Perhatikan **Donut Chart Komposisi Beban per Pos**:
+   * Bagian tengah donut kini dilengkapi metrik permanen **Total Kas** (misal: `Rp 37,8 Jt`).
+   * Arahkan kursor ke segmen warna donut untuk melihat rincian nominal dan persentase alokasi pos beban (Gaji/Payroll, Operasional, Bahan Baku, dll.).
+3. Perhatikan **Grafik Tren Pengeluaran Harian**:
+   * Menampilkan titik-titik tanggal pencairan dana.
+   * Dilengkapi indikator otomatis **Puncak Kas Keluar** yang mendeteksi tanggal pengeluaran terbesar dalam periode aktif.
 
 ---
 
