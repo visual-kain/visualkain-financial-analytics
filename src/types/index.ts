@@ -192,6 +192,8 @@ export interface FinancialSummary {
   unpaidCustomerCount: number;
   totalDibayarKeVendor: number;
   bebanOperasionalNonVendor: number;
+  bebanOperasionalOrders?: number;
+  bebanOperasionalKas?: number;
 }
 
 export interface VendorPerformanceItem {

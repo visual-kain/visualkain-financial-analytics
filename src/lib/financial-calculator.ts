@@ -149,6 +149,7 @@ export function calculateFinancialSummary(
   let unpaidCustomerCount = 0;
   let totalDibayarKeVendor = 0;
   let totalUangMasukOrders = 0;
+  let totalBiayaOperasionalOrders = 0;
 
   for (const order of orders) {
     const sisaUtangVendor = Math.max(0, order.totalHpp - (order.totalDibayarKeVendor || 0));
@@ -162,6 +163,7 @@ export function calculateFinancialSummary(
     omzetTotal += order.totalInvoice;
 
     const opEx = order.biayaOperasional || 0;
+    totalBiayaOperasionalOrders += opEx;
     const profitOrder = order.profitAktual ?? (order.totalInvoice - order.totalHpp - opEx);
     totalProfitRealtime += profitOrder;
 
@@ -185,11 +187,12 @@ export function calculateFinancialSummary(
   }
 
   // VisualKainDB Saldo Formula:
-  // Saldo Kas Riil Bank = saldoAwal + Uang Masuk Customer - DP Vendor Dibayar - Beban Operasional Non-Vendor
+  // Saldo Kas Riil Bank = saldoAwal + Uang Masuk Customer - DP Vendor Dibayar - Beban Operasional Kas - Beban Operasional Order
   totalKasMasuk = totalUangMasukOrders;
-  const saldoKasRiil = saldoAwal + totalKasMasuk - totalDibayarKeVendor - bebanOperasional;
+  const totalBebanOperasional = bebanOperasional + totalBiayaOperasionalOrders;
+  const saldoKasRiil = saldoAwal + totalKasMasuk - totalDibayarKeVendor - totalBebanOperasional;
   const profitMarginPercent = omzetTotal > 0 ? (totalProfitRealtime / omzetTotal) * 100 : 0;
-  const estimasiProfitBersih = totalMarginTerealisasi - bebanOperasional;
+  const estimasiProfitBersih = totalMarginTerealisasi - totalBebanOperasional;
 
   return {
     saldoKasRiil,
@@ -207,7 +210,9 @@ export function calculateFinancialSummary(
     vendorDebtCount,
     unpaidCustomerCount,
     totalDibayarKeVendor,
-    bebanOperasionalNonVendor: bebanOperasional,
+    bebanOperasionalNonVendor: totalBebanOperasional,
+    bebanOperasionalOrders: totalBiayaOperasionalOrders,
+    bebanOperasionalKas: bebanOperasional,
   };
 }
 

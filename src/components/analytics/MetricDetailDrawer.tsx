@@ -545,11 +545,19 @@ export function MetricDetailDrawer({
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-rose-700">
-                        <span>4. Beban Operasional Umum Lain (-)</span>
+                        <span>4. Beban Operasional Kas (-)</span>
                         <span className="font-bold tabular-nums">
-                          -{formatRupiah(summary.bebanOperasionalNonVendor)}
+                          -{formatRupiah(summary.bebanOperasionalKas ?? summary.totalKasKeluar)}
                         </span>
                       </div>
+                      {(summary.bebanOperasionalOrders ?? 0) > 0 && (
+                        <div className="flex justify-between items-center text-rose-700">
+                          <span>5. Biaya Operasional Order (-)</span>
+                          <span className="font-bold tabular-nums">
+                            -{formatRupiah(summary.bebanOperasionalOrders || 0)}
+                          </span>
+                        </div>
+                      )}
                       <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-extrabold">
                         <span className={summary.saldoKasRiil < 0 ? 'text-rose-950 font-bold' : 'text-teal-900'}>
                           Saldo Kas Bersih Riil
