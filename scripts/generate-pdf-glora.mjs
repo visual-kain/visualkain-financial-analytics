@@ -887,101 +887,211 @@ const htmlContent = `<!DOCTYPE html>
   <div class="page-break"></div>
 
   <!-- ================= 4. KOMPILASI RUMUS MATEMATIS ================= -->
-  <h2 class="section-title">4. Kompilasi Rumus Matematis & Logika Akuntansi Standar</h2>
-  <p style="margin-top: 4px;">Seluruh formula kalkulasi di bawah ini berjalan secara otomatis dan terverifikasi pada mesin komputasi sistem (<code>src/lib/financial-calculator.ts</code>):</p>
+  <h2 class="section-title">4. Kompilasi Lengkap Rumus Matematis di Seluruh Tab (Tab 1 s/d Tab 5)</h2>
+  <p style="margin-top: 4px;">Seluruh formula di bawah ini berjalan secara otomatis dan terverifikasi pada mesin komputasi sistem (<code>src/lib/financial-calculator.ts</code> & <code>src/lib/calculations.ts</code>):</p>
+
+  <h3 class="subsection-title">4.1. Tab 1: Overview & Arus Kas Eksekutif (F-01)</h3>
 
   <div class="formula-box">
     <div class="formula-header">
-      <span>4.1. Formula Tagihan Bersih Konsumen (Net Invoice)</span>
-      <span class="badge-pill badge-slate">Tagihan Riil</span>
+      <span>A. Omzet Realtime (Gross Revenue) & Breakdown Status</span>
+      <span class="badge-pill badge-emerald">Omzet & Revenue</span>
     </div>
-    <div class="formula-math">Net Invoice = Total Invoice Kotor - Diskon</div>
-    <div class="formula-desc">Nilai bersih yang menjadi dasar hak tagih riil kepada konsumen setelah potongan harga khusus atau diskon pesanan.</div>
+    <div class="formula-math">Omzet Realtime = Σ (Net Invoice)
+Omzet Lunas = Σ (Net Invoice untuk order dengan Sisa Piutang = 0)
+Omzet Berjalan = Σ (Net Invoice untuk order dengan Sisa Piutang > 0)</div>
+    <div class="formula-desc">Akumulasi seluruh nilai pesanan bersih, memisahkan nilai yang telah lunas penuh vs pesanan yang masih memiliki sisa hak tagih piutang.</div>
   </div>
 
   <div class="formula-box">
     <div class="formula-header">
-      <span>4.2. Formula Akumulasi Uang Masuk Customer (Multi-Termin)</span>
-      <span class="badge-pill badge-emerald">Akumulasi Inflow</span>
+      <span>B. Profit Realtime & Net Profit Margin (%)</span>
+      <span class="badge-pill badge-emerald">Profitabilitas SSOT</span>
     </div>
-    <div class="formula-math">Total DP Customer = Σ (Nominal Cicilan) = DP 1 + DP 2 + ... + Pelunasan
-% Pembayaran Konsumen = (Total DP Customer / Net Invoice) × 100%</div>
-    <div class="formula-desc">Menggabungkan seluruh termin cicilan yang masuk ke rekening perusahaan secara kronologis.</div>
+    <div class="formula-math">Total Profit Realtime = Σ (Net Profit Estimasi SPK)
+% Net Profit Margin = (Total Profit Realtime / Omzet Realtime) × 100%</div>
+    <div class="formula-desc">Mengagregasi keuntungan bersih resmi SPK dari seluruh pesanan dan rasio margin keuntungan bersih terhadap omzet total.</div>
   </div>
 
   <div class="formula-box">
     <div class="formula-header">
-      <span>4.3. Formula Ambang Batas 70% Produksi (SOP Penjahit & Naik Potong)</span>
+      <span>C. Saldo Periode Kas Riil Bank & Pengakuan DP Real-Time</span>
+      <span class="badge-pill badge-blue">Saldo Kas Bank</span>
+    </div>
+    <div class="formula-math">Saldo Kas Riil Bank = Saldo Awal + Σ (Kas Masuk Riil Customer) - Σ (Kas Dibayar ke Vendor) - Σ (Beban Operasional Kas)</div>
+    <div class="formula-desc">
+      <ul style="margin: 0; padding-left: 16px;">
+        <li><strong>Pengakuan DP Real-Time:</strong> Seluruh uang transfer DP dan cicilan customer <strong>LANGSUNG MASUK KE SALDO KAS RIIL</strong> saat dana diterima (tidak di-hold sampai order lunas).</li>
+        <li><strong>Aturan Indikator Defisit:</strong> Jika saldo kas bernilai minus (&lt; 0), sistem secara otomatis merender warna <strong>Merah Rose Warning</strong> dengan ikon bahaya informatif.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="formula-box">
+    <div class="formula-header">
+      <span>D. Uang Keluar (Total Beban Kas) & Rata-Rata Transaksi</span>
+      <span class="badge-pill badge-rose">Beban Keluar</span>
+    </div>
+    <div class="formula-math">Total Uang Keluar = Σ (Nominal Transaksi Keluar)
+Rata-Rata Kas Keluar = Total Uang Keluar / M   (M = Jumlah Transaksi Keluar)</div>
+    <div class="formula-desc">Akumulasi seluruh belanja operasional, gaji/payroll, logistik, dan pajak yang dicairkan dari kas perusahaan.</div>
+  </div>
+
+  <div class="formula-box">
+    <div class="formula-header">
+      <span>E. Total Utang Vendor Global & Outstanding Piutang Customer</span>
+      <span class="badge-pill badge-amber">Kewajiban & Piutang</span>
+    </div>
+    <div class="formula-math">Utang Vendor Global = Σ max(0, Total HPP Vendor - Kas Telah Dibayar ke Vendor)
+Outstanding Customer = Σ max(0, Net Invoice - Total Uang Masuk Customer)</div>
+    <div class="formula-desc">Memetakan total komitmen utang yang belum dibayar ke seluruh penjahit/vendor, serta total sisa tagihan yang masih harus ditagih ke konsumen.</div>
+  </div>
+
+  <div class="formula-box">
+    <div class="formula-header">
+      <span>F. Escrow Liquidity Bar (Dua Kantong Alokasi Proporsional)</span>
+      <span class="badge-pill badge-purple">Escrow Dua Kantong</span>
+    </div>
+    <div class="formula-math">Rasio HPP = Total HPP / Net Invoice  |  Rasio Margin = Target Margin / Net Invoice
+Alokasi Pokok Vendor (Kantong A) = Uang Masuk Riil × Rasio HPP
+Alokasi Margin VisualKain (Kantong B) = Uang Masuk Riil × Rasio Margin
+Estimasi Profit Bersih Terealisasi = Σ (Alokasi Margin VisualKain) - Beban Operasional Non-Vendor</div>
+    <div class="formula-desc">Memisahkan secara proporsional uang titipan pokok vendor (tidak boleh dipakai dividen) dengan hak margin murni VisualKain.</div>
+  </div>
+
+  <h3 class="subsection-title">4.2. Tab 2: Master Data Finansial (Orders Ledger & SPK) (F-02)</h3>
+
+  <div class="formula-box">
+    <div class="formula-header">
+      <span>A. Matriks Ukuran Garmen & Ekstra Harga Ukuran Besar</span>
+      <span class="badge-pill badge-slate">Matriks Ukuran</span>
+    </div>
+    <div class="formula-math">Ekstra Harga Ukuran: 2XL = +Rp 5.000 | 3XL = +Rp 10.000 | 4XL = +Rp 15.000 | 5XL = +Rp 20.000
+Grand Total Jual = Σ [Qty(c, s) × (Harga Jual Dasar(c) + Ekstra Harga(s))]
+Grand Total Modal Vendor = Σ [Qty(c, s) × (Harga Modal Vendor(c) + Ekstra Harga(s))]</div>
+    <div class="formula-desc">Kalkulasi presisi untuk 3 kategori lengan (Pendek, Panjang, Tanpa Lengan) dan 9 ukuran (XS s/d 5XL).</div>
+  </div>
+
+  <div class="formula-box">
+    <div class="formula-header">
+      <span>B. Net Invoice & Total HPP Beban Vendor</span>
+      <span class="badge-pill badge-emerald">Tagihan & HPP</span>
+    </div>
+    <div class="formula-math">Net Invoice = Grand Total Jual - Diskon + Biaya Tambahan Customer
+Total HPP Vendor = Grand Total Modal Vendor + Biaya Tambahan Vendor (Sablon, Bordir, Ekspedisi)</div>
+    <div class="formula-desc">Dasar hak tagih bersih ke konsumen dan beban pokok riil yang wajib dibayarkan ke rekanan konveksi.</div>
+  </div>
+
+  <div class="formula-box">
+    <div class="formula-header">
+      <span>C. Gross Profit, Net Profit SPK, dan Margin (%)</span>
+      <span class="badge-pill badge-emerald">Profitabilitas SPK</span>
+    </div>
+    <div class="formula-math">Gross Profit = Net Invoice - Total HPP Vendor  |  % Gross Margin = (Gross Profit / Net Invoice) × 100%
+Net Profit Estimasi SPK = Gross Profit - Biaya Operasional SPK
+% Net Profit Margin = (Net Profit Estimasi SPK / Net Invoice) × 100%</div>
+    <div class="formula-desc">Standar Gross Margin minimal perusahaan adalah ≥ 30%. Net Profit adalah keuntungan bersih setelah beban operasional pesanan.</div>
+  </div>
+
+  <div class="formula-box">
+    <div class="formula-header">
+      <span>D. SOP Ambang Batas 70% Produksi & Matrix Status Finansial</span>
       <span class="badge-pill badge-amber">SOP Wajib 70%</span>
     </div>
-    <div class="formula-math">Target Ambang Batas DP 70% = 0.70 × Net Invoice
-Sisa Menuju 70% = max(0, Target Ambang Batas DP 70% - Total DP Customer)</div>
+    <div class="formula-math">Target DP 70% = 0.70 × Net Invoice  |  Sisa Menuju 70% = max(0, Target DP 70% - Total Uang Masuk Customer)
+Sisa Pelunasan Akhir (30%) = max(0, Net Invoice - Total Uang Masuk Customer)</div>
     <div class="formula-desc">
       <ul>
-        <li>Jika <strong>Total DP &lt; 70%</strong>: Berstatus <code>PARSIAL (BELUM AMAN NAIK POTONG)</code>. Sistem menampilkan sisa tagihan DP.</li>
-        <li>Jika <strong>Total DP ≥ 70%</strong>: Berstatus <code>SIAP POTONG / SIAP PRODUKSI</code>. Tim produksi diizinkan menerbitkan SPK.</li>
+        <li><strong>Uang Masuk = 0:</strong> <code>BELUM DP (0%)</code></li>
+        <li><strong>0 &lt; Uang Masuk &lt; 70%:</strong> <code>DP 1 PARSIAL (KURANG MENUJU 70%)</code> $\rightarrow$ <strong>Kain Dilarang Dipotong</strong></li>
+        <li><strong>70% ≤ Uang Masuk &lt; 100%:</strong> <code>DP 2 LENGKAP (70% - SIAP POTONG)</code> $\rightarrow$ <strong>SPK Resmi Terbit ke Vendor</strong></li>
+        <li><strong>Uang Masuk ≥ 100%:</strong> <code>LUNAS TOTAL (100%)</code> $\rightarrow$ <strong>Barang Siap Dikirim</strong></li>
       </ul>
     </div>
   </div>
 
   <div class="formula-box">
     <div class="formula-header">
-      <span>4.4. Formula Sisa Piutang / Pelunasan Konsumen (30% Akhir)</span>
-      <span class="badge-pill badge-blue">Hak Tagih Akhir</span>
+      <span>E. Komitmen & Sisa Utang Vendor per Invoice</span>
+      <span class="badge-pill badge-rose">Utang Vendor</span>
     </div>
-    <div class="formula-math">Sisa Pelunasan Konsumen = max(0, Net Invoice - Total DP Customer)</div>
-    <div class="formula-desc">Tagihan akhir yang wajib diselesaikan konsumen sebelum barang pesanan diserahkan atau dikirimkan oleh logistik.</div>
+    <div class="formula-math">Sisa Utang ke Vendor = max(0, Total HPP Vendor - Kas Telah Dibayar ke Vendor)
+% Pelunasan Vendor = (Kas Telah Dibayar ke Vendor / Total HPP Vendor) × 100%</div>
+    <div class="formula-desc">Memastikan tim finance mengetahui sisa kewajiban yang masih harus ditransfer ke penjahit pada tiap SPK.</div>
+  </div>
+
+  <h3 class="subsection-title">4.3. Tab 3: Beban Kas Keluar (Cash Outflow) (F-03)</h3>
+
+  <div class="formula-box">
+    <div class="formula-header">
+      <span>A. Agregasi Beban, Proporsi Donut, & Deteksi Hari Puncak</span>
+      <span class="badge-pill badge-blue">Analitik Kas Keluar</span>
+    </div>
+    <div class="formula-math">Total Dana Keluar = Σ (Nominal Transaksi Terfilter)
+Rata-Rata Transaksi = Total Dana Keluar / Jumlah Transaksi
+% Beban Kategori K = (Total Nominal Kategori K / Total Dana Keluar) × 100%
+Kategori Terbesar = Kategori dengan Σ Nominal Tertinggi
+Puncak Kas Keluar (Peak Day Spike) = max (Σ Nominal Pengeluaran per Tanggal)</div>
+    <div class="formula-desc">Donut Chart menampilkan persentase alokasi pos beban (Gaji, Operasional, Bahan Baku, dll.) dengan label permanen Total Kas di tengah.</div>
+  </div>
+
+  <h3 class="subsection-title">4.4. Tab 4: Performa & Intelijen Biaya Vendor (F-04)</h3>
+
+  <div class="formula-box">
+    <div class="formula-header">
+      <span>A. Rata-Rata Harga Modal Vendor per Tipe Lengan & Vendor Termurah</span>
+      <span class="badge-pill badge-emerald">Vendor Intelligence</span>
+    </div>
+    <div class="formula-math">Rata-Rata Harga Lengan(v) = Σ (Harga Modal Lengan) / Jumlah Order Lengan
+Vendor Termurah(Kategori Lengan) = argmin (Rata-Rata Harga Lengan Vendor)
+Biaya Rata-Rata per Pcs(Kategori Produk, v) = Total HPP / Total Pcs
+Vendor Paling Efisien(Kategori Produk) = argmin (Biaya Rata-Rata per Pcs)</div>
+    <div class="formula-desc">Membantu manajemen memilih vendor konveksi termurah dan paling hemat untuk tiap model pakaian.</div>
   </div>
 
   <div class="formula-box">
     <div class="formula-header">
-      <span>4.5. Formula Komitmen & Utang Mitra Vendor Garmen</span>
-      <span class="badge-pill badge-rose">Kontrol Liabilitas</span>
+      <span>B. Deviasi Quotation, Margin Vendor, & Tingkat Utilisasi</span>
+      <span class="badge-pill badge-slate">Audit Vendor</span>
     </div>
-    <div class="formula-math">Sisa Utang ke Vendor = max(0, Total Biaya HPP Vendor - Kas yang Telah Dibayar ke Vendor)
-% Pemenuhan Vendor = (Kas yang Telah Dibayar ke Vendor / Total Biaya HPP Vendor) × 100%</div>
-    <div class="formula-desc">Mengontrol liabilitas utang dagang agar pembayaran ke penjahit sejalan dengan progress pesanan.</div>
+    <div class="formula-math">Deviasi HPP Vendor = Σ (HPP Aktual Vendor) - Σ (HPP Quotation Estimasi Vendor)
+% Margin Vendor = (Total Profit dari Vendor / Total Revenue dari Vendor) × 100%
+Most Used Vendor = Vendor dengan Jumlah Order Terbanyak</div>
+    <div class="formula-desc">Mendeteksi vendor yang sering mengalami pembengkakan biaya di luar quotation awal serta memantau ketergantungan mitra.</div>
   </div>
+
+  <h3 class="subsection-title">4.5. Tab 5: Rekonsiliasi Profit Aktual & Audit Varians (F-05)</h3>
 
   <div class="formula-box">
     <div class="formula-header">
-      <span>4.6. Formula Profitabilitas Estimasi (Gross & Nett Margin)</span>
-      <span class="badge-pill badge-emerald">Profitabilitas</span>
+      <span>A. 3 Kartu Indikator Rekonsiliasi & Deviasi Laba Global</span>
+      <span class="badge-pill badge-slate">Audit Laba SSOT</span>
     </div>
-    <div class="formula-math">Gross Profit (Laba Kotor) = Net Invoice - Total Biaya HPP Vendor
-% Gross Profit Margin = (Gross Profit / Net Invoice) × 100%
-Nett Profit (Laba Bersih Operasional) = Gross Profit - Biaya Operasional Invoice</div>
-    <div class="formula-desc">Target Gross Profit Margin minimal perusahaan adalah <strong>≥ 30%</strong>. Di bawah angka ini, sistem menandai <em>low margin alert</em>.</div>
-  </div>
-
-  <div class="formula-box">
-    <div class="formula-header">
-      <span>4.7. Formula Rekonsiliasi & Deviasi Laba Lapangan (Variance Analysis)</span>
-      <span class="badge-pill badge-slate">Audit Laba 3 Kartu</span>
-    </div>
-    <div class="formula-math">Deviasi Margin Lapangan (Δ) = Profit Aktual Lapangan - Target Margin Estimasi SPK</div>
+    <div class="formula-math">Total Profit Estimasi = Σ (Target Net Profit SPK)   [Live Firestore = Rp 31.136.500]
+Total Profit Aktual = Σ (Profit Aktual Riil Order)   [Live Firestore = Rp 31.070.500]
+Net Deviasi Margin Global (Δ Net) = Total Profit Aktual - Total Profit Estimasi   [Live Firestore = -Rp 66.000]
+% Deviasi Margin Global = (Δ Net / Total Profit Estimasi) × 100%</div>
     <div class="formula-desc">
-      <p style="margin: 2px 0 4px 0;"><strong>Penjelasan 3 Kartu Indikator Rekonsiliasi Finansial:</strong></p>
-      <ul style="margin: 0; padding-left: 16px;">
-        <li><strong>Total Profit Estimasi (Rp 31.136.500):</strong> Target laba bersih sah SPK dari seluruh 41 pesanan aktif.</li>
-        <li><strong>Total Profit Aktual (Rp 31.070.500):</strong> Realisasi bersih setelah memperhitungkan nota belanja riil lapangan.</li>
-        <li><strong>Net Deviasi Margin (-Rp 66.000):</strong> Selisih riil penyesuaian belanja riil lapangan.</li>
+      <ul>
+        <li>Jika <strong>Δ Net ≥ 0:</strong> <strong>Surplus Efisiensi Biaya Lapangan</strong> $\rightarrow$ Badge Hijau Emerald.</li>
+        <li>Jika <strong>Δ Net &lt; 0:</strong> <strong>Pembengkakan Biaya Lapangan / Defisit</strong> $\rightarrow$ Badge Merah Rose Warning.</li>
       </ul>
-      <p style="margin: 4px 0 2px 0;"><strong>Hasil Audit Database Live (41 Pesanan):</strong> 39 pesanan berjalan 100% on-track (Δ = Rp 0). Deviasi riil hanya berasal dari 2 pesanan lapangan: <code>VK260038</code> (ongkir tambahan, defisit -Rp 100.000) dan <code>VK260041</code> (surplus sablon +Rp 34.000). Rumus lama yang membandingkan gross margin dengan net profit (-Rp 1.331.000 semu) telah diperbaiki 100%.</p>
-      <p style="margin: 2px 0 0 0;"><em>Fitur Visual:</em> Dilengkapi custom tooltip kontras tinggi serta toggle filter <strong>[Semua (41)]</strong> vs <strong>[Hanya Berdeviasi (2)]</strong>.</p>
     </div>
   </div>
 
   <div class="formula-box">
     <div class="formula-header">
-      <span>4.8. Formula Arus Kas Likuiditas Riil & Pengakuan DP Real-Time</span>
-      <span class="badge-pill badge-blue">Likuiditas Kas Riil</span>
+      <span>B. Deviasi Margin per Invoice (Waterfall Bar Delta) & Deviasi HPP</span>
+      <span class="badge-pill badge-slate">Delta per Order</span>
     </div>
-    <div class="formula-math">Saldo Kas Riil Akhir = Saldo Kas Awal + Σ(Kas Masuk Riil Customer) - Σ(Kas Keluar Operasional Riil)</div>
+    <div class="formula-math">Deviasi Margin Order (δ) = Profit Aktual Order - Target Net Profit SPK
+Deviasi Beban HPP (Δ HPP) = HPP Aktual Order - HPP Estimasi SPK</div>
     <div class="formula-desc">
       <ul style="margin: 0; padding-left: 16px;">
-        <li><strong>Pengakuan DP Real-Time:</strong> Seluruh uang transfer DP dan cicilan customer <strong>LANGSUNG MASUK KE PERHITUNGAN SALDO KAS RIIL</strong> saat dana diterima (tidak di-hold sampai order lunas), karena uang fisik telah tersedia di rekening bank perusahaan.</li>
-        <li><strong>Aturan Indikator Saldo Minus:</strong> Apabila posisi kas atau selisih bernilai negatif/defisit, sistem secara otomatis merender warna <strong>Merah Rose Warning</strong> dengan ikon bahaya informatif untuk memicu tindakan audit cepat.</li>
+        <li><strong>δ > 0 (Hijau Emerald):</strong> Surplus efisiensi bahan/vendor (cth: <code>VK260041</code> +Rp 34.000 revisi sablon).</li>
+        <li><strong>δ = 0 (Abu-abu Netral):</strong> 100% On-Track sesuai target SPK (39 invoice live).</li>
+        <li><strong>δ &lt; 0 (Merah Rose):</strong> Defisit / kebocoran biaya di luar quotation (cth: <code>VK260038</code> -Rp 100.000 ongkir tambahan).</li>
+        <li><em>Penyelarasan Rumus:</em> Selisih semu lama (-Rp 1.331.000) yang membandingkan gross margin dengan net profit telah dikoreksi total sehingga invoice <code>VK260030</code> kini berdeviasi Rp 0 (sesuai budget).</li>
       </ul>
     </div>
   </div>
