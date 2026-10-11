@@ -10,7 +10,6 @@ import {
   EyeOff,
   ShieldCheck,
   ArrowRight,
-  Sparkles,
   AlertCircle,
   Building2,
   CheckCircle2,
@@ -19,9 +18,9 @@ import { motion } from 'framer-motion';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loginAsGlora } = useAuth();
+  const { login } = useAuth();
 
-  const [email, setEmail] = useState('glora.sawita@visualkain.com');
+  const [email, setEmail] = useState(process.env.NEXT_PUBLIC_LOGIN_EMAIL_HINT || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -45,11 +44,6 @@ export default function LoginPage() {
     } else {
       setError(res.error || 'Autentikasi gagal. Silakan coba kembali.');
     }
-  };
-
-  const handleInstantDemoLogin = async () => {
-    setLoading(true);
-    await loginAsGlora();
   };
 
   return (
@@ -184,39 +178,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Client Presentation Shortcut / One-Click Access */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center text-[11px] font-semibold uppercase">
-              <span className="bg-white px-3 text-slate-400 tracking-wider">
-                Akses Langsung Klien
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleInstantDemoLogin}
-            disabled={loading}
-            className="flex w-full items-center justify-between rounded-xl border border-teal-200 bg-teal-50/70 p-3 text-left hover:bg-teal-100/70 active:scale-[0.99] transition-all group cursor-pointer"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600 text-white shadow-xs">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-slate-800 group-hover:text-teal-900 transition-colors">
-                  Masuk Langsung sebagai Kak Glora Sawita
-                </div>
-                <div className="text-[11px] text-teal-700 font-medium">
-                  Sesi Head of Finance &amp; Accounting (Instan)
-                </div>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-teal-600 group-hover:translate-x-0.5 transition-transform" />
-          </button>
 
           {/* Security & BCA Escrow Disclaimer */}
           <div className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-slate-50 py-2.5 px-3 border border-slate-100 text-[11px] text-slate-500 text-center">
