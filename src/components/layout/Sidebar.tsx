@@ -8,7 +8,6 @@ import {
   WalletCards,
   Award,
   FileSpreadsheet,
-  Building,
   ShieldCheck,
   LogOut,
   ChevronLeft,
@@ -81,8 +80,12 @@ export function Sidebar({
           }`}
         >
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white shadow-btn-primary font-extrabold text-lg">
-              <Building className="h-5 w-5" />
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
+              <img
+                src="/img/logo.jpg"
+                alt="VisualKain Logo"
+                className="h-full w-full object-cover"
+              />
             </div>
 
             <AnimatePresence>

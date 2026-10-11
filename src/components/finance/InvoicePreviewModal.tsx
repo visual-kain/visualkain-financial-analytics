@@ -89,16 +89,25 @@ export function InvoicePreviewModal({ isOpen, order, onClose }: InvoicePreviewMo
           <div className="mt-4 flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-sm font-sans text-slate-800">
             {/* Kop Invoice */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5 gap-3">
-              <div>
-                <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
-                  VISUALKAIN INDONESIA
-                </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Spesialis Konveksi Seragam, Jaket, Kemeja & Merchandise Custom
-                </p>
-                <p className="text-[11px] text-slate-400">
-                  Hotline Finance: +62 812-2168-8065 &bull; finance@visualkain.id
-                </p>
+              <div className="flex items-center gap-3.5">
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm">
+                  <img
+                    src="/img/logo.jpg"
+                    alt="VisualKain Logo"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
+                    VISUALKAIN INDONESIA
+                  </h1>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Spesialis Konveksi Seragam, Jaket, Kemeja & Merchandise Custom
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Hotline Finance: +62 812-2168-8065 &bull; finance@visualkain.id
+                  </p>
+                </div>
               </div>
 
               <div className="text-left sm:text-right">

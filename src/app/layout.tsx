@@ -5,6 +5,11 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 export const metadata: Metadata = {
   title: 'VisualKain Financial Data & Analytics',
   description: 'Executive Financial Intelligence, Arus Kas Riil & Alokasi Vendor Escrow 2026',
+  icons: {
+    icon: '/img/logo.jpg',
+    shortcut: '/img/logo.jpg',
+    apple: '/img/logo.jpg',
+  },
 };
 
 export default function RootLayout({

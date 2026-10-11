@@ -11,6 +11,10 @@ if (!fs.existsSync(TEMP_DIR)) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 }
 
+const logoPath = path.join(ROOT_DIR, 'public', 'img', 'logo.jpg');
+const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+const logoDataUri = `data:image/jpeg;base64,${logoBase64}`;
+
 const htmlContent = `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -73,9 +77,13 @@ const htmlContent = `<!DOCTYPE html>
       gap: 12px;
     }
 
-    .kop-logo-svg {
-      width: 46px;
-      height: 46px;
+    .kop-logo-img {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      object-fit: cover;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
 
     .kop-company-name {
@@ -654,11 +662,7 @@ const htmlContent = `<!DOCTYPE html>
   <!-- ================= KOP SURAT RESMI ================= -->
   <div class="kop-surat">
     <div class="kop-logo">
-      <svg class="kop-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100" height="100" rx="18" fill="#0f172a"/>
-        <path d="M26 30L50 72L74 30" stroke="#059669" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="50" cy="42" r="8" fill="#38bdf8"/>
-      </svg>
+      <img class="kop-logo-img" src="${logoDataUri}" alt="VisualKain Logo" />
       <div>
         <h1 class="kop-company-name">PT Visual Kain Indonesia</h1>
         <div class="kop-division">Divisi Keuangan, Akuntansi & Sistem Teknologi Informasi</div>
