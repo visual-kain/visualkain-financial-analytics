@@ -6,8 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatRupiah(amount: number): string {
-  const formatted = Math.round(amount).toLocaleString('id-ID');
-  return `Rp ${formatted}`;
+  const rounded = Math.round(amount);
+  const sign = rounded < 0 ? '-' : '';
+  const formatted = Math.abs(rounded).toLocaleString('id-ID');
+  return `${sign}Rp ${formatted}`;
 }
 
 export function formatPercent(value: number, total: number): string {

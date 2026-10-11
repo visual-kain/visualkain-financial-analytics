@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatRupiah, formatCompactRupiah } from '@/lib/utils';
+import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
 import type {
   Order,
   CashTransaction,
@@ -181,15 +181,15 @@ export function MetricDetailDrawer({
     },
     saldo: {
       title: 'Detail Saldo Periode Rekening',
-      badge: 'Kas Bank Riil',
-      badgeColor: 'bg-teal-50 text-teal-700 border-teal-200',
+      badge: summary.saldoKasRiil < 0 ? 'Defisit Kas Periode' : 'Kas Bank Riil',
+      badgeColor: summary.saldoKasRiil < 0 ? 'bg-rose-50 text-rose-700 border-rose-200 font-bold' : 'bg-teal-50 text-teal-700 border-teal-200',
       totalValue: summary.saldoKasRiil,
       subtitle: `Saldo Awal: ${formatCompactRupiah(saldoAwal)} • Inflow: ${formatCompactRupiah(summary.totalKasMasuk)}`,
       formula: 'Saldo Kas = (Saldo Awal + Total Uang Masuk) - (Bayar Vendor + Beban Operasional)',
       formulaDesc:
         'Posisi kas nyata yang tersedia di rekening bank. Mengikuti prinsip Dua Kantong Alokasi Dana agar uang operasional dan titipan pokok vendor terpisah.',
       icon: Wallet,
-      accentColor: 'text-teal-600',
+      accentColor: summary.saldoKasRiil < 0 ? 'text-rose-600' : 'text-teal-600',
     },
     cashout: {
       title: 'Detail Pengeluaran (Uang Keluar)',
@@ -550,13 +550,24 @@ export function MetricDetailDrawer({
                           -{formatRupiah(summary.bebanOperasionalNonVendor)}
                         </span>
                       </div>
-                      <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-extrabold text-teal-900">
-                        <span>Saldo Kas Bersih Riil</span>
-                        <span className="tabular-nums font-mono">
+                      <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-extrabold">
+                        <span className={summary.saldoKasRiil < 0 ? 'text-rose-950 font-bold' : 'text-teal-900'}>
+                          Saldo Kas Bersih Riil
+                        </span>
+                        <span className={cn('tabular-nums font-mono', summary.saldoKasRiil < 0 ? 'text-rose-600 font-extrabold' : 'text-teal-700')}>
                           {formatRupiah(summary.saldoKasRiil)}
                         </span>
                       </div>
                     </div>
+
+                    {summary.saldoKasRiil < 0 && (
+                      <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-3 text-xs text-rose-800 flex items-start gap-2.5">
+                        <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">Peringatan Posisi Kas Periode:</span> Akumulasi pengeluaran nyata (DP vendor + operasional kas) melebihi uang masuk customer sebesar <span className="font-bold font-mono text-rose-700">{formatRupiah(Math.abs(summary.saldoKasRiil))}</span>. Pastikan menagih sisa termin/pelunasan customer untuk menjaga likuiditas kas.
+                        </div>
+                      </div>
+                    )}
 
                     <h5 className="text-xs font-bold text-slate-700 mt-4">
                       Mutasi Kas Terakhir

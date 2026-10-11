@@ -94,7 +94,7 @@ export function EscrowLiquidityBar({
           <div className="flex items-center gap-2">
             <span>
               Total Kas Riil Bank:{' '}
-              <strong className="font-mono text-slate-800 font-bold">
+              <strong className={`font-mono font-bold ${saldoKasRiil < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
                 {formatRupiah(saldoKasRiil)}
               </strong>
             </span>
