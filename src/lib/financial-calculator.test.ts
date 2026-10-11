@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateEscrowAllocation,
   calculateFinancialSummary,
+  calculateEscrowLiquidity,
 } from './financial-calculator';
 import type { Order, CashTransaction } from '@/types';
 
@@ -246,6 +247,69 @@ describe('VisualKain Financial Calculator Engine', () => {
       expect(cheapest[0].kategori).toBe('T Shirt');
       expect(cheapest[0].vendorNama).toBe('AMRIN'); // 2.000.000 / 40 = 50.000 vs 1.200.000 / 20 = 60.000
       expect(cheapest[0].avgCost).toBe(50000);
+    });
+  });
+
+  describe('Escrow Liquidity Bar Invariant & Negative Deficit Handling', () => {
+    it('Menangani kondisi defisit kas bank negatif (-Rp 314.500) secara elegan tanpa NaN / invalid CSS width', () => {
+      const res = calculateEscrowLiquidity(-314500, 0);
+
+      expect(res.isDefisit).toBe(true);
+      expect(res.kasAmanDitarik).toBe(0);
+      expect(res.danaTerkunciVendor).toBe(0);
+      expect(res.percentBebas).toBe(0);
+      expect(res.percentTerkunci).toBe(0);
+      expect(res.percentDefisit).toBe(100);
+      expect(res.isHealthy).toBe(false);
+      expect(res.statusLabel).toBe('Defisit Kas Riil');
+      expect(res.coverageLabel).toBe('Dana Belum Tercover');
+    });
+
+    it('Menangani kondisi defisit kas bank negatif ketika ada utang vendor tertunggak', () => {
+      const res = calculateEscrowLiquidity(-314500, 5000000);
+
+      expect(res.isDefisit).toBe(true);
+      expect(res.kasAmanDitarik).toBe(0);
+      expect(res.danaTerkunciVendor).toBe(0);
+      expect(res.percentBebas).toBe(0);
+      expect(res.percentTerkunci).toBe(0);
+      expect(res.percentDefisit).toBe(100);
+    });
+
+    it('Menghitung proporsi normal ketika kas positif dan melebihi utang vendor', () => {
+      const res = calculateEscrowLiquidity(5605000, 3455000);
+
+      expect(res.isDefisit).toBe(false);
+      expect(res.danaTerkunciVendor).toBe(3455000);
+      expect(res.kasAmanDitarik).toBe(2150000);
+      expect(res.percentBebas).toBe(38.4);
+      expect(res.percentTerkunci).toBe(61.6);
+      expect(res.percentDefisit).toBe(0);
+      expect(res.isHealthy).toBe(true);
+      expect(res.coverageLabel).toBe('Utang Tercover 100%');
+    });
+
+    it('Menghitung proporsi ketika utang vendor lebih besar dari saldo kas riil', () => {
+      const res = calculateEscrowLiquidity(1000000, 2000000);
+
+      expect(res.isDefisit).toBe(false);
+      expect(res.danaTerkunciVendor).toBe(1000000);
+      expect(res.kasAmanDitarik).toBe(0);
+      expect(res.percentBebas).toBe(0);
+      expect(res.percentTerkunci).toBe(100);
+      expect(res.coverageLabel).toBe('Utang Tercover 50%');
+    });
+
+    it('Menangani saldo kas nol (0) tanpa menghasilkan pembagian nol / NaN', () => {
+      const res = calculateEscrowLiquidity(0, 1000000);
+
+      expect(res.isDefisit).toBe(false);
+      expect(res.kasAmanDitarik).toBe(0);
+      expect(res.danaTerkunciVendor).toBe(0);
+      expect(res.percentBebas).toBe(0);
+      expect(res.percentTerkunci).toBe(0);
+      expect(Number.isNaN(res.percentBebas)).toBe(false);
+      expect(Number.isNaN(res.percentTerkunci)).toBe(false);
     });
   });
 });

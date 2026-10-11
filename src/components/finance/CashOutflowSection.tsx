@@ -489,78 +489,84 @@ export function CashOutflowSection({
 
       {/* Main Ledger Table & Actions */}
       <div className="rounded-2xl border border-slate-200/90 bg-white shadow-card-double overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 p-5 gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 p-4 sm:p-5 gap-3">
           <div>
             <h3 className="text-sm font-bold text-slate-800">Riwayat Mutasi Dana Keluar</h3>
-            <p className="text-xs text-slate-400">Daftar transaksi kas keluar yang diverifikasi finance</p>
+            <p className="text-xs text-slate-400 mt-0.5">Daftar transaksi kas keluar yang diverifikasi finance</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
             <Button
               onClick={() => setIsDrawerOpen(true)}
-              className="min-h-[44px] flex-1 sm:flex-none gap-1.5 rounded-xl bg-teal-600 px-4 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 transition-all cursor-pointer"
+              className="h-10 min-h-[40px] flex-1 sm:flex-none gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer justify-center"
             >
-              <Plus className="h-4 w-4" />
-              Catat Pengeluaran
+              <Plus className="h-4 w-4 shrink-0" />
+              <span>Catat Pengeluaran</span>
             </Button>
             <Button
               onClick={handleExportExcel}
               variant="outline"
-              className="min-h-[44px] gap-1.5 rounded-xl border-slate-200 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+              className="h-10 min-h-[40px] flex-1 sm:flex-none gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 active:scale-[0.98] transition-transform duration-150 cursor-pointer justify-center"
             >
-              <Download className="h-4 w-4" />
-              Export Excel
+              <Download className="h-4 w-4 shrink-0 text-slate-500" />
+              <span>Export Excel</span>
             </Button>
           </div>
         </div>
 
         {/* Dedicated Filter Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 p-4 bg-slate-50/60 gap-3">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1">
+        <div className="flex flex-col border-b border-slate-100 p-3.5 sm:p-4 bg-slate-50/60 gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5">
             {/* Live Search Input */}
-            <div className="relative min-w-[220px] max-w-sm flex-1">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:max-w-xs flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Cari transaksi, voucher, keterangan..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-full rounded-xl border border-slate-200 bg-white pl-8 pr-8 text-xs text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-9 text-xs text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               )}
             </div>
 
-            {/* CustomSelect Bulan Filter */}
-            <CustomSelect
-              value={bulanFilter}
-              onValueChange={setBulanFilter}
-              options={BULAN_FILTER_OPTIONS}
-              className="min-w-[135px]"
-            />
+            {/* 2-Column Grid for Bulan & Tahun Dropdowns on Mobile */}
+            <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
+              {/* CustomSelect Bulan Filter */}
+              <CustomSelect
+                value={bulanFilter}
+                onValueChange={setBulanFilter}
+                options={BULAN_FILTER_OPTIONS}
+                className="h-10 w-full sm:w-[135px]"
+              />
 
-            {/* CustomSelect Tahun Filter */}
-            <CustomSelect
-              value={tahunFilter}
-              onValueChange={setTahunFilter}
-              options={yearOptions}
-              className="min-w-[125px]"
-            />
+              {/* CustomSelect Tahun Filter */}
+              <CustomSelect
+                value={tahunFilter}
+                onValueChange={setTahunFilter}
+                options={yearOptions}
+                className="h-10 w-full sm:w-[125px]"
+              />
+            </div>
 
             {/* CustomSelect Kategori Beban Filter */}
-            <CustomSelect
-              value={categoryFilter}
-              onValueChange={setCategoryFilter}
-              icon={<Filter className="h-3.5 w-3.5" />}
-              options={CATEGORY_FILTER_OPTIONS}
-              className="min-w-[185px]"
-            />
+            <div className="w-full sm:w-auto">
+              <CustomSelect
+                value={categoryFilter}
+                onValueChange={setCategoryFilter}
+                icon={<Filter className="h-3.5 w-3.5" />}
+                options={CATEGORY_FILTER_OPTIONS}
+                className="h-10 w-full sm:min-w-[185px]"
+              />
+            </div>
 
+            {/* Reset Filter Button */}
             {(categoryFilter !== 'all' || bulanFilter !== 'all' || tahunFilter !== 'all' || searchQuery) && (
               <button
                 onClick={() => {
@@ -569,18 +575,18 @@ export function CashOutflowSection({
                   setTahunFilter('all');
                   setSearchQuery('');
                 }}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 active:scale-95 transition-all"
+                className="inline-flex h-10 w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 active:scale-[0.98] transition-all cursor-pointer"
               >
-                <RotateCcw className="h-3 w-3" />
-                Reset Filter
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Reset Filter</span>
               </button>
             )}
           </div>
 
           {/* Active Filter Metrics Pill */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-400">Menampilkan:</span>
-            <span className="font-mono font-bold text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-sm tabular-num">
+          <div className="flex items-center justify-between text-xs text-slate-500 pt-1.5 border-t border-slate-200/50 sm:border-0 sm:pt-0">
+            <span className="text-slate-400 text-[11px] font-medium">Menampilkan:</span>
+            <span className="font-mono font-bold text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs tabular-num text-[11px]">
               {filteredEntries.length} dari {entries.length} data ({formatRupiah(totalDanaKeluar)})
             </span>
           </div>

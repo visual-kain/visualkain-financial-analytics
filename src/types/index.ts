@@ -161,6 +161,18 @@ export interface EscrowAllocation {
   sisaPiutangCustomer: number;
 }
 
+export interface EscrowLiquidityCalculation {
+  kasAmanDitarik: number;
+  danaTerkunciVendor: number;
+  percentBebas: number;
+  percentTerkunci: number;
+  percentDefisit: number;
+  isDefisit: boolean;
+  isHealthy: boolean;
+  statusLabel: string;
+  coverageLabel: string;
+}
+
 export interface FinancialSummary {
   saldoKasRiil: number;
   totalKasMasuk: number;

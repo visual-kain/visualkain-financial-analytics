@@ -210,49 +210,58 @@ export function VendorPerformanceSection({
 
   return (
     <div className="space-y-6">
-      {/* Top Highlights: Most Used & Cost Efficiency (2-Grid Mobile, 3-Col Desktop) */}
+      {/* Top Highlights: Unified White Cards (2-Grid Mobile, 3-Col Desktop) */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-4">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between">
+        {/* Card 1: Mitra Terbanyak */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-bold text-amber-800 truncate pr-1">Mitra Terbanyak</span>
-            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700 shrink-0">
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate pr-1">
+              Mitra Terbanyak
+            </span>
+            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100 shrink-0">
               <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
-          <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-amber-900 truncate">
-            {mostUsedVendor.nama}
+          <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">
+            {mostUsedVendor ? mostUsedVendor.nama : '-'}
           </div>
-          <p className="mt-1 text-[10px] sm:text-xs text-amber-700 font-semibold font-mono truncate">
-            {mostUsedVendor.orderCount} Order &bull; {mostUsedVendor.pcsTotal} Pcs
+          <p className="mt-1 text-[10px] sm:text-xs text-slate-400 font-medium font-mono truncate">
+            {mostUsedVendor ? `${mostUsedVendor.orderCount} Order • ${mostUsedVendor.pcsTotal} Pcs` : '-'}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between">
+        {/* Card 2: Efisiensi Belanja */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-bold text-teal-800 truncate pr-1">Efisiensi Belanja</span>
-            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-teal-100 text-teal-700 shrink-0">
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate pr-1">
+              Efisiensi Belanja
+            </span>
+            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-teal-50 text-teal-600 border border-teal-100 shrink-0">
               <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
-          <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-teal-900 truncate">
+          <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">
             CAHAYA BORDIR
           </div>
-          <p className="mt-1 text-[10px] sm:text-xs text-teal-700 font-semibold font-mono truncate">
+          <p className="mt-1 text-[10px] sm:text-xs text-emerald-600 font-semibold font-mono truncate">
             Hemat Rp 170k dari estimasi
           </p>
         </div>
 
-        <div className="col-span-2 md:col-span-1 rounded-2xl border border-blue-200 bg-blue-50/60 p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between">
+        {/* Card 3: Rata-rata Margin Mitra */}
+        <div className="col-span-2 md:col-span-1 rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] sm:text-xs font-bold text-blue-800 truncate pr-1">Rata-rata Margin Mitra</span>
-            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-700 shrink-0">
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate pr-1">
+              Rata-rata Margin Mitra
+            </span>
+            <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shrink-0">
               <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
-          <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-blue-900 font-mono truncate">
+          <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-slate-900 tracking-tight font-mono truncate">
             32.8%
           </div>
-          <p className="mt-1 text-[10px] sm:text-xs text-blue-700 font-semibold truncate">
+          <p className="mt-1 text-[10px] sm:text-xs text-slate-400 font-medium truncate">
             Standar margin di atas target 30%
           </p>
         </div>

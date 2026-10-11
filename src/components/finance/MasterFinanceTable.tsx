@@ -441,40 +441,31 @@ export function MasterFinanceTable({
                   {row.profitPercent.toFixed(1)}%
                 </td>
 
-                {/* Frozen Sticky Right 1: 4 Aksi Kompak */}
+                {/* Frozen Sticky Right 1: Aksi Kompak */}
                 <td
                   className="px-2.5 py-2 text-center w-44 min-w-[176px] md:sticky md:right-[124px] bg-white group-hover:bg-[#f6fbfb] z-20 shadow-[-1px_0_0_0_#e2e8f0]"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center justify-center gap-1.5">
-                    {/* 1. Ikon Dokumen Biru: Faktur / Invoice PDF */}
-                    <button
-                      onClick={() => onPreviewInvoice?.(row)}
-                      title="Faktur & Invoice Pesanan"
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-95 transition-all"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                    </button>
-
-                    {/* 2. Ikon Pensil Hijau: Edit Finansial Order */}
+                    {/* 1. Ikon Pensil Hijau: Edit Finansial Order */}
                     <button
                       onClick={() => onEditFinance?.(row)}
                       title="Edit Finansial Order (Harga, DP, Vendor, HPP)"
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 active:scale-95 transition-all"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 active:scale-95 transition-all cursor-pointer"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
 
-                    {/* 3. Ikon Mata Abu: Detail Cicilan */}
+                    {/* 2. Ikon Mata Abu: Detail Cicilan & Faktur */}
                     <button
                       onClick={() => onSelectRow?.(row)}
-                      title="Inspeksi Detail Cicilan"
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all"
+                      title="Inspeksi Detail Cicilan & Faktur"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </button>
 
-                    {/* 4. Tombol Tagih WA (DP < 70%) */}
+                    {/* 3. Tombol Tagih WA (DP < 70%) */}
                     {row.dpPersenCustomer < 70 && (
                       <button
                         onClick={() => {
@@ -482,7 +473,7 @@ export function MasterFinanceTable({
                           onQuickWaFollowUp?.(row);
                         }}
                         title="Kirim Penagihan WhatsApp DP 70%"
-                        className="inline-flex h-7 items-center gap-1 rounded-lg bg-emerald-600 px-2 text-[10px] font-bold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition-all"
+                        className="inline-flex h-7 items-center gap-1 rounded-lg bg-emerald-600 px-2 text-[10px] font-bold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
                       >
                         <MessageCircle className="h-3 w-3" />
                         <span>Tagih WA</span>

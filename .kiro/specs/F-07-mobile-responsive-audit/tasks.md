@@ -96,3 +96,23 @@
   - Refactor summary cards in Cash Outflow and Vendor Performance into 2-grid on mobile.
 - [x] **Task 6.6: Quality Gate Verification**
   - Run `npx tsc --noEmit`, `npm test`, and `npm run build`.
+
+---
+
+## Phase 7: Mobile Screen Edge Header, Centralized Invoice Drawer & Visual Consistency
+- [x] **Task 7.1: Centralize Invoice Action in Detail Drawer**
+  - Path: `src/components/finance/MasterFinanceTable.tsx`, `src/components/finance/OrderInspectionDrawer.tsx`, `src/app/page.tsx`
+  - Remove blue document icon button from desktop table actions row.
+  - Add prominent `[📄 Lihat Faktur & Invoice Resmi]` button in `OrderInspectionDrawer` header.
+- [x] **Task 7.2: Flush Mobile Header Card (Top, Left, Right Screen Boundaries)**
+  - Path: `src/app/page.tsx`
+  - Apply `-mx-3.5 -mt-4 border-t-0 border-x-0 rounded-t-none rounded-b-2xl` on mobile so header touches screen edges on top, left, and right, while preserving bottom rounded corners and spacing.
+- [x] **Task 7.3: Unified White Card Design System for 3 Vendor Highlight Cards**
+  - Path: `src/components/finance/VendorPerformanceSection.tsx`
+  - Replace multicolored pastel fills (`amber-50`, `teal-50`, `blue-50`) with clean `bg-white border-slate-200/90 shadow-card-double` design system, matching Finance & Cash Outflow cards.
+- [x] **Task 7.4: Harmonize Spacing and Responsive Dropdown Grid in Cash Outflow Mutasi**
+  - Path: `src/components/finance/CashOutflowSection.tsx`
+  - Standardize action buttons into balanced 2-column grid (`h-10 min-h-[40px]`), clean search bar, 2-column dropdown grid for Bulan & Tahun, full-width category dropdown, and tidy bottom data pill.
+- [x] **Task 7.5: Quality Gate & Remote Push**
+  - Pass TypeScript check (`tsc`), Vitest unit tests (12/12), and Next.js production build (`next build`).
+

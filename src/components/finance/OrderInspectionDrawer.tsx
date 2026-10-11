@@ -17,17 +17,20 @@ import {
   Receipt,
   ArrowRight,
   ExternalLink,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface OrderInspectionDrawerProps {
   order: MasterFinanceRow | null;
   onClose: () => void;
+  onPreviewInvoice?: (order: MasterFinanceRow) => void;
 }
 
 export function OrderInspectionDrawer({
   order,
   onClose,
+  onPreviewInvoice,
 }: OrderInspectionDrawerProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
 
@@ -141,6 +144,18 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
                 <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
                   <Calendar className="h-3.5 w-3.5" />
                   <span>Tanggal Invoice: {order.tanggalInv}</span>
+                </div>
+
+                {/* Tombol Lihat Faktur & Invoice Resmi */}
+                <div className="mt-3.5 pt-3 border-t border-slate-200/70">
+                  <button
+                    type="button"
+                    onClick={() => onPreviewInvoice?.(order)}
+                    className="w-full min-h-[38px] flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50/80 px-3.5 py-2 text-xs font-bold text-blue-700 shadow-2xs hover:bg-blue-100 hover:border-blue-300 active:scale-[0.98] transition-all duration-150 cursor-pointer"
+                  >
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <span>Lihat Faktur & Invoice Resmi</span>
+                  </button>
                 </div>
               </div>
             </div>

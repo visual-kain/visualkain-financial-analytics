@@ -4,7 +4,71 @@ import type {
   FinancialSummary,
   EscrowAllocation,
   VendorDebtBreakdown,
+  EscrowLiquidityCalculation,
 } from '@/types';
+
+/**
+ * Menghitung alokasi 2 kantong likuiditas bank (Escrow Liquidity Invariant)
+ * Memastikan persentase selalu valid dan menangani saldo kas negatif (defisit) secara matematis & visual.
+ */
+export function calculateEscrowLiquidity(
+  saldoKasRiil: number,
+  totalUtangVendor: number
+): EscrowLiquidityCalculation {
+  const isDefisit = saldoKasRiil < 0;
+
+  if (isDefisit) {
+    return {
+      kasAmanDitarik: 0,
+      danaTerkunciVendor: 0,
+      percentBebas: 0,
+      percentTerkunci: 0,
+      percentDefisit: 100,
+      isDefisit: true,
+      isHealthy: false,
+      statusLabel: 'Defisit Kas Riil',
+      coverageLabel: 'Dana Belum Tercover',
+    };
+  }
+
+  if (saldoKasRiil === 0) {
+    return {
+      kasAmanDitarik: 0,
+      danaTerkunciVendor: 0,
+      percentBebas: 0,
+      percentTerkunci: 0,
+      percentDefisit: 0,
+      isDefisit: false,
+      isHealthy: false,
+      statusLabel: '0% Aman Ditarik',
+      coverageLabel: totalUtangVendor > 0 ? 'Utang Belum Tercover' : 'Tanpa Beban Utang',
+    };
+  }
+
+  const safeUtangVendor = Math.max(0, totalUtangVendor);
+  const danaTerkunciVendor = Math.min(saldoKasRiil, safeUtangVendor);
+  const kasAmanDitarik = Math.max(0, saldoKasRiil - danaTerkunciVendor);
+
+  const percentBebas = Number(Math.max(0, Math.min(100, (kasAmanDitarik / saldoKasRiil) * 100)).toFixed(1));
+  const percentTerkunci = Number(Math.max(0, Math.min(100, (danaTerkunciVendor / saldoKasRiil) * 100)).toFixed(1));
+
+  const isHealthy = percentBebas >= 25;
+  const isFullyCovered = danaTerkunciVendor >= safeUtangVendor;
+
+  return {
+    kasAmanDitarik,
+    danaTerkunciVendor,
+    percentBebas,
+    percentTerkunci,
+    percentDefisit: 0,
+    isDefisit: false,
+    isHealthy,
+    statusLabel: `${percentBebas}% Aman Ditarik`,
+    coverageLabel: isFullyCovered
+      ? 'Utang Tercover 100%'
+      : `Utang Tercover ${((danaTerkunciVendor / Math.max(1, safeUtangVendor)) * 100).toFixed(0)}%`,
+  };
+}
 
 /**
  * Menghitung alokasi proporsional kantong dana pokok vendor (HPP) vs margin VisualKain

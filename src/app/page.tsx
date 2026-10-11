@@ -357,14 +357,11 @@ function FinancialDashboardContent() {
     [rawOrders, rawVendors]
   );
 
-  // Periode kartu: default (Semua Bulan + Semua Tahun) = bulan berjalan,
-  // sedangkan tabel menampilkan SELURUH data. Aturan sama dengan VisualKainDB.
-  const now = new Date();
-  const curBulan = String(now.getMonth() + 1).padStart(2, '0');
-  const curTahun = String(now.getFullYear());
-  const isDefaultMode = bulan === 'all' && tahun === 'all';
-  const cardBulan = isDefaultMode ? curBulan : bulan;
-  const cardTahun = isDefaultMode ? curTahun : tahun;
+  const BULAN_LABEL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const selectedPeriod =
+    bulan === 'all' && tahun === 'all'
+      ? 'Semua Periode'
+      : `${bulan === 'all' ? 'Semua Bulan' : BULAN_LABEL[Number(bulan) - 1]} ${tahun === 'all' ? 'Semua Tahun' : tahun}`;
 
   const matchPeriod = (tanggal: string, b: string, y: string) => {
     if (!tanggal) return false;
@@ -384,38 +381,16 @@ function FinancialDashboardContent() {
     return [...extraIncomes, ...rawCashTxs];
   }, [extraIncomes, rawCashTxs]);
 
-  // Data tabel & seksi lain: mengikuti dropdown (default = semua data)
   const filteredOrders = useMemo(
     () => rawOrders.filter((o) => matchPeriod(o.tanggalOrder, bulan, tahun)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [rawOrders, bulan, tahun]
   );
   const filteredCashTxs = useMemo(
     () => allCashTransactions.filter((t) => matchPeriod(t.tanggal, bulan, tahun)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allCashTransactions, bulan, tahun]
   );
 
-  // Data kartu: mengikuti periode kartu
-  const cardOrders = useMemo(
-    () => rawOrders.filter((o) => matchPeriod(o.tanggalOrder, cardBulan, cardTahun)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rawOrders, cardBulan, cardTahun]
-  );
-  const cardCashTxs = useMemo(
-    () => allCashTransactions.filter((t) => matchPeriod(t.tanggal, cardBulan, cardTahun)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allCashTransactions, cardBulan, cardTahun]
-  );
-
-  const BULAN_LABEL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  const cardPeriodLabel = `${cardBulan === 'all' ? 'Semua Bulan' : BULAN_LABEL[Number(cardBulan) - 1]} ${cardTahun === 'all' ? 'Semua Tahun' : cardTahun}`;
-  const selectedPeriod =
-    bulan === 'all' && tahun === 'all'
-      ? 'Semua Periode'
-      : `${bulan === 'all' ? 'Semua Bulan' : BULAN_LABEL[Number(bulan) - 1]} ${tahun === 'all' ? 'Semua Tahun' : tahun}`;
-
-  const summary = calculateFinancialSummary(saldoAwal, cardCashTxs, cardOrders);
+  const summary = calculateFinancialSummary(saldoAwal, filteredCashTxs, filteredOrders);
   const masterRows = transformToMasterRows(filteredOrders);
 
   const viewTitles: Record<FinanceSubTab, { title: string; subtitle: string }> = {
@@ -506,6 +481,7 @@ function FinancialDashboardContent() {
       <OrderInspectionDrawer
         order={selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        onPreviewInvoice={(order) => setPreviewInvoiceOrder(order)}
       />
 
       {/* 3. Slide-Over Metric Detail Drawer (VisualKainDB 6-Card Drilldown) */}
@@ -514,8 +490,8 @@ function FinancialDashboardContent() {
         metricType={activeMetricDrawer}
         onClose={() => setActiveMetricDrawer(null)}
         summary={summary}
-        orders={cardOrders}
-        transactions={cardCashTxs}
+        orders={filteredOrders}
+        transactions={filteredCashTxs}
         saldoAwal={saldoAwal}
         initialVendorFilter={drawerVendorFilter}
         onOpenAddIncome={() => {
@@ -557,8 +533,8 @@ function FinancialDashboardContent() {
       {/* 4. Main Content View Area */}
       <main className="flex-1 overflow-y-auto px-3.5 py-4 pb-28 sm:px-8 sm:py-8 sm:pb-8 transition-all duration-300">
         <div className="mx-auto max-w-7xl space-y-6">
-          {/* Top Executive Header Card (Elevated Surface, Refined Typography & Matched Control Heights) */}
-          <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-4 sm:p-6 shadow-card-double backdrop-blur-md transition-all">
+          {/* Top Executive Header Card (Flush to top/left/right on mobile, rounded card on desktop) */}
+          <div className="-mx-3.5 -mt-4 rounded-none rounded-b-2xl border-b border-slate-200/90 border-t-0 border-x-0 bg-white/95 px-4 pt-4 pb-5 shadow-card-double backdrop-blur-md transition-all sm:mx-0 sm:mt-0 sm:rounded-2xl sm:border sm:border-slate-200/90 sm:p-6 mb-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               {/* Header Left: Brand Chips, Title & Subtitle */}
               <div className="space-y-1.5">
@@ -676,11 +652,10 @@ function FinancialDashboardContent() {
                 totalKasKeluar={summary.totalKasKeluar}
               />
 
-              {/* Banner periode kartu (kartu = periode berjalan, tabel = seluruh data) */}
+              {/* Banner periode data */}
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white/70 px-3.5 py-2 text-xs text-slate-600">
                 <span>
-                  Laporan Update: <strong className="text-slate-900">{cardPeriodLabel}</strong>
-                  <span className="text-slate-400"> (kartu mengikuti bulan berjalan; ubah filter untuk periode lain)</span>
+                  Laporan Periode: <strong className="text-slate-900">{selectedPeriod}</strong>
                 </span>
                 <span className="font-semibold text-slate-500 tabular-nums">
                   Tabel: {filteredOrders.length} dari {rawOrders.length} order
@@ -690,9 +665,9 @@ function FinancialDashboardContent() {
               {/* 6 KPI Metric Cards with Interactive Slide-Over Detail Drawers */}
               <FinanceStatsGrid
                 summary={summary}
-                orders={cardOrders}
-                orderCountWithDebt={cardOrders.filter((o) => o.totalHpp > o.totalDibayarKeVendor).length}
-                activeOrderCount={cardOrders.length}
+                orders={filteredOrders}
+                orderCountWithDebt={filteredOrders.filter((o) => o.totalHpp > o.totalDibayarKeVendor).length}
+                activeOrderCount={filteredOrders.length}
                 onSelectMetric={(metric) => {
                   setActiveMetricDrawer(metric);
                 }}
