@@ -180,10 +180,11 @@ export function useFirebaseFinance(
                 }
               }
 
-              // DP Customer terverifikasi (SSOT VisualKainDB)
-              const lockedDpCustomer = d.dpNominal && Number(d.dpNominal) > 0
-                ? Number(d.dpNominal)
-                : totals.nominalDP;
+              // DP Customer terverifikasi (SSOT VisualKainDB: prioritaskan riwayat pembayaran bertahap jika ada)
+              const sumPayments = payments.reduce((acc, p) => acc + p.nominal, 0);
+              const lockedDpCustomer = sumPayments > 0
+                ? sumPayments
+                : (d.dpNominal && Number(d.dpNominal) > 0 ? Number(d.dpNominal) : totals.nominalDP);
               const isOrderCompleted = d.status === 'completed' || d.statusOrder === 'SELESAI' || d.statusPembayaran === 'lunas';
               const totalMasuk = isOrderCompleted ? totalInv : lockedDpCustomer;
 
@@ -221,6 +222,8 @@ export function useFirebaseFinance(
                 vendorId: d.vendorId || '',
                 vendorName: resolvedVendorName,
                 pembayaranList: payments,
+                dpNominal: lockedDpCustomer,
+                dpNominalPO: dpVendor,
                 totalUangMasukCustomer: totalMasuk,
                 statusPembayaran: totalMasuk >= totalInv && totalInv > 0 ? 'lunas' : totalMasuk > 0 ? 'parsial' : 'belum_bayar',
                 totalDibayarKeVendor: dpVendor,
