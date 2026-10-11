@@ -1,0 +1,379 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import { formatRupiah, formatCompactRupiah } from '@/lib/utils';
+import type { VendorPerformanceItem, CheapestByCategory } from '@/types';
+import { Award, Crown, Tag, ArrowUpDown, BarChart2, TrendingUp, Sparkles, Building2 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from 'recharts';
+
+interface VendorPerformanceSectionProps {
+  vendors?: VendorPerformanceItem[];
+  cheapestList?: CheapestByCategory[];
+  mostUsedVendor?: { nama: string; orderCount: number; pcsTotal: number };
+}
+
+const defaultCheapest: CheapestByCategory[] = [
+  { kategori: 'Hoodie', vendorNama: 'CITITEX', avgCost: 176000 },
+  { kategori: 'Jaket', vendorNama: 'FJ MERCHANDISE', avgCost: 175469 },
+  { kategori: 'Jersey', vendorNama: 'FJ MERCHANDISE', avgCost: 70833 },
+  { kategori: 'Kemeja PDH', vendorNama: 'CAHAYA BORDIR', avgCost: 92059 },
+  { kategori: 'Kemeja PDL', vendorNama: 'CAHAYA BORDIR', avgCost: 136667 },
+  { kategori: 'Kemeja Workshirt', vendorNama: 'CAHAYA BORDIR', avgCost: 110000 },
+  { kategori: 'Polo Shirt', vendorNama: 'CAHAYA BORDIR', avgCost: 63268 },
+  { kategori: 'T Shirt', vendorNama: 'AMRIN', avgCost: 54335 },
+  { kategori: 'Topi', vendorNama: 'VENDOR TOPI PK UCI', avgCost: 30000 },
+];
+
+const defaultVendors: VendorPerformanceItem[] = [
+  {
+    vendorId: 'v-1',
+    vendorNama: 'AMRIN',
+    orderCount: 11,
+    pcsTotal: 462,
+    avgLenganPendek: 52000,
+    avgLenganPanjang: 58000,
+    avgTanpaLengan: 48000,
+    hppQuotation: 25102770,
+    hppAktual: 25102770,
+    selisihQuotation: 0,
+    profit: 12450000,
+    marginPercent: 33.2,
+  },
+  {
+    vendorId: 'v-2',
+    vendorNama: 'CAHAYA BORDIR',
+    orderCount: 8,
+    pcsTotal: 315,
+    avgLenganPendek: 88000,
+    avgLenganPanjang: 125000,
+    avgTanpaLengan: 75000,
+    hppQuotation: 18420000,
+    hppAktual: 18250000,
+    selisihQuotation: -170000,
+    profit: 8920000,
+    marginPercent: 32.8,
+  },
+  {
+    vendorId: 'v-3',
+    vendorNama: 'FJ MERCHANDISE',
+    orderCount: 6,
+    pcsTotal: 210,
+    avgLenganPendek: 70000,
+    avgLenganPanjang: 85000,
+    avgTanpaLengan: 62000,
+    hppQuotation: 11950000,
+    hppAktual: 12100000,
+    selisihQuotation: 150000,
+    profit: 5830000,
+    marginPercent: 32.5,
+  },
+  {
+    vendorId: 'v-4',
+    vendorNama: 'CITITEX',
+    orderCount: 4,
+    pcsTotal: 140,
+    avgLenganPendek: 65000,
+    avgLenganPanjang: 75000,
+    avgTanpaLengan: 55000,
+    hppQuotation: 8200000,
+    hppAktual: 8200000,
+    selisihQuotation: 0,
+    profit: 3950000,
+    marginPercent: 32.5,
+  },
+];
+
+export function VendorPerformanceSection({
+  vendors = defaultVendors,
+  cheapestList = defaultCheapest,
+  mostUsedVendor = { nama: 'AMRIN', orderCount: 11, pcsTotal: 462 },
+}: VendorPerformanceSectionProps) {
+  const [sortField, setSortField] = useState<keyof VendorPerformanceItem>('orderCount');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Chart data: HPP Quotation vs HPP Aktual
+  const chartData = useMemo(() => {
+    return vendors.map((v) => ({
+      name: v.vendorNama,
+      quotation: v.hppQuotation,
+      aktual: v.hppAktual,
+      selisih: v.selisihQuotation,
+      margin: v.marginPercent,
+    }));
+  }, [vendors]);
+
+  const handleSort = (field: keyof VendorPerformanceItem) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const sortedVendors = useMemo(() => {
+    return [...vendors].sort((a, b) => {
+      const aVal = a[sortField] ?? 0;
+      const bVal = b[sortField] ?? 0;
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortOrder === 'asc' ? Number(aVal) - Number(bVal) : Number(bVal) - Number(aVal);
+    });
+  }, [vendors, sortField, sortOrder]);
+
+  return (
+    <div className="space-y-6">
+      {/* Top Highlights: Most Used & Cost Efficiency */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-card-double">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-amber-800">Mitra Terbanyak Dipakai</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <Crown className="h-4 w-4" />
+            </span>
+          </div>
+          <div className="mt-3 text-xl font-extrabold text-amber-900">
+            {mostUsedVendor.nama}
+          </div>
+          <p className="mt-1 text-xs text-amber-700 font-semibold font-mono">
+            {mostUsedVendor.orderCount} Order Aktif &bull; {mostUsedVendor.pcsTotal} Pcs Produksi
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 shadow-card-double">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-teal-800">Efisiensi Belanja Terbesar</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
+              <Sparkles className="h-4 w-4" />
+            </span>
+          </div>
+          <div className="mt-3 text-xl font-extrabold text-teal-900">
+            CAHAYA BORDIR
+          </div>
+          <p className="mt-1 text-xs text-teal-700 font-semibold font-mono">
+            Hemat Rp 170.000 di bawah estimasi awal
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-5 shadow-card-double">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-blue-800">Rata-rata Margin Mitra</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+              <TrendingUp className="h-4 w-4" />
+            </span>
+          </div>
+          <div className="mt-3 text-xl font-extrabold text-blue-900 font-mono">
+            32.8%
+          </div>
+          <p className="mt-1 text-xs text-blue-700 font-semibold">
+            Standar margin konveksi di atas target minimal 30%
+          </p>
+        </div>
+      </div>
+
+      {/* 🆕 DUAL HYBRID VIEW: GROUPED BAR CHART (HPP QUOTATION VS AKTUAL) */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-card-double">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <BarChart2 className="h-4 w-4 text-teal-600" />
+              <h3 className="text-sm font-bold text-slate-800">
+                Komparasi HPP Quotation vs Realisasi Belanja Aktual
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Mendeteksi mitra vendor yang overbudget (membengkak) vs hemat biaya belanja
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-xs">
+            <span className="flex items-center gap-1.5 text-slate-600 font-medium">
+              <span className="h-3 w-3 rounded bg-slate-400" />
+              Quotation Awal
+            </span>
+            <span className="flex items-center gap-1.5 text-teal-700 font-bold">
+              <span className="h-3 w-3 rounded bg-teal-600" />
+              HPP Realisasi
+            </span>
+          </div>
+        </div>
+
+        <div className="h-72 w-full mt-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} margin={{ top: 10, right: 20, left: 20, bottom: 0 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#334155' }} axisLine={{ stroke: '#cbd5e1' }} />
+              <YAxis
+                width={68}
+                tick={{ fontSize: 10, fill: '#64748b' }}
+                axisLine={{ stroke: '#cbd5e1' }}
+                tickFormatter={formatCompactRupiah}
+              />
+              <Tooltip
+                formatter={(val: unknown) => [formatRupiah(Number(val)), 'Total Biaya']}
+                contentStyle={{
+                  backgroundColor: '#0f172a',
+                  border: 'none',
+                  borderRadius: '0.75rem',
+                  color: '#fff',
+                  fontSize: '11px',
+                }}
+              />
+              <Bar dataKey="quotation" name="Quotation Awal" fill="#94a3b8" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="aktual" name="Realisasi Aktual" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={32} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Grid Mitra Termurah per Kategori Pakaian */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-card-double">
+        <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+          <Tag className="h-4 w-4 text-teal-600" />
+          <h3 className="text-sm font-bold text-slate-800">
+            Rekomendasi Mitra Termurah Berdasarkan Kategori Produk
+          </h3>
+        </div>
+        <p className="text-xs text-slate-400 mt-1 mb-4">
+          Gunakan sebagai acuan rujukan quotation saat menawarkan harga ke konsumen baru
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {cheapestList.map((item, idx) => (
+            <div
+              key={idx}
+              className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 hover:border-teal-300 hover:bg-teal-50/20 transition-all"
+            >
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {item.kategori}
+              </span>
+              <div className="mt-1 text-xs font-extrabold text-slate-800 truncate" title={item.vendorNama}>
+                {item.vendorNama}
+              </div>
+              <div className="mt-1 font-mono text-xs font-bold text-teal-700">
+                {formatRupiah(item.avgCost)}/pcs
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* DETAILED AUDIT TABLE PER PCS (LENGAN PENDEK, PANJANG, TANPA LENGAN) */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white shadow-card-double overflow-hidden">
+        <div className="border-b border-slate-100 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-slate-600" />
+              <h3 className="text-sm font-bold text-slate-800">
+                Tabel Audit Harga & Kinerja Mitra Vendor
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Rincian ongkos produksi rata-rata per pcs untuk bahan evaluasi negosiasi vendor
+            </p>
+          </div>
+          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+            {vendors.length} Vendor Terdaftar
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs whitespace-nowrap">
+            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+              <tr>
+                <th
+                  onClick={() => handleSort('vendorNama')}
+                  className="px-4 py-3 cursor-pointer hover:text-slate-800"
+                >
+                  <div className="flex items-center gap-1">
+                    NAMA VENDOR
+                    <ArrowUpDown className="h-3 w-3" />
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('orderCount')}
+                  className="px-4 py-3 text-center cursor-pointer hover:text-slate-800"
+                >
+                  ORDER
+                </th>
+                <th
+                  onClick={() => handleSort('pcsTotal')}
+                  className="px-4 py-3 text-center cursor-pointer hover:text-slate-800"
+                >
+                  TOTAL PCS
+                </th>
+                <th className="px-4 py-3">RERATA PENDEK</th>
+                <th className="px-4 py-3">RERATA PANJANG</th>
+                <th className="px-4 py-3">TANPA LENGAN</th>
+                <th className="px-4 py-3">HPP QUOTATION</th>
+                <th className="px-4 py-3">HPP AKTUAL</th>
+                <th className="px-4 py-3 text-center">SELISIH BIAYA</th>
+                <th className="px-4 py-3 bg-emerald-50 text-emerald-800">PROFIT DIHASILKAN</th>
+                <th className="px-4 py-3 bg-emerald-50 text-emerald-800 text-center">MARGIN</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-700">
+              {sortedVendors.map((item) => (
+                <tr key={item.vendorId} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="px-4 py-3.5 font-bold text-slate-900 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-teal-50 text-teal-700 text-[10px] font-bold">
+                      {item.vendorNama.slice(0, 2)}
+                    </span>
+                    {item.vendorNama}
+                  </td>
+                  <td className="px-4 py-3.5 text-center font-mono font-bold text-slate-800">
+                    {item.orderCount}
+                  </td>
+                  <td className="px-4 py-3.5 text-center font-mono text-slate-600">
+                    {item.pcsTotal}
+                  </td>
+                  <td className="px-4 py-3.5 font-mono tabular-num">
+                    {formatRupiah(item.avgLenganPendek)}
+                  </td>
+                  <td className="px-4 py-3.5 font-mono tabular-num">
+                    {formatRupiah(item.avgLenganPanjang)}
+                  </td>
+                  <td className="px-4 py-3.5 font-mono tabular-num">
+                    {formatRupiah(item.avgTanpaLengan)}
+                  </td>
+                  <td className="px-4 py-3.5 font-mono tabular-num text-slate-500">
+                    {formatRupiah(item.hppQuotation)}
+                  </td>
+                  <td className="px-4 py-3.5 font-mono tabular-num font-bold text-slate-800">
+                    {formatRupiah(item.hppAktual)}
+                  </td>
+                  <td className="px-4 py-3.5 text-center font-mono tabular-num font-bold">
+                    {item.selisihQuotation < 0 ? (
+                      <span className="text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                        Hemat {formatRupiah(Math.abs(item.selisihQuotation))}
+                      </span>
+                    ) : item.selisihQuotation > 0 ? (
+                      <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                        + {formatRupiah(item.selisihQuotation)}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Sesuai Budget</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3.5 font-mono tabular-num font-bold text-emerald-600">
+                    {formatRupiah(item.profit)}
+                  </td>
+                  <td className="px-4 py-3.5 font-mono tabular-num text-center font-bold text-emerald-700">
+                    {item.marginPercent.toFixed(1)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

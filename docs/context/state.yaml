@@ -1,0 +1,51 @@
+# Canonical execution state for VisualKain Financial Data & Analytics
+schema_version: 1
+project:
+  id: "visualkain-financial-analytics"
+  name: "VisualKain Financial Data & Executive Analytics"
+  stage: implementation
+  current_release: "v1.1.0-complete"
+
+tracks:
+  - id: product
+    name: Product & Financial Accounting Standards
+  - id: engineering
+    name: Frontend & Financial Analytics Engine
+
+features:
+  - id: F-01
+    name: Executive Sidebar & Sub-Tab Navigation Layout
+    track: engineering
+    status: completed
+    spec_path: .kiro/specs/F-01-sidebar-navigation-layout
+    active_phase: completed
+  - id: F-02
+    name: Financial Dashboard & Master Finance Table (17 Kolom & DP 70%)
+    track: engineering
+    status: completed
+    spec_path: .kiro/specs/F-02-financial-dashboard-master
+    active_phase: completed
+  - id: F-03
+    name: Cash Outflow Management & Category Breakdown
+    track: engineering
+    status: completed
+    spec_path: .kiro/specs/F-03-cash-outflow-management
+    active_phase: completed
+  - id: F-04
+    name: Vendor Performance Intelligence & Cost Ranking
+    track: engineering
+    status: completed
+    spec_path: .kiro/specs/F-04-vendor-performance-intelligence
+    active_phase: completed
+  - id: F-05
+    name: Profit & HPP Aktual Reconciliation (Manual Override)
+    track: engineering
+    status: completed
+    spec_path: .kiro/specs/F-05-profit-aktual-reconciliation
+    active_phase: completed
+  - id: F-06
+    name: Financial Order Editor & Document Preview Modal (Aksi Edit & Invoice)
+    track: engineering
+    status: completed
+    spec_path: .kiro/specs/F-06-financial-order-editor
+    active_phase: completed

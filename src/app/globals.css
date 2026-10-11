@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* VisualKain 2026 Enhanced Contrast Tokens (design.md Seksi 4) */
+  --bg-primary: #e6ecf2;
+  --bg-secondary: #f8fafc;
+  --bg-card: #f8fafc;
+  --border: #cbd5e1;
+
+  --font-plus-jakarta: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-jetbrains-mono: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: #0f172a;
+  font-family: var(--font-plus-jakarta);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tipografi Angka Standar (Biasa) Tanpa Dotted-Zero */
+.currency,
+.inv-number,
+.tabular-num,
+.font-mono {
+  font-family: var(--font-plus-jakarta) !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+}
+
+/* Custom scrollbar halus */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

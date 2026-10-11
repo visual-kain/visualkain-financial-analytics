@@ -1,0 +1,29 @@
+# Node & Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing & Coverage
+coverage/
+
+# Next.js Build
+.next/
+out/
+build/
+dist/
+
+# Environment Variables
+.env*.local
+.env
+
+# Cache & Diagnostics
+.context-cache/
+.temp-pdf/
+tsconfig.tsbuildinfo
+*.log
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

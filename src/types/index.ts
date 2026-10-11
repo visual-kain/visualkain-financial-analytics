@@ -1,0 +1,169 @@
+/**
+ * Kontrak Tipe Data Finansial VisualKain 2026
+ * Sumber Spesifikasi: docs/specs/design.md & Dokumen_Konfirmasi_Fitur_Update_VisualKain.pdf
+ */
+
+export type FinanceSubTab = 'dashboard' | 'cashout' | 'vendor' | 'manual';
+
+export interface CustomerPayment {
+  id: string;               // ID unik pembayaran
+  orderId: string;          // Relasi ke order.id
+  noInv: string;            // Nomor invoice acuan
+  tanggal: string;          // Format YYYY-MM-DD
+  nominal: number;          // Nominal rupiah yang dibayarkan
+  jenis: 'dp' | 'termin' | 'pelunasan'; // Tipe pembayaran
+  keterangan?: string;      // Contoh: "Transfer BCA Termin 1"
+  buktiUrl?: string;        // URL bukti transfer (opsional)
+  createdAt: string;
+}
+
+export interface VendorPayment {
+  id: string;
+  orderId: string;
+  vendorId?: string;
+  vendorName: string;
+  tanggal: string;
+  nominal: number;
+  jenis: 'dp_vendor' | 'termin_vendor' | 'pelunasan_vendor';
+  keterangan?: string;
+  createdAt: string;
+}
+
+export interface Order {
+  id: string;
+  noInv: string;
+  customerName: string;
+  projectName?: string;
+  tanggalOrder: string;
+  totalInvoice: number;      // Nilai tagihan bruto ke customer
+  totalHpp: number;          // Total beban pokok / tagihan vendor
+  targetMargin: number;      // totalInvoice - totalHpp
+  totalQty?: number;
+  biayaOperasional?: number;
+  biayaTambahanVendor?: number;
+  biayaTambahanCustomer?: number;
+  diskon?: number;
+
+  noWaCustomer?: string;     // Nomor WhatsApp Customer (format 08... atau 62...)
+  targetDpPersen?: number;   // Ambang batas DP produksi (default 70%)
+
+  // Realisasi Aktual
+  hppAktual?: number | null;
+  profitAktual?: number | null;
+  catatanFinance?: string;
+
+  // Riwayat Pembayaran Bertahap Konsumen
+  pembayaranList: CustomerPayment[];
+  totalUangMasukCustomer: number; // Akumulasi pembayaran konsumen
+  statusPembayaran: 'belum_bayar' | 'parsial' | 'lunas';
+
+  // Riwayat Pembayaran Bertahap Vendor
+  vendorPembayaranList?: VendorPayment[];
+  totalDibayarKeVendor: number;   // Akumulasi kas keluar ke vendor
+  statusPembayaranVendor: 'belum_bayar' | 'dp_vendor' | 'lunas_vendor';
+  statusOrder?: string;           // Status pengerjaan ('PRODUKSI', 'SELESAI', 'PEMBAYARAN', dll)
+}
+
+export interface MasterFinanceRow {
+  id: string;
+  noInv: string;
+  tanggalInv: string;
+  namaCustomer: string;
+  namaProject: string;
+  noWaCustomer?: string;
+  totalBiayaVendor: number;
+  dpVendor: number;
+  sisaPembayaranVendor: number;
+  totalQty: number;
+  totalJumlah: number;
+  dpPersenCustomer: number;
+  nominalDpCustomer: number;
+  sisaPelunasanCustomer: number;
+  biayaOperasional: number;
+  biayaTambahanVendor: number;
+  biayaTambahanCustomer: number;
+  diskon: number;
+  profitBersih: number;
+  profitPercent: number;
+  statusDpThreshold: 'belum_dp' | 'dp1_parsial' | 'dp2_siap_produksi' | 'lunas_total';
+  sisaMenujuDp70: number;
+  statusOrder: string;
+  pembayaranList?: CustomerPayment[];
+}
+
+export interface KasAdjustment {
+  id: string;
+  tanggal: string;
+  nominalAwal: number;     // Saldo kas awal bank
+  keterangan: string;      // Contoh: "Sinkronisasi saldo rekening BCA per 1 Oktober 2026"
+  createdAt: string;
+}
+
+export type CashOutflowCategory =
+  | 'Gaji/Upah'
+  | 'Operasional'
+  | 'Marketing dan Penjualan'
+  | 'Logistik'
+  | 'Keuangan'
+  | 'Pajak'
+  | 'Pembayaran Vendor'
+  | 'Biaya Lain';
+
+export interface CashTransaction {
+  id: string;
+  tanggal: string;
+  tipe: 'masuk' | 'keluar';
+  nominal: number;
+  kategori: CashOutflowCategory | 'Penerimaan Konsumen' | 'Saldo Awal';
+  keterangan: string;
+  refInvoice?: string;
+  orderId?: string;
+}
+
+export interface EscrowAllocation {
+  totalInvoice: number;
+  totalHpp: number;
+  marginTarget: number;
+  uangMasukRiil: number;
+  alokasiHakVendor: number;
+  alokasiMarginVisualKain: number;
+  sisaUtangVendor: number;
+  sisaPiutangCustomer: number;
+}
+
+export interface FinancialSummary {
+  saldoKasRiil: number;
+  totalKasMasuk: number;
+  totalKasKeluar: number;
+  totalUtangVendor: number;
+  totalPiutangCustomer: number;
+  estimasiProfitBersih: number;
+}
+
+export interface VendorPerformanceItem {
+  vendorId: string;
+  vendorNama: string;
+  orderCount: number;
+  pcsTotal: number;
+  avgLenganPendek: number;
+  avgLenganPanjang: number;
+  avgTanpaLengan: number;
+  hppQuotation: number;
+  hppAktual: number;
+  selisihQuotation: number;
+  profit: number;
+  marginPercent: number;
+}
+
+export interface CheapestByCategory {
+  kategori: string;
+  vendorNama: string;
+  avgCost: number;
+}
+
+export interface ManualFinanceDraft {
+  orderId: string;
+  hppAktual: string;
+  profitAktual: string;
+  catatanFinance: string;
+}

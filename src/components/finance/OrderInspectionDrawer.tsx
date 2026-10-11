@@ -1,0 +1,368 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { formatRupiah } from '@/lib/utils';
+import type { MasterFinanceRow } from '@/types';
+import {
+  X,
+  Send,
+  MessageSquare,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  Building2,
+  Calendar,
+  Wallet,
+  Receipt,
+  ArrowRight,
+  ExternalLink,
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+interface OrderInspectionDrawerProps {
+  order: MasterFinanceRow | null;
+  onClose: () => void;
+}
+
+export function OrderInspectionDrawer({
+  order,
+  onClose,
+}: OrderInspectionDrawerProps) {
+  const [phoneNumber, setPhoneNumber] = useState('');
+
+  // Sinkronisasi nomor WhatsApp saat order terpilih berubah
+  useEffect(() => {
+    if (order) {
+      setPhoneNumber(order.noWaCustomer || '08123456789');
+    }
+  }, [order]);
+
+  // Listener tombol ESC
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  if (!order) return null;
+
+  // Format nomor WhatsApp internasional (62...)
+  const getCleanWaNumber = (phone: string) => {
+    let clean = phone.replace(/[^0-9]/g, '');
+    if (clean.startsWith('0')) {
+      clean = '62' + clean.slice(1);
+    }
+    return clean;
+  };
+
+  const cleanPhone = getCleanWaNumber(phoneNumber);
+
+  // Template Pesan WhatsApp Penagihan (Dokumen Konfirmasi Fitur Update Bagian 3.D)
+  const waTemplate = (() => {
+    if (order.dpPersenCustomer < 70) {
+      // Template 1: Follow up sisa DP 2 agar pesanan bisa dipotong & dijahit
+      return `Halo Kak ${order.namaCustomer}! Pembayaran DP sebesar ${formatRupiah(order.nominalDpCustomer)} (${order.dpPersenCustomer.toFixed(1)}%) untuk pesanan *${order.namaProject}* (${order.noInv}) telah kami terima ya.
+
+Sebagai informasi, sesuai SOP konveksi VisualKain, pesanan akan mulai dipotong dan dijahit setelah DP genap 70% (${formatRupiah(Math.round(0.7 * order.totalJumlah))}).
+
+Mohon dapat melunasi sisa DP sebesar *${formatRupiah(order.sisaMenujuDp70)}* agar antrean produksi pesanan kakak bisa langsung kami jalankan hari ini. Invoice terupdate kami lampirkan ya kak. Terima kasih! 🙏`;
+    } else if (order.dpPersenCustomer < 100) {
+      // Template 2: Notifikasi DP lengkap 70% & info sisa pelunasan 30%
+      return `Halo Kak ${order.namaCustomer}! Pembayaran DP untuk pesanan *${order.namaProject}* (${order.noInv}) telah kami terima. Total DP telah LENGKAP 70% (${formatRupiah(order.nominalDpCustomer)}) dan pesanan saat ini RESMI NAIK PRODUKSI.
+
+Sisa pelunasan akhir sebesar *${formatRupiah(order.sisaPelunasanCustomer)}* (30%) dapat dibayarkan saat barang selesai sebelum dikirimkan ke alamat kakak. Terima kasih atas kerjasamanya! 🙏`;
+    } else {
+      // Template 3: Lunas total 100% & siap kirim
+      return `Halo Kak ${order.namaCustomer}! Pembayaran pesanan *${order.namaProject}* (${order.noInv}) telah LUNAS TOTAL 100% (${formatRupiah(order.totalJumlah)}).
+
+Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan dan kerjasamanya! 🙏`;
+    }
+  })();
+
+  const handleSendWa = () => {
+    if (!phoneNumber.trim()) {
+      toast.error('Mohon masukkan nomor WhatsApp customer');
+      return;
+    }
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waTemplate)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    toast.success(`Membuka WhatsApp untuk ${order.namaCustomer}`);
+  };
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 overflow-hidden">
+        {/* Backdrop Overlay */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={onClose}
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+        />
+
+        {/* Slide-Over Panel */}
+        <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between overflow-y-auto"
+          >
+            {/* Header Section */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 border border-teal-200">
+                  {order.noInv}
+                </span>
+                <button
+                  onClick={onClose}
+                  className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 active:scale-95 transition-all"
+                  title="Tutup (Esc)"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-3">
+                <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                  {order.namaCustomer}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  {order.namaProject} &bull; {order.totalQty} pcs
+                </p>
+                <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>Tanggal Invoice: {order.tanggalInv}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+              {/* Financial Snapshot Cards */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <span className="text-[11px] font-semibold text-slate-500 block">
+                    Total Invoice
+                  </span>
+                  <span className="text-sm font-extrabold font-mono text-slate-900 mt-0.5 block tabular-num">
+                    {formatRupiah(order.totalJumlah)}
+                  </span>
+                </div>
+
+                <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-3">
+                  <span className="text-[11px] font-semibold text-teal-800 block">
+                    DP Customer ({order.dpPersenCustomer.toFixed(1)}%)
+                  </span>
+                  <span className="text-sm font-extrabold font-mono text-teal-700 mt-0.5 block tabular-num">
+                    {formatRupiah(order.nominalDpCustomer)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Threshold Indicator */}
+              <div
+                className={`rounded-xl border p-3.5 text-xs ${
+                  order.dpPersenCustomer >= 70
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : 'border-amber-200 bg-amber-50 text-amber-800'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold">
+                  {order.dpPersenCustomer >= 70 ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-amber-600" />
+                  )}
+                  <span>
+                    {order.dpPersenCustomer >= 100
+                      ? 'Lunas 100% — Siap Kirim'
+                      : order.dpPersenCustomer >= 70
+                      ? 'Ambang Batas 70% Terpenuhi (Siap Jahit)'
+                      : `Belum Memenuhi Ambang 70% (Sisa ${formatRupiah(order.sisaMenujuDp70)})`}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed opacity-90">
+                  {order.dpPersenCustomer >= 70
+                    ? 'Komitmen pembayaran konsumen aman. Vendor dapat diinstruksikan naik potong kain.'
+                    : 'Standar SOP VisualKain: SPK potong & jahit baru dirilis ke penjahit setelah DP mencapai minimal 70%.'}
+                </p>
+              </div>
+
+              {/* Vertical Stepper: Payment Timeline */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-slate-400" />
+                  Timeline Cicilan Pembayaran
+                </h4>
+
+                <div className="relative pl-6 space-y-4 border-l-2 border-teal-200 ml-2">
+                  {/* Step 1: DP 1 */}
+                  <div className="relative">
+                    <span className="absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full bg-teal-600 border-2 border-white shadow-sm" />
+                    <div className="text-xs font-bold text-slate-800">
+                      DP 1 (Booking & Antrian Desain)
+                    </div>
+                    <div className="text-xs font-mono font-bold text-teal-700 mt-0.5">
+                      {formatRupiah(order.nominalDpCustomer)}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Terverifikasi masuk mutasi bank BCA
+                    </div>
+                  </div>
+
+                  {/* Step 2: DP 2 Target 70% */}
+                  <div className="relative">
+                    <span
+                      className={`absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${
+                        order.dpPersenCustomer >= 70
+                          ? 'bg-teal-600'
+                          : 'bg-amber-500'
+                      }`}
+                    />
+                    <div className="text-xs font-bold text-slate-800">
+                      Target DP 70% (SPK Potong Kain & Jahit)
+                    </div>
+                    <div
+                      className={`text-xs font-mono font-bold mt-0.5 ${
+                        order.dpPersenCustomer >= 70
+                          ? 'text-teal-700'
+                          : 'text-amber-600'
+                      }`}
+                    >
+                      {order.dpPersenCustomer >= 70
+                        ? 'Terpenuhi (Produksi Dimulai)'
+                        : `Kurang ${formatRupiah(order.sisaMenujuDp70)} lagi`}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Syarat mutlak sebelum rilis kain ke vendor jahit
+                    </div>
+                  </div>
+
+                  {/* Step 3: Pelunasan 30% Akhir */}
+                  <div className="relative">
+                    <span
+                      className={`absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${
+                        order.sisaPelunasanCustomer === 0
+                          ? 'bg-emerald-600'
+                          : 'bg-slate-300'
+                      }`}
+                    />
+                    <div className="text-xs font-bold text-slate-800">
+                      Pelunasan Akhir (Sebelum Serah Terima)
+                    </div>
+                    <div className="text-xs font-mono font-bold text-slate-700 mt-0.5">
+                      {order.sisaPelunasanCustomer > 0
+                        ? formatRupiah(order.sisaPelunasanCustomer)
+                        : 'Lunas Total'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Pengambilan barang / pengiriman ekspedisi
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vendor Commitment Details */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-2">
+                <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-1.5 text-slate-600 font-bold">
+                    <Building2 className="h-4 w-4 text-slate-400" />
+                    <span>Komitmen Pokok Vendor (HPP)</span>
+                  </div>
+                  <span className="font-mono font-bold text-slate-900">
+                    {formatRupiah(order.totalBiayaVendor)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1 text-slate-600">
+                  <span>DP Vendor Disetor:</span>
+                  <span className="font-mono">{formatRupiah(order.dpVendor)}</span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="font-semibold text-rose-700">
+                    Sisa Utang Vendor:
+                  </span>
+                  <span className="font-mono font-bold text-rose-600">
+                    {order.sisaPembayaranVendor > 0
+                      ? formatRupiah(order.sisaPembayaranVendor)
+                      : 'LUNAS'}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 font-bold">
+                  <span className="text-emerald-700">Estimasi Margin Laba:</span>
+                  <span className="font-mono text-emerald-600">
+                    {formatRupiah(order.profitBersih)} ({order.profitPercent.toFixed(1)}%)
+                  </span>
+                </div>
+              </div>
+
+              {/* WhatsApp Follow-Up Generator Box */}
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-emerald-700" />
+                  <span className="text-xs font-bold text-emerald-900">
+                    1-Click WhatsApp Follow-Up
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                    Nomor WhatsApp Customer
+                  </label>
+                  <input
+                    type="text"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="Contoh: 08123456789"
+                    className="mt-1 w-full rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-mono font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                    Pratinjau Pesan Penagihan
+                  </label>
+                  <div className="mt-1 rounded-xl bg-white p-3 text-[11px] text-slate-600 border border-emerald-200 whitespace-pre-line font-sans max-h-36 overflow-y-auto leading-relaxed">
+                    {waTemplate}
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSendWa}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-700 active:scale-[0.98] transition-all"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Kirim Pesan Penagihan via WhatsApp
+                </button>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+              <span className="font-mono text-[11px]">
+                {order.namaProject}
+              </span>
+              <button
+                onClick={onClose}
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60"
+              >
+                Tutup
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </AnimatePresence>
+  );
+}

@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VisualKain Financial & Analytics — Executive System Design 2026</title>
+  
+  <!-- Fonts: Plus Jakarta Sans, Inter, & JetBrains Mono Tabular -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            vk: {
+              teal: {
+                50: '#f0fdfa',
+                100: '#ccfbf1',
+                500: '#14b8a6',
+                600: '#0d9488',
+                700: '#0f766e',
+                800: '#115e59',
+                900: '#134e4a',
+              },
+              canvas: '#E8ECF2',
+              card: '#FFFFFF',
+              border: '#CBD5E1',
+              dark: '#0F172A',
+            }
+          },
+          boxShadow: {
+            'card-double': '0 0 0 1px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.02), 0 8px 24px -4px rgba(15, 23, 42, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 1)',
+            'card-hover': '0 0 0 1px rgba(13, 148, 136, 0.35), 0 4px 14px -2px rgba(15, 23, 42, 0.08), 0 16px 36px -6px rgba(13, 148, 136, 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 1)',
+            'btn-teal': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.32), 0 2px 4px -1px rgba(13, 148, 136, 0.35), 0 4px 14px -2px rgba(13, 148, 136, 0.25)',
+            'btn-secondary': 'inset 0 1px 0 0 #ffffff, 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.06)',
+            'drawer-right': '-10px 0 40px -10px rgba(15, 23, 42, 0.25)',
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #E8ECF2;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    .tactile-btn {
+      transition: transform 150ms cubic-bezier(0.2, 0, 0, 1), background-color 150ms ease-out, border-color 150ms ease-out;
+    }
+    .tactile-btn:active {
+      transform: scale(0.97);
+    }
+    .tabular-num {
+      font-family: 'JetBrains Mono', monospace !important;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
+    }
+    /* Collapsed Sidebar Rail Styles */
+    .sidebar-expanded {
+      width: 16rem; /* 256px */
+    }
+    .sidebar-collapsed {
+      width: 4.5rem; /* 72px */
+    }
+    .sidebar-collapsed .nav-text,
+    .sidebar-collapsed .brand-text,
+    .sidebar-collapsed .nav-badge,
+    .sidebar-collapsed .sync-box,
+    .sidebar-collapsed .user-details {
+      display: none !important;
+    }
+    .sidebar-collapsed .nav-btn {
+      justify-content: center !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+  </style>
+</head>
+
+<body class="flex min-h-screen">
+
+  <!-- ==================== EXECUTIVE SIDEBAR (COLLAPSIBLE RAIL) ==================== -->
+  <aside id="mainSidebar" class="sidebar-expanded sticky top-0 hidden h-screen flex-col justify-between border-r border-[#CBD5E1] bg-white p-3 shadow-sm transition-all duration-200 md:flex select-none">
+    <div>
+      <!-- Brand Logo & Collapse Toggle -->
+      <div class="flex items-center justify-between border-b border-slate-100 px-2 pb-4 pt-2">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-vk-teal-600 text-white font-extrabold text-base shadow-btn-teal">
+            VK
+          </div>
+          <div class="brand-text">
+            <h1 class="text-xs font-bold tracking-tight text-slate-900 leading-none">
+              VisualKain
+            </h1>
+            <p class="text-[10px] font-medium text-slate-400 mt-0.5">
+              Financial 2026
+            </p>
+          </div>
+        </div>
+
+        <button
+          onclick="toggleSidebar()"
+          title="Perkecil / Perluas Sidebar (Ctrl+B)"
+          class="tactile-btn flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100"
+        >
+          <svg id="collapseIcon" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Nav Items -->
+      <div class="mt-5 space-y-1">
+        <button
+          onclick="switchTab('dashboard')"
+          id="btn-dashboard"
+          class="nav-btn group relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold bg-vk-teal-600 text-white shadow-sm tactile-btn"
+          title="Financial Dashboard"
+        >
+          <div class="flex items-center gap-2.5">
+            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+            <span class="nav-text">Financial Dashboard</span>
+          </div>
+          <span class="nav-badge rounded-full bg-white/20 px-2 py-0.5 text-[9px]">Master</span>
+        </button>
+
+        <button
+          onclick="switchTab('cashout')"
+          id="btn-cashout"
+          class="nav-btn group relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 tactile-btn"
+          title="Cash Outflow"
+        >
+          <div class="flex items-center gap-2.5">
+            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <span class="nav-text">Cash Outflow</span>
+          </div>
+          <span class="nav-badge rounded-full bg-slate-100 px-2 py-0.5 text-[9px] text-slate-500">Beban</span>
+        </button>
+
+        <button
+          onclick="switchTab('vendor')"
+          id="btn-vendor"
+          class="nav-btn group relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 tactile-btn"
+          title="Vendor Performance"
+        >
+          <div class="flex items-center gap-2.5">
+            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <span class="nav-text">Vendor Performance</span>
+          </div>
+          <span class="nav-badge rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[9px]">Ranking</span>
+        </button>
+
+        <button
+          onclick="switchTab('manual')"
+          id="btn-manual"
+          class="nav-btn group relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 tactile-btn"
+          title="Profit Aktual"
+        >
+          <div class="flex items-center gap-2.5">
+            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            <span class="nav-text">Profit Aktual (Manual)</span>
+          </div>
+          <span class="nav-badge rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[9px]">Audit</span>
+        </button>
+      </div>
+
+      <!-- Sync Status Box -->
+      <div class="sync-box mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3">
+        <div class="flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="text-xs font-bold text-emerald-800">Sinkron Rekening Bank</span>
+        </div>
+        <p class="mt-1 text-[10px] text-emerald-700 leading-snug">
+          BCA Terhubung. Uang vendor terpisah dari kas bebas tarik.
+        </p>
+      </div>
+    </div>
+
+    <!-- User Profile Footer -->
+    <div class="border-t border-slate-100 pt-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white font-bold text-xs">
+            RP
+          </div>
+          <div class="user-details">
+            <div class="text-xs font-bold text-slate-800 leading-none">Raja Purnama</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">Owner & Director</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN CONTENT VIEW ==================== -->
+  <main class="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 transition-all">
+    <div class="mx-auto max-w-7xl space-y-6">
+
+      <!-- TOP EXECUTIVE HEADER BAR -->
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/80 pb-5">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="rounded-lg bg-vk-teal-50 px-2.5 py-1 text-xs font-bold text-vk-teal-700 border border-vk-teal-200">
+              VisualKain Live Hub
+            </span>
+            <span class="text-xs text-slate-400">&bull;</span>
+            <span class="text-xs text-slate-500 font-medium">Oktober 2026</span>
+          </div>
+          <h2 id="viewTitle" class="mt-1 text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
+            Financial Dashboard & Liquidity Intelligence
+          </h2>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- Custom Styled Dropdown -->
+          <div class="relative inline-block text-left" id="periodDropdownContainer">
+            <button
+              id="periodDropdownBtn"
+              onclick="togglePeriodDropdown()"
+              type="button"
+              class="group inline-flex h-9 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 active:scale-[0.98] cursor-pointer"
+            >
+              <div class="flex items-center gap-2">
+                <svg class="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span id="selectedPeriodLabel">Oktober 2026</span>
+              </div>
+              <svg class="h-3.5 w-3.5 text-slate-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div
+              id="periodDropdownMenu"
+              class="hidden absolute right-0 z-50 mt-1.5 w-44 origin-top-right rounded-xl border border-slate-200/90 bg-white p-1 text-slate-800 shadow-xl"
+            >
+              <button onclick="selectPeriod('Oktober 2026')" class="w-full flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-teal-50 hover:text-teal-900 transition-colors">
+                <span>Oktober 2026</span>
+                <span class="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-600">Aktif</span>
+              </button>
+              <button onclick="selectPeriod('September 2026')" class="w-full flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-teal-50 hover:text-teal-900 transition-colors">
+                <span>September 2026</span>
+              </button>
+              <button onclick="selectPeriod('Semua Periode')" class="w-full flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-teal-50 hover:text-teal-900 transition-colors">
+                <span>Semua Periode</span>
+              </button>
+            </div>
+          </div>
+          <button class="tactile-btn inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-btn-secondary hover:bg-slate-50">
+            Export Report
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 1: FINANCIAL DASHBOARD ==================== -->
+      <div id="tab-content-dashboard" class="space-y-6">
+
+        <!-- 🆕 NEW FITUR: ESCROW LIQUIDITY BAR (KAS AMAN TARIK VS TERKUNCI) -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card-double">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h3 class="text-sm font-bold text-slate-800">
+                Escrow Liquidity Bar — Kas Aman Ditarik (Free Cash Flow)
+              </h3>
+              <p class="text-xs text-slate-400">
+                Pemisahan visual antara saldo bank yang aman dipakai vs uang titipan vendor
+              </p>
+            </div>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="flex items-center gap-1 text-emerald-700 font-bold">
+                <span class="h-2 w-2 rounded-full bg-emerald-500"></span> Kas Bebas: Rp 2.150.000
+              </span>
+              <span class="flex items-center gap-1 text-amber-700 font-bold">
+                <span class="h-2 w-2 rounded-full bg-amber-500"></span> Terkunci Vendor: Rp 3.455.000
+              </span>
+            </div>
+          </div>
+
+          <!-- Multi-Segment Progress Bar -->
+          <div class="mt-4">
+            <div class="flex h-4 w-full overflow-hidden rounded-full bg-slate-100 p-0.5 border border-slate-200">
+              <div style="width: 38%;" class="h-full rounded-l-full bg-emerald-500 transition-all" title="Kas Aman Ditarik (Dividen/Laba)"></div>
+              <div style="width: 48%;" class="h-full bg-amber-500 transition-all" title="Dana Terkunci Vendor (HPP Titipan)"></div>
+              <div style="width: 14%;" class="h-full rounded-r-full bg-rose-400 transition-all" title="Beban Operasional"></div>
+            </div>
+            <div class="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Total Kas Bank: <strong class="font-mono text-slate-800">Rp 5.605.000</strong></span>
+              <span class="text-emerald-700 font-bold">38.4% Likuiditas Aman Ditarik</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6 KPI METRICS CARDS -->
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-card-double">
+            <div class="text-[11px] font-semibold text-slate-400">Omzet (Realtime)</div>
+            <div class="mt-2 text-lg font-extrabold text-slate-900 tabular-num">Rp 13.255.000</div>
+            <p class="mt-1 text-[11px] text-slate-400">0 lunas &bull; 3 berjalan</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-card-double">
+            <div class="text-[11px] font-semibold text-slate-400">Profit (Realtime)</div>
+            <div class="mt-2 text-lg font-extrabold text-blue-600 tabular-num">Rp 4.100.000</div>
+            <p class="mt-1 text-[11px] text-blue-600 font-semibold">Margin 30.9%</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-card-double">
+            <div class="text-[11px] font-semibold text-slate-400">Saldo Riil Bank</div>
+            <div class="mt-2 text-lg font-extrabold text-emerald-600 tabular-num">Rp 5.605.000</div>
+            <p class="mt-1 text-[11px] text-emerald-700 font-medium">Sinkron Rekening BCA</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-card-double">
+            <div class="text-[11px] font-semibold text-slate-400">Total Uang Keluar</div>
+            <div class="mt-2 text-lg font-extrabold text-rose-600 tabular-num">Rp 1.379.000</div>
+            <p class="mt-1 text-[11px] text-slate-400">7 transaksi kas</p>
+          </div>
+          <div class="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 shadow-card-double">
+            <div class="text-[11px] font-semibold text-amber-800">Utang Vendor</div>
+            <div class="mt-2 text-lg font-extrabold text-amber-700 tabular-num">Rp 3.455.000</div>
+            <p class="mt-1 text-[11px] text-amber-800 font-medium">2 vendor belum lunas</p>
+          </div>
+          <div class="rounded-2xl border border-sky-200 bg-sky-50/50 p-4 shadow-card-double">
+            <div class="text-[11px] font-semibold text-sky-800">Outstanding Customer</div>
+            <div class="mt-2 text-lg font-extrabold text-sky-700 tabular-num">Rp 6.190.500</div>
+            <p class="mt-1 text-[11px] text-sky-800 font-medium">3 order belum lunas</p>
+          </div>
+        </div>
+
+        <!-- 🆕 MASTER FINANCE TABLE (GROUPED HEADERS & NO UGLY RAINBOW) -->
+        <div class="rounded-2xl border border-slate-200 bg-white shadow-card-double overflow-hidden">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 p-5 gap-3">
+            <div>
+              <h3 class="text-sm font-bold text-slate-800">Master Data Finansial Order</h3>
+              <p class="text-xs text-slate-400">Klik baris order untuk membuka Drawer Inspeksi Cicilan & Follow-Up WA</p>
+            </div>
+          <div class="flex items-center gap-2">
+            <button onclick="toggleExpandTable()" class="tactile-btn inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-teal-700">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              <span>Expand Layar Penuh</span>
+            </button>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+              4 Order Aktif
+            </span>
+          </div>
+        </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+              <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                <tr>
+                  <th class="px-4 py-3 bg-slate-100/70">NO INV</th>
+                  <th class="px-4 py-3">CUSTOMER & PROJECT</th>
+                  <th class="px-4 py-3 text-right">TOTAL INVOICE</th>
+                  <th class="px-4 py-3 text-center">STATUS DP (70% THRESHOLD)</th>
+                  <th class="px-4 py-3 text-right">SISA PELUNASAN</th>
+                  <th class="px-4 py-3 text-right">HPP VENDOR</th>
+                  <th class="px-4 py-3 text-right">SISA UTANG VENDOR</th>
+                  <th class="px-4 py-3 text-right">PROFIT BERSIH</th>
+                  <th class="px-3 py-3 text-center w-44">AKSI</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-slate-700">
+                <!-- Row 1 -->
+                <tr class="hover:bg-slate-50/80 transition-colors cursor-pointer" onclick="openOrderDrawer('VK260041', 'XBI SUKABUMI', 'LAMPUNG EXPEDITION', 1420000, 810000, 610000, 1020000, 700000, 320000, '08123456789')">
+                  <td class="px-4 py-3.5 font-bold font-mono text-teal-700">VK260041</td>
+                  <td class="px-4 py-3.5">
+                    <div class="font-bold text-slate-800">XBI SUKABUMI</div>
+                    <div class="text-[11px] text-slate-400">LAMPUNG EXPEDITION &bull; 14 pcs</div>
+                  </td>
+                  <td class="px-4 py-3.5 text-right font-mono font-bold tabular-num">Rp 1.420.000</td>
+                  <td class="px-4 py-3.5 text-center">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                      57.0% (DP 1)
+                    </span>
+                    <div class="text-[9px] text-amber-600 mt-0.5 font-medium">Sisa DP 70%: Rp 184.000</div>
+                  </td>
+                  <td class="px-4 py-3.5 text-right font-mono font-bold text-amber-600 tabular-num">Rp 610.000</td>
+                  <td class="px-4 py-3.5 text-right font-mono tabular-num">Rp 1.020.000</td>
+                  <td class="px-4 py-3.5 text-right font-mono font-semibold text-rose-600 tabular-num">Rp 320.000</td>
+                  <td class="px-4 py-3.5 text-right font-mono font-bold text-emerald-600 tabular-num">Rp 400.000 (28.2%)</td>
+                  <td class="px-2 py-3.5 text-center" onclick="event.stopPropagation()">
+                    <div class="flex items-center justify-center gap-1">
+                      <button
+                        onclick="openInvoiceModal('VK260041', 'XBI SUKABUMI', 'LAMPUNG EXPEDITION', 1420000, 810000, 610000, 14)"
+                        title="Invoice Resmi"
+                        class="tactile-btn flex h-7 w-7 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                      >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onclick="openEditFinanceModal('VK260041', 'XBI SUKABUMI', 'LAMPUNG EXPEDITION', 1420000, 810000, 1020000, 700000, 0, 0)"
+                        title="Edit Finansial Order"
+                        class="tactile-btn flex h-7 w-7 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100"
+                      >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onclick="openOrderDrawer('VK260041', 'XBI SUKABUMI', 'LAMPUNG EXPEDITION', 1420000, 810000, 610000, 1020000, 700000, 320000, '08123456789')"
+                        title="Rincian Cicilan"
+                        class="tactile-btn flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                      >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onclick="sendWhatsApp('08123456789', 'XBI SUKABUMI', 'VK260041', 'LAMPUNG EXPEDITION', 810000, 184000)"
+                        title="Tagih WA DP 70%"
+                        class="tactile-btn flex h-7 items-center gap-1 rounded-lg bg-emerald-600 px-2 text-[10px] font-bold text-white hover:bg-emerald-700"
+                      >
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                        <span>Tagih</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Row 2 -->
+                <tr class="hover:bg-slate-50/80 transition-colors cursor-pointer" onclick="openOrderDrawer('VK260040', 'VISUALKAIN', 'WORK JAKET FILOSOPHY', 3000000, 700000, 2300000, 2400000, 1000000, 1400000, '08987654321')">
+                  <td class="px-4 py-3.5 font-bold font-mono text-teal-700">VK260040</td>
+                  <td class="px-4 py-3.5">
+                    <div class="font-bold text-slate-800">VISUALKAIN</div>
+                    <div class="text-[11px] text-slate-400">WORK JAKET FILOSOPHY &bull; 12 pcs</div>
+                  </td>
+                  <td class="px-4 py-3.5 text-right font-mono font-bold tabular-num">Rp 3.000.000</td>
+                  <td class="px-4 py-3.5 text-center">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                      23.3% (DP 1)
+                    </span>
+                    <div class="text-[9px] text-amber-600 mt-0.5 font-medium">Sisa DP 70%: Rp 1.400.000</div>
+                  </td>
+                  <td class="px-4 py-3.5 text-right font-mono font-bold text-amber-600 tabular-num">Rp 2.300.000</td>
+                  <td class="px-4 py-3.5 text-right font-mono tabular-num">Rp 2.400.000</td>
+                  <td class="px-4 py-3.5 text-right font-mono font-semibold text-rose-600 tabular-num">Rp 1.400.000</td>
+                  <td class="px-4 py-3.5 text-right font-mono font-bold text-emerald-600 tabular-num">Rp 600.000 (20.0%)</td>
+                  <td class="px-2 py-3.5 text-center" onclick="event.stopPropagation()">
+                    <div class="flex items-center justify-center gap-1">
+                      <button
+                        onclick="openInvoiceModal('VK260040', 'VISUALKAIN', 'WORK JAKET FILOSOPHY', 3000000, 700000, 2300000, 12)"
+                        title="Invoice Resmi"
+                        class="tactile-btn flex h-7 w-7 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                      >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onclick="openEditFinanceModal('VK260040', 'VISUALKAIN', 'WORK JAKET FILOSOPHY', 3000000, 700000, 2400000, 1000000, 0, 0)"
+                        title="Edit Finansial Order"
+                        class="tactile-btn flex h-7 w-7 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100"
+                      >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onclick="openOrderDrawer('VK260040', 'VISUALKAIN', 'WORK JAKET FILOSOPHY', 3000000, 700000, 2300000, 2400000, 1000000, 1400000, '08987654321')"
+                        title="Rincian Cicilan"
+                        class="tactile-btn flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                      >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onclick="sendWhatsApp('08987654321', 'VISUALKAIN', 'VK260040', 'WORK JAKET FILOSOPHY', 700000, 1400000)"
+                        title="Tagih WA DP 70%"
+                        class="tactile-btn flex h-7 items-center gap-1 rounded-lg bg-emerald-600 px-2 text-[10px] font-bold text-white hover:bg-emerald-700"
+                      >
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                        <span>Tagih</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Row 3 -->
+                <tr class="hover:bg-slate-50/80 transition-colors cursor-pointer" onclick="openOrderDrawer('VK260039', 'ADAM', 'Seragam PDL Himpunan', 8835000, 5554500, 3280500, 5735000, 4000000, 1735000, '08561234567')">
+                  <td class="px-4 py-3.5 font-bold font-mono text-teal-700">VK260039</td>
+                  <td class="px-4 py-3.5">
+                    <div class="font-bold text-slate-800">ADAM</div>
+                    <div class="text-[11px] text-slate-400">Seragam PDL Himpunan &bull; 45 pcs</div>
+                  </td>
+                  <td class="px-4 py-3.5 text-right font-mono font-bold tabular-num">Rp 8.835.000</td>
+                  <td class="px-4 py-3.5 text-center">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-0.5 text-[10px] font-bold text-teal-700 border border-teal-200">
+                      70.0% (DP 2 Siap Jahit)
+                    </span>
+                  </td>
+                  <td class="px-4 py-3.5 text-right font-mono font-bold text-amber-600 tabular-num">Rp 3.280.500</td>
+                  <td class="px-4 py-3.5 text-right font-mono tabular-num">Rp 5.735.000</td>
+                  <td class="px-4 py-3.5 text-right font-mono font-semibold text-rose-600 tabular-num">Rp 1.735.000</td>
+                  <td class="px-4 py-3.5 text-right font-mono font-bold text-emerald-600 tabular-num">Rp 3.100.000 (35.1%)</td>
+                  <td class="px-2 py-3.5 text-center" onclick="event.stopPropagation()">
+                    <div class="flex items-center justify-center gap-1">
+                      <button
+                        onclick="openInvoiceModal('VK260039', 'ADAM', 'Seragam PDL Himpunan', 8835000, 5554500, 3280500, 45)"
+                        title="Invoice Resmi"
+                        class="tactile-btn flex h-7 w-7 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                      >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onclick="openEditFinanceModal('VK260039', 'ADAM', 'Seragam PDL Himpunan', 8835000, 5554500, 5735000, 4000000, 0, 0)"
+                        title="Edit Finansial Order"
+                        class="tactile-btn flex h-7 w-7 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100"
+                      >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onclick="openOrderDrawer('VK260039', 'ADAM', 'Seragam PDL Himpunan', 8835000, 5554500, 3280500, 5735000, 4000000, 1735000, '08561234567')"
+                        title="Rincian Cicilan"
+                        class="tactile-btn flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                      >
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                      </button>
+                      <span class="inline-flex h-7 items-center px-2 text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded-lg">
+                        Produksi &check;
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==================== TAB 2: CASH OUTFLOW (REVAMPED) ==================== -->
+      <div id="tab-content-cashout" class="space-y-6 hidden">
+        <!-- 4 KPI Cards -->
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card-double">
+            <span class="text-xs font-semibold text-slate-400">Total Dana Keluar</span>
+            <div class="mt-2 text-2xl font-extrabold text-rose-600 tabular-num">Rp 29.630.500</div>
+            <p class="mt-1 text-xs text-slate-400">9 transaksi kas keluar</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card-double">
+            <span class="text-xs font-semibold text-slate-400">Total Transaksi</span>
+            <div class="mt-2 text-2xl font-extrabold text-slate-800 tabular-num">9</div>
+            <p class="mt-1 text-xs text-slate-400">Mutasi kas keluar tercatat</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card-double">
+            <span class="text-xs font-semibold text-slate-400">Rerata per Transaksi</span>
+            <div class="mt-2 text-2xl font-extrabold text-teal-600 tabular-num">Rp 3.292.277</div>
+            <p class="mt-1 text-xs text-slate-400">Rata-rata per voucher</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card-double">
+            <span class="text-xs font-semibold text-slate-400">Kategori Terbesar</span>
+            <div class="mt-2 text-lg font-extrabold text-purple-700 truncate">Gaji/Upah</div>
+            <p class="mt-1 text-xs font-semibold text-slate-500 tabular-num">Rp 24.578.500 (Payroll staff)</p>
+          </div>
+        </div>
+
+        <!-- 2 Visual Charts: Donut Komposisi & Bar Tren -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-card-double">
+            <h3 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3">Komposisi Pos Pengeluaran</h3>
+            <div class="p-4 space-y-3">
+              <div class="flex items-center justify-between text-xs">
+                <span class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-teal-600"></span> Gaji/Upah Staff & Penjahit</span>
+                <strong class="font-mono">82.9%</strong>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-blue-600"></span> Operasional & Server</span>
+                <strong class="font-mono">13.4%</strong>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-slate-500"></span> Biaya Lain & Keuangan</span>
+                <strong class="font-mono">3.7%</strong>
+              </div>
+            </div>
+          </div>
+          <div class="lg:col-span-7 rounded-2xl border border-slate-200 bg-white p-5 shadow-card-double">
+            <h3 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3">Tren Beban Harian (Deteksi Lonjakan)</h3>
+            <div class="p-4 text-xs text-slate-600 space-y-2">
+              <div class="flex items-center justify-between">
+                <span>01 Okt (Payroll Staff & Penjahit):</span>
+                <span class="font-mono font-bold text-rose-600">Rp 28.251.500 (Puncak Beban)</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span>06 - 10 Okt (Operasional Rutin):</span>
+                <span class="font-mono font-bold text-slate-800">Rp 1.379.000 (Terkontrol)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 3: VENDOR PERFORMANCE (DUAL HYBRID) ==================== -->
+      <div id="tab-content-vendor" class="space-y-6 hidden">
+        <!-- Highlights -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-card-double">
+            <span class="text-xs font-bold text-amber-800">Mitra Terbanyak Dipakai</span>
+            <div class="mt-2 text-xl font-extrabold text-amber-900">AMRIN</div>
+            <p class="mt-1 text-xs text-amber-700 font-semibold font-mono">11 Order Aktif &bull; 462 Pcs</p>
+          </div>
+          <div class="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 shadow-card-double">
+            <span class="text-xs font-bold text-teal-800">Efisiensi Belanja Terbesar</span>
+            <div class="mt-2 text-xl font-extrabold text-teal-900">CAHAYA BORDIR</div>
+            <p class="mt-1 text-xs text-teal-700 font-semibold font-mono">Hemat Rp 170.000 di bawah estimasi</p>
+          </div>
+          <div class="rounded-2xl border border-blue-200 bg-blue-50/60 p-5 shadow-card-double">
+            <span class="text-xs font-bold text-blue-800">Rerata Margin Mitra</span>
+            <div class="mt-2 text-xl font-extrabold text-blue-900 font-mono">32.8%</div>
+            <p class="mt-1 text-xs text-blue-700 font-semibold">Di atas target minimal 30%</p>
+          </div>
+        </div>
+
+        <!-- Mitra Termurah List -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card-double">
+          <h3 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3">Mitra Termurah per Kategori Pakaian</h3>
+          <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <span class="text-[10px] font-bold uppercase text-slate-400">Hoodie</span>
+              <div class="font-bold text-slate-800">CITITEX</div>
+              <div class="font-mono font-bold text-teal-700 text-xs">Rp 176.000/pcs</div>
+            </div>
+            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <span class="text-[10px] font-bold uppercase text-slate-400">Jaket & Jersey</span>
+              <div class="font-bold text-slate-800">FJ MERCHANDISE</div>
+              <div class="font-mono font-bold text-teal-700 text-xs">Rp 70k - 175k/pcs</div>
+            </div>
+            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <span class="text-[10px] font-bold uppercase text-slate-400">Kemeja & Polo</span>
+              <div class="font-bold text-slate-800">CAHAYA BORDIR</div>
+              <div class="font-mono font-bold text-teal-700 text-xs">Rp 63k - 136k/pcs</div>
+            </div>
+            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <span class="text-[10px] font-bold uppercase text-slate-400">T-Shirt Polos</span>
+              <div class="font-bold text-slate-800">AMRIN</div>
+              <div class="font-mono font-bold text-teal-700 text-xs">Rp 54.335/pcs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 4: PROFIT AKTUAL (VARIANCE DELTA) ==================== -->
+      <div id="tab-content-manual" class="space-y-6 hidden">
+        <!-- Variance Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card-double">
+            <span class="text-xs font-semibold text-slate-400">Total Profit Estimasi</span>
+            <div class="mt-2 text-xl font-extrabold text-slate-800 font-mono tabular-num">Rp 5.080.000</div>
+          </div>
+          <div class="rounded-2xl border border-teal-200 bg-teal-50/60 p-5 shadow-card-double">
+            <span class="text-xs font-semibold text-teal-800">Total Profit Realisasi</span>
+            <div class="mt-2 text-xl font-extrabold text-teal-700 font-mono tabular-num">Rp 5.014.000</div>
+          </div>
+          <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-card-double">
+            <span class="text-xs font-bold text-emerald-800">Net Variance Lapangan</span>
+            <div class="mt-2 text-xl font-extrabold text-emerald-700 font-mono tabular-num">+ Rp 34.000</div>
+            <p class="mt-1 text-xs text-emerald-800 font-medium">Surplus margin efisiensi</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card-double">
+          <h3 class="text-sm font-bold text-slate-800 border-b border-slate-100 pb-3">Input Rekonsiliasi Margin Riil</h3>
+          <p class="text-xs text-slate-400 mt-2">Dukungan input real-time tersinkronisasi otomatis dengan database Firebase Firestore.</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==================== SLIDE-OVER INSPECTION DRAWER (ORDER DETAILS) ==================== -->
+  <div id="drawerOverlay" class="fixed inset-0 z-50 hidden bg-slate-900/40 backdrop-blur-sm" onclick="closeOrderDrawer()"></div>
+  <aside id="orderDrawer" class="fixed right-0 top-0 z-50 h-screen w-full max-w-md translate-x-full bg-white p-6 shadow-drawer-right transition-transform duration-300 ease-out overflow-y-auto">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+      <div>
+        <span id="dInv" class="text-xs font-bold font-mono text-teal-700">VK260041</span>
+        <h3 id="dCust" class="text-base font-extrabold text-slate-900">XBI SUKABUMI</h3>
+        <p id="dProject" class="text-xs text-slate-400">LAMPUNG EXPEDITION</p>
+      </div>
+      <button onclick="closeOrderDrawer()" class="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 font-bold">&times;</button>
+    </div>
+
+    <!-- Timeline Pembayaran Bertahap -->
+    <div class="mt-5 space-y-4">
+      <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Timeline Pembayaran Konsumen</h4>
+      
+      <div class="relative pl-6 space-y-4 border-l-2 border-teal-200">
+        <div class="relative">
+          <span class="absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full bg-teal-600 border-2 border-white"></span>
+          <div class="text-xs font-bold text-slate-800">DP 1 Diterima (Transfer Bank BCA)</div>
+          <div id="dDp1" class="text-xs font-mono font-bold text-teal-700 mt-0.5">Rp 810.000</div>
+          <div class="text-[10px] text-slate-400">07 Okt 2026 &bull; Status: Terverifikasi Kas</div>
+        </div>
+
+        <div class="relative">
+          <span class="absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full bg-amber-400 border-2 border-white"></span>
+          <div class="text-xs font-bold text-amber-800">Target DP 70% Produksi</div>
+          <div id="dSisa70" class="text-xs font-mono font-bold text-amber-600 mt-0.5">Sisa Rp 184.000 lagi</div>
+          <div class="text-[10px] text-slate-400">Syarat wajib SPK potong kain</div>
+        </div>
+
+        <div class="relative">
+          <span class="absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full bg-slate-300 border-2 border-white"></span>
+          <div class="text-xs font-bold text-slate-400">Pelunasan Akhir (30% Pengiriman)</div>
+          <div id="dPelunasan" class="text-xs font-mono text-slate-500 mt-0.5">Rp 426.000</div>
+        </div>
+      </div>
+
+      <!-- Action Button WA -->
+      <div class="pt-4 border-t border-slate-100">
+        <button id="dWaBtn" class="tactile-btn flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white shadow-md hover:bg-emerald-700">
+          Kirim Penagihan DP 70% via WhatsApp
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== EDIT FINANCE MODAL ==================== -->
+  <div id="editFinanceOverlay" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4" onclick="closeEditFinanceModal()">
+    <div class="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-scaleIn" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/70">
+        <div class="flex items-center gap-2.5">
+          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-600 text-white font-bold">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-slate-900">Edit Finansial & HPP Order</h3>
+            <p id="editOrderSubtitle" class="text-xs text-slate-400">VK260041 &bull; XBI SUKABUMI</p>
+          </div>
+        </div>
+        <button onclick="closeEditFinanceModal()" class="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 font-bold">&times;</button>
+      </div>
+
+      <div class="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        <!-- Customer Section -->
+        <div>
+          <h4 class="text-xs font-bold text-teal-800 uppercase tracking-wider mb-2.5">1. Transaksi Konsumen</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Total Tagihan (Rp)</label>
+              <input id="editTotalInvoice" type="number" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono font-bold text-slate-800 focus:border-teal-500 focus:outline-none" value="1420000" oninput="recomputeEditMetrics()" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Diskon (Rp)</label>
+              <input id="editDiskon" type="number" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono text-slate-800 focus:border-teal-500 focus:outline-none" value="0" oninput="recomputeEditMetrics()" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Total DP Masuk (Rp)</label>
+              <input id="editNominalDp" type="number" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono font-bold text-teal-700 focus:border-teal-500 focus:outline-none" value="810000" oninput="recomputeEditMetrics()" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Vendor Section -->
+        <div>
+          <h4 class="text-xs font-bold text-amber-800 uppercase tracking-wider mb-2.5">2. Komitmen Vendor & HPP</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Total Biaya Vendor / HPP (Rp)</label>
+              <input id="editTotalHpp" type="number" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono font-bold text-slate-800 focus:border-teal-500 focus:outline-none" value="1020000" oninput="recomputeEditMetrics()" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">DP Vendor Terbayar (Rp)</label>
+              <input id="editDpVendor" type="number" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono font-bold text-rose-600 focus:border-teal-500 focus:outline-none" value="700000" oninput="recomputeEditMetrics()" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Operational Section -->
+        <div>
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">3. Beban Operasional Langsung</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Biaya Operasional / Packing (Rp)</label>
+              <input id="editBiayaOps" type="number" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono text-slate-800 focus:border-teal-500 focus:outline-none" value="0" oninput="recomputeEditMetrics()" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Biaya Tambahan Vendor (Rp)</label>
+              <input id="editBiayaTambahanVendor" type="number" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono text-slate-800 focus:border-teal-500 focus:outline-none" value="34000" oninput="recomputeEditMetrics()" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Recomputed Margin Box -->
+        <div class="rounded-xl border border-teal-200 bg-teal-50/70 p-4">
+          <div class="text-[11px] font-bold text-teal-900 uppercase tracking-wider mb-2">Simulasi Keuntungan & Komitmen Kas</div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div>
+              <div class="text-slate-500 text-[10px]">Net Invoice</div>
+              <div id="simNetInvoice" class="font-mono font-bold text-slate-800">Rp 1.420.000</div>
+            </div>
+            <div>
+              <div class="text-slate-500 text-[10px]">Sisa Pelunasan Cust</div>
+              <div id="simSisaCust" class="font-mono font-bold text-amber-600">Rp 610.000</div>
+            </div>
+            <div>
+              <div class="text-slate-500 text-[10px]">Sisa Utang Vendor</div>
+              <div id="simSisaVendor" class="font-mono font-bold text-rose-600">Rp 320.000</div>
+            </div>
+            <div>
+              <div class="text-slate-500 text-[10px]">Profit Bersih</div>
+              <div id="simProfit" class="font-mono font-bold text-emerald-600">Rp 400.000 (28.2%)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2.5 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
+        <button onclick="closeEditFinanceModal()" class="tactile-btn rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+          Batal
+        </button>
+        <button onclick="saveEditFinance()" class="tactile-btn rounded-xl bg-teal-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-teal-700">
+          Simpan Finansial Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== OFFICIAL INVOICE PREVIEW MODAL ==================== -->
+  <div id="invoiceModalOverlay" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="closeInvoiceModal()">
+    <div class="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-scaleIn max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-100 px-6 py-3.5 bg-slate-50">
+        <div class="flex items-center gap-2">
+          <span class="rounded-lg bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700 border border-blue-200">Official Document</span>
+          <span id="invModalTitle" class="text-xs font-mono font-bold text-slate-700">INVOICE #VK260041</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="window.print()" class="tactile-btn flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50">
+            <svg class="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+            </svg>
+            Cetak
+          </button>
+          <button onclick="closeInvoiceModal()" class="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 font-bold">&times;</button>
+        </div>
+      </div>
+
+      <div class="p-8 space-y-6 overflow-y-auto font-sans">
+        <!-- Invoice Header -->
+        <div class="flex items-start justify-between border-b border-slate-200 pb-5">
+          <div>
+            <div class="flex items-center gap-2">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600 text-white font-extrabold text-sm">VK</div>
+              <span class="text-lg font-black tracking-tight text-slate-900">VISUALKAIN</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Apparel Manufacturing & Garment Production</p>
+            <p class="text-[11px] text-slate-400">Jl. Industri Tekstil No. 12, Bandung, Jawa Barat</p>
+          </div>
+          <div class="text-right">
+            <h2 class="text-xl font-extrabold text-teal-700 tracking-tight">COMMERCIAL INVOICE</h2>
+            <p id="invModalNo" class="text-xs font-mono font-bold text-slate-700 mt-0.5">VK260041</p>
+            <p class="text-[11px] text-slate-400">Tanggal: 07 Okt 2026</p>
+          </div>
+        </div>
+
+        <!-- Billed To & Status Badge -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ditagihkan Kepada:</span>
+            <div id="invModalCust" class="text-sm font-bold text-slate-900 mt-0.5">XBI SUKABUMI</div>
+            <div id="invModalProj" class="text-xs text-slate-600">LAMPUNG EXPEDITION</div>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status Pembayaran:</span>
+            <div class="mt-1">
+              <span id="invModalBadge" class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 border border-amber-200">
+                DP 57.0% (Menuju 70%)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line Item Table -->
+        <div class="rounded-xl border border-slate-200 overflow-hidden">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-600">
+              <tr>
+                <th class="px-4 py-2.5">Deskripsi Produk</th>
+                <th class="px-4 py-2.5 text-center">Qty</th>
+                <th class="px-4 py-2.5 text-right">Harga Satuan</th>
+                <th class="px-4 py-2.5 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <td class="px-4 py-3">
+                  <div id="invModalDesc" class="font-bold text-slate-800">LAMPUNG EXPEDITION - Custom Apparel</div>
+                  <div class="text-[10px] text-slate-400">Bahan Premium, Jahitan Standar Ekspor & Sablon Manual</div>
+                </td>
+                <td id="invModalQty" class="px-4 py-3 text-center font-mono font-semibold">14 pcs</td>
+                <td class="px-4 py-3 text-right font-mono tabular-num">Rp 101.428</td>
+                <td id="invModalTotalItem" class="px-4 py-3 text-right font-mono font-bold tabular-num">Rp 1.420.000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Riwayat Pembayaran Customer Diterima (Dokumen Konfirmasi Fitur Update Bagian 3.C) -->
+        <div class="rounded-xl border border-teal-200 bg-teal-50/30 p-4">
+          <div class="flex items-center justify-between border-b border-teal-100 pb-2 mb-2.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-teal-900 flex items-center gap-1.5">
+              <svg class="h-4 w-4 text-teal-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+              </svg>
+              Riwayat Pembayaran Customer Diterima
+            </span>
+            <span id="invTargetDpLabel" class="text-[11px] font-mono font-semibold text-teal-800">Syarat DP 70%: Rp 994.000</span>
+          </div>
+
+          <div id="invPaymentHistoryList" class="space-y-1.5 text-xs font-mono text-slate-700">
+            <div class="flex items-center justify-between">
+              <span class="flex items-center gap-1.5 text-slate-700">
+                <span class="text-teal-600 font-bold">&check;</span>
+                <span>DP 1 (Booking & Antrean Bahan &bull; Transfer BCA)</span>
+              </span>
+              <span id="invItemDp1" class="font-bold text-teal-800">Rp 810.000 (57.0%)</span>
+            </div>
+          </div>
+
+          <div class="mt-3 border-t border-teal-100 pt-2 flex items-center justify-between text-xs font-bold text-slate-900">
+            <span>Total Uang Muka Diterima:</span>
+            <span id="invTotalDpSummary" class="font-mono text-teal-700">Rp 810.000 (57.0% &bull; DP Belum Lengkap)</span>
+          </div>
+        </div>
+
+        <!-- Highlight Warning Sisa DP 70% -->
+        <div id="invGapNotice" class="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+          <div class="flex items-center gap-2 font-bold">
+            <svg class="h-4 w-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span id="invGapNoticeTitle">Kekurangan DP untuk Naik Produksi: Rp 184.000</span>
+          </div>
+          <p id="invGapNoticeDesc" class="mt-1 text-[11px] text-amber-800 pl-6">
+            Menunggu pelunasan DP agar bahan pesanan dapat dipotong dan dijahit oleh mitra konveksi.
+          </p>
+        </div>
+
+        <!-- Summary & Rekening -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+          <div class="rounded-xl border border-teal-200 bg-teal-50/40 p-3.5">
+            <h5 class="text-[11px] font-bold text-teal-900 uppercase tracking-wider">Rekening Resmi Pembayaran</h5>
+            <div class="mt-1 text-xs space-y-0.5 text-slate-700 font-mono">
+              <div>Bank: <strong>Bank Central Asia (BCA)</strong></div>
+              <div>No Rek: <strong>8830-1928-41</strong></div>
+              <div>Atas Nama: <strong>PT VISUAL KAIN INDONESIA</strong></div>
+            </div>
+          </div>
+
+          <div class="space-y-1.5 text-xs">
+            <div class="flex justify-between text-slate-500">
+              <span>Subtotal:</span>
+              <span id="invSumSubtotal" class="font-mono font-bold text-slate-800">Rp 1.420.000</span>
+            </div>
+            <div class="flex justify-between text-slate-500">
+              <span>Diskon:</span>
+              <span class="font-mono text-slate-800">Rp 0</span>
+            </div>
+            <div class="flex justify-between border-t border-slate-200 pt-1.5 text-sm font-extrabold text-slate-900">
+              <span>Total Tagihan:</span>
+              <span id="invSumTotal" class="font-mono text-teal-700">Rp 1.420.000</span>
+            </div>
+            <div class="flex justify-between text-emerald-700 font-bold">
+              <span>DP Terbayar:</span>
+              <span id="invSumDp" class="font-mono">Rp 810.000</span>
+            </div>
+            <div class="flex justify-between border-t border-dashed border-slate-200 pt-1.5 text-amber-700 font-bold">
+              <span>Sisa Pelunasan:</span>
+              <span id="invSumSisa" class="font-mono">Rp 610.000</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    let isCollapsed = false;
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('mainSidebar');
+      const icon = document.getElementById('collapseIcon');
+      isCollapsed = !isCollapsed;
+
+      if (isCollapsed) {
+        sidebar.classList.remove('sidebar-expanded');
+        sidebar.classList.add('sidebar-collapsed');
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />';
+      } else {
+        sidebar.classList.remove('sidebar-collapsed');
+        sidebar.classList.add('sidebar-expanded');
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />';
+      }
+    }
+
+    // Keyboard shortcut Ctrl+B
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    });
+
+    function switchTab(tabId) {
+      const tabs = ['dashboard', 'cashout', 'vendor', 'manual'];
+      tabs.forEach(t => {
+        document.getElementById('tab-content-' + t).classList.add('hidden');
+        const btn = document.getElementById('btn-' + t);
+        btn.className = 'nav-btn group relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 tactile-btn';
+      });
+
+      document.getElementById('tab-content-' + tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('btn-' + tabId);
+      activeBtn.className = 'nav-btn group relative flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold bg-vk-teal-600 text-white shadow-sm tactile-btn';
+    }
+
+    function openOrderDrawer(inv, cust, project, total, dp, sisa, hpp, dpV, sisaV, wa) {
+      document.getElementById('dInv').textContent = inv;
+      document.getElementById('dCust').textContent = cust;
+      document.getElementById('dProject').textContent = project;
+      document.getElementById('dDp1').textContent = 'Rp ' + dp.toLocaleString('id-ID');
+      
+      const sisa70 = Math.max(0, (total * 0.7) - dp);
+      document.getElementById('dSisa70').textContent = 'Sisa Rp ' + sisa70.toLocaleString('id-ID') + ' lagi';
+      
+      const waBtn = document.getElementById('dWaBtn');
+      waBtn.onclick = () => sendWhatsApp(wa, cust, inv, project, dp, sisa70);
+
+      document.getElementById('drawerOverlay').classList.remove('hidden');
+      document.getElementById('orderDrawer').classList.remove('translate-x-full');
+    }
+
+    function closeOrderDrawer() {
+      document.getElementById('drawerOverlay').classList.add('hidden');
+      document.getElementById('orderDrawer').classList.add('translate-x-full');
+    }
+
+    function sendWhatsApp(phone, cust, inv, project, dp, sisa70) {
+      const cleanPhone = phone.replace(/[^0-9]/g, '').replace(/^0/, '62');
+      const text = `Halo Kak ${cust}, salam dari VisualKain Management.\n\nTerima kasih atas pembayaran DP pesanan *${project}* (${inv}) sebesar Rp ${dp.toLocaleString('id-ID')}.\n\nMengingat syarat naik potong & jahit adalah komitmen DP 70%, tersisa *Rp ${sisa70.toLocaleString('id-ID')}* lagi agar pesanan dapat langsung diproses ke penjahit. Terima kasih banyak 🙏`;
+      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    function openEditFinanceModal(inv, cust, project, total, dp, hpp, dpV, ops, diskon) {
+      document.getElementById('editOrderSubtitle').textContent = `${inv} • ${cust} (${project})`;
+      document.getElementById('editTotalInvoice').value = total;
+      document.getElementById('editDiskon').value = diskon || 0;
+      document.getElementById('editNominalDp').value = dp;
+      document.getElementById('editTotalHpp').value = hpp;
+      document.getElementById('editDpVendor').value = dpV;
+      document.getElementById('editBiayaOps').value = ops || 0;
+      recomputeEditMetrics();
+      document.getElementById('editFinanceOverlay').classList.remove('hidden');
+    }
+
+    function closeEditFinanceModal() {
+      document.getElementById('editFinanceOverlay').classList.add('hidden');
+    }
+
+    function recomputeEditMetrics() {
+      const total = Number(document.getElementById('editTotalInvoice').value) || 0;
+      const diskon = Number(document.getElementById('editDiskon').value) || 0;
+      const net = Math.max(0, total - diskon);
+      const dpCust = Number(document.getElementById('editNominalDp').value) || 0;
+      const sisaCust = Math.max(0, net - dpCust);
+      const hpp = Number(document.getElementById('editTotalHpp').value) || 0;
+      const dpV = Number(document.getElementById('editDpVendor').value) || 0;
+      const sisaV = Math.max(0, hpp - dpV);
+      const ops = Number(document.getElementById('editBiayaOps').value) || 0;
+      const profit = net - hpp - ops;
+      const pct = net > 0 ? ((profit / net) * 100).toFixed(1) : '0';
+
+      document.getElementById('simNetInvoice').textContent = 'Rp ' + net.toLocaleString('id-ID');
+      document.getElementById('simSisaCust').textContent = 'Rp ' + sisaCust.toLocaleString('id-ID');
+      document.getElementById('simSisaVendor').textContent = 'Rp ' + sisaV.toLocaleString('id-ID');
+      document.getElementById('simProfit').textContent = `Rp ${profit.toLocaleString('id-ID')} (${pct}%)`;
+    }
+
+    function saveEditFinance() {
+      alert('Perubahan finansial berhasil disimpan ke database!');
+      closeEditFinanceModal();
+    }
+
+    function openInvoiceModal(inv, cust, project, total, dp, sisa, qty) {
+      document.getElementById('invModalTitle').textContent = `INVOICE #${inv}`;
+      document.getElementById('invModalNo').textContent = inv;
+      document.getElementById('invModalCust').textContent = cust;
+      document.getElementById('invModalProj').textContent = project;
+      document.getElementById('invModalDesc').textContent = `${project} - Custom Apparel`;
+      document.getElementById('invModalQty').textContent = `${qty || 1} pcs`;
+      document.getElementById('invModalTotalItem').textContent = 'Rp ' + total.toLocaleString('id-ID');
+      document.getElementById('invSumSubtotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
+      document.getElementById('invSumTotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
+      document.getElementById('invSumDp').textContent = 'Rp ' + dp.toLocaleString('id-ID');
+      document.getElementById('invSumSisa').textContent = 'Rp ' + sisa.toLocaleString('id-ID');
+
+      const pct = total > 0 ? (dp / total) * 100 : 0;
+      const target70 = Math.round(total * 0.7);
+      const gap70 = Math.max(0, target70 - dp);
+
+      document.getElementById('invTargetDpLabel').textContent = 'Syarat DP 70%: Rp ' + target70.toLocaleString('id-ID');
+      document.getElementById('invItemDp1').textContent = `Rp ${dp.toLocaleString('id-ID')} (${pct.toFixed(1)}%)`;
+      document.getElementById('invTotalDpSummary').textContent = `Rp ${dp.toLocaleString('id-ID')} (${pct.toFixed(1)}% • ${pct >= 70 ? 'DP Terpenuhi' : 'DP Parsial'})`;
+
+      const gapNotice = document.getElementById('invGapNotice');
+      const gapNoticeTitle = document.getElementById('invGapNoticeTitle');
+      const gapNoticeDesc = document.getElementById('invGapNoticeDesc');
+
+      const badge = document.getElementById('invModalBadge');
+      if (pct >= 100) {
+        badge.className = 'inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 border border-emerald-200';
+        badge.textContent = 'LUNAS TOTAL (100%)';
+        gapNotice.className = 'rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-900';
+        gapNoticeTitle.textContent = 'Lunas Penuh (100% Paid) • Pesanan Siap Dikirim / Diserahkan';
+        gapNoticeDesc.textContent = 'Seluruh kewajiban pembayaran telah lunas. SPK produksi & dokumen pengiriman valid.';
+      } else if (pct >= 70) {
+        badge.className = 'inline-flex items-center rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700 border border-teal-200';
+        badge.textContent = `DP ${pct.toFixed(1)}% (SIAP PRODUKSI)`;
+        gapNotice.className = 'rounded-xl border border-teal-300 bg-teal-50 p-3 text-xs text-teal-900';
+        gapNoticeTitle.textContent = 'Syarat Uang Muka Produksi Terpenuhi (Bahan Naik Jahit)';
+        gapNoticeDesc.textContent = `Sisa pelunasan saat barang selesai (30%): Rp ${sisa.toLocaleString('id-ID')}`;
+      } else {
+        badge.className = 'inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 border border-amber-200';
+        badge.textContent = `DP ${pct.toFixed(1)}% (BELUM LUNAS)`;
+        gapNotice.className = 'rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900';
+        gapNoticeTitle.textContent = `Kekurangan DP untuk Naik Produksi: Rp ${gap70.toLocaleString('id-ID')}`;
+        gapNoticeDesc.textContent = 'Menunggu pelunasan DP agar bahan pesanan dapat dipotong dan dijahit oleh mitra konveksi.';
+      }
+
+      document.getElementById('invoiceModalOverlay').classList.remove('hidden');
+    }
+
+    function closeInvoiceModal() {
+      document.getElementById('invoiceModalOverlay').classList.add('hidden');
+    }
+
+    function toggleExpandTable() {
+      const card = document.querySelector('#tab-content-dashboard .overflow-hidden');
+      if (!card) return;
+      if (card.classList.contains('fixed')) {
+        card.className = 'rounded-2xl border border-slate-200 bg-white shadow-card-double overflow-hidden';
+      } else {
+        card.className = 'fixed inset-4 z-50 rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-y-auto flex flex-col';
+      }
+    }
+
+    function togglePeriodDropdown() {
+      const menu = document.getElementById('periodDropdownMenu');
+      if (menu) menu.classList.toggle('hidden');
+    }
+
+    function selectPeriod(period) {
+      const label = document.getElementById('selectedPeriodLabel');
+      if (label) label.textContent = period;
+      const menu = document.getElementById('periodDropdownMenu');
+      if (menu) menu.classList.add('hidden');
+    }
+
+    window.addEventListener('click', (e) => {
+      const container = document.getElementById('periodDropdownContainer');
+      if (container && !container.contains(e.target)) {
+        const menu = document.getElementById('periodDropdownMenu');
+        if (menu) menu.classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

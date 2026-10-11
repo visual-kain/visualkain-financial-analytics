@@ -1,0 +1,419 @@
+DOKUMEN KONFIRMASI SPESIFIKASI & LOGIKA
+FINANSIAL
+Sistem Manajemen Operasional & Basis Data VisualKain (Update Oktober 2026)
+Target Proyek: visualkaindb (Next.js /
+Firestore)
+Tanggal Rilis: 09 Oktober 2026
+Status: Draf Konfirmasi Klien
+Penanggung Jawab: Tim Teknis / Full-Stack
+Engineer
+Dokumen Acuan: Brief Klien & Audit
+Codebase
+Tipe Desain: Black & White Executive Brief
+1. Latar Belakang & Akar Permasalahan Sistem Saat Ini
+Berdasarkan hasil peninjauan mendalam terhadap kode sumber (codebase) dan hasil diskusi langsung dengan klien, ditemukan
+beberapa kendala mendasar pada pencatatan keuangan dan alur antarmuka yang menyebabkan kerancuan angka:
+  Kekeliruan Konsep Saldo: Di kode saat ini, Saldo VisualKain = Profit (Order Selesai) − Uang Keluar. Ini keliru secara akuntansi
+ karena 'Profit' adalah angka kalkulasi di atas kertas, bukan uang fisik di bank. Jika ada order berjalan di mana customer telah
+mentransfer DP ratusan ribu atau jutaan rupiah, uang tersebut belum diakui ke sistem. Akibatnya, saldo sistem seringkali bernilai
+Rp 0 atau minus, padahal uang kas riil di rekening bank sebenarnya tersedia.
+ Tidak Adanya Pencatatan Cicilan/Parsial: Saat ini sistem mewajibkan order 100% lunas untuk diakui. Padahal dalam transaksi
+ nyata, customer membayar bertahap (misal: total Rp 200.000 dicicil Rp 20.000, Rp 30.000, Rp 50.000 hingga genap Rp
+200.000). Uang masuk harian ini harus tercatat sebagai kas riil saat uang diterima.
+ Kekhawatiran Pemotongan Margin: Klien mengkhawatirkan profit bersih VisualKain terpotong ketika membayar vendor.
+ Diperlukan penegasan konsep akuntansi bahwa biaya vendor diambil dari alokasi uang pokok customer (HPP), bukan memotong
+keuntungan bersih pemilik.
+ Informasi Utang Vendor Tidak Terlihat: Belum ada kartu ringkasan global yang menunjukkan berapa total sisa tagihan yang
+ masih harus dibayarkan ke seluruh mitra konveksi/vendor.
+ Ketidakjelasan Asal-Usul Angka di Dashboard: Pengguna tidak dapat memverifikasi dari mana angka-angka nominal di kartu
+ berasal (kurang transparan).
+ Gangguan Antarmuka (Bug): Layout form penawaran mengalami teks terpotong secara vertikal ('D E S K R I P S I'), serta grafik
+ analitik di Beranda belum mencerminkan standar visual profesional yang modern seperti project klinik.
+2. Logika Matematis Finansial: Pemisahan Kas Riil vs Margin Keuntungan
+Untuk menghilangkan kebingungan, sistem akan menerapkan pemisahan tegas antara Arus Kas Riil (Cash Flow) dan Hak Margin
+Keuntungan (Retained Profit) dengan konsep Dua Kantong Alokasi Dana:
+RUMUS 1: SALDO KAS RIIL VISUALKAIN (Posisi Rekening Bank Riil)
+Saldo Kas = (Saldo Awal + Total Uang Masuk Riil Customer) − Total Uang Keluar Riil
+Catatan: Uang Masuk adalah akumulasi riil DP/cicilan yang sudah ditransfer customer. Uang
+Keluar adalah pembayaran riil ke vendor + biaya operasional kas.
+RUMUS 2: PEMISAHAN ALOKASI DANA INVOICE (Konsep Kantong Dana)
+Setiap penjualan (misal Rp 1.420.000) dibagi menjadi 2 kantong:
+ Kantong A (Alokasi Pokok Vendor / HPP = Rp 986.000): Dana titipan untuk melunasi vendor.
+Pembayaran vendor diambil DARI SINI, bukan dari profit.
+ Kantong B (Margin Bersih VisualKain = Rp 434.000): Keuntungan murni milik VisualKain untuk
+operasional kantor, gaji, dan dividen pemilik.
+RUMUS 3: TOTAL UTANG VENDOR GLOBAL (Kewajiban Belum Terbayar)
+Utang Vendor Global = Σ (Total HPP Vendor Seluruh Order − Total Pembayaran yang Sudah
+Diserahkan ke Vendor)
+Dokumen Konfirmasi Fitur & Arsitektur Finansial VisualKain  |  Halaman 1 dari 6
+STATUS: UNTUK TINJAUAN & KONFIRMASI KLIEN
+
+Simulasi Bertahap Kasus Riil Klien (Penjualan Rp 1.420.000, Vendor Rp 986.000, Profit Rp 434.000):
+ Tahapan Transaksi
+ Kas Masuk
+ Kas Keluar
+ Saldo Kas Bank
+ Alokasi Utang
+ Vendor
+ Status Profit
+ VisualKain
+1. Customer Bayar DP Awal
+ Rp 500.000
+ Rp 0
+ Rp 500.000
+Sisa Utang: Rp 986.000
+Hak Profit: Rp 152.817
+(proporsional)
+2. VisualKain Bayar DP Vendor
+ Rp 0
+ Rp 300.000
+ Rp 200.000
+Sisa Utang: Rp 686.000
+Profit TIDAK terpotong
+(diambil dari pokok)
+3. Customer Cicil Termin 2
+ Rp 400.000
+ Rp 0
+ Rp 600.000
+Sisa Utang: Rp 686.000
+Hak Profit terkumpul
+bertambah
+4. Customer Melunasi Sisa
+Tagihan
+ Rp 520.000
+ Rp 0
+ Rp 1.120.000
+Dana pelunasan vendor
+lengkap
+Profit terkunci penuh
+Rp 434.000
+5. Pelunasan Akhir ke Vendor
+ Rp 0
+ Rp 686.000
+ Rp 434.000
+Utang Vendor: Rp 0
+(LUNAS)
+Kas bersih tepat
+tersisa Rp 434.000!
+3. Alur Khusus: Pembayaran Parsial (DP 1 & DP 2), Badge Status, serta Follow-Up (FU)
+Invoice
+Bagian ini secara khusus menjawab dan merumuskan mekanisme operasional atas pertanyaan langsung dari Mas Raja Purnama
+(Owner VisualKain):
+"Nanti ketahuan sisanya kan? Masukin lagi DP 2, DP 1 kan udah masuk. Untuk di invoice-nya bisa gak? Mau tahu sisa pelunasan
+DP-nya berapa, aku mau FU pelunasan kemeja. Di data customer biasanya DP 70%, kalo dia partial maka DP 1 berapa DP 2
+berapa, misal pertama transfer 35% maka ke 70% sisa 35% lagi."
+A. Sistem Ambang Batas (Threshold 70% Produksi & 30% Pengiriman)
+SOP bisnis VisualKain mewajibkan uang muka sebesar 70% sebelum bahan dipotong dan diproduksi. Dalam sistem baru,
+pembayaran pelanggan tidak lagi dipaksa 1 kali transaksi, melainkan dapat dicatat bertahap dengan kalkulasi otomatis terhadap
+target DP 70% dan pelunasan akhir 30%:
+ Badge Status Otomatis
+ Kondisi Pembayaran
+ Arti Operasional & Tindakan Tim (Follow-Up)
+[ BELUM DP (0%) ]
+Akumulasi Uang Masuk = Rp 0
+Pesanan baru masuk. Kirimkan invoice penagihan DP awal (target
+70%) ke customer.
+[ DP 1 DITERIMA (Parsial) ]
+0% < Uang Masuk < 70%
+(Cth: Transfer 35%)
+Belum Boleh Naik Produksi. Sistem menghitung sisa DP (35%
+lagi). Angka sisa DP ini dipakai untuk Follow-Up (FU) agar
+customer segera transfer DP 2.
+[ DP 2 DITERIMA (70% - SIAP
+PRODUKSI) ]
+Uang Masuk ≥ 70% dan <
+100%
+(Cth: DP 1 + DP 2 = 70%)
+SYARAT PRODUKSI TERPENUHI. SPK diterbitkan ke
+vendor/penjahit. Sistem mencatat sisa pelunasan akhir 30% yang
+akan ditagih saat barang selesai.
+[ LUNAS TOTAL (100%) ]
+Akumulasi Uang Masuk =
+100%
+Pesanan selesai secara finansial. Invoice berstatus Lunas dan
+barang siap dikirim ke alamat customer.
+VISUALKAIN MANAGEMENT — DOKUMEN KONFIRMASI SPESIFIKASI & LOGIKA FINANSIAL
+OKTOBER 2026
+Dokumen Konfirmasi Fitur & Arsitektur Finansial VisualKain  |  Halaman 2 dari 6
+STATUS: UNTUK TINJAUAN & KONFIRMASI KLIEN
+
+B. Simulasi Nyata Kasus Kemeja (Total Rp 2.000.000 | DP 70% = Rp 1.400.000 | Pelunasan 30% = Rp
+600.000)
+ Tahap Transaksi
+ Nominal Masuk
+ Total Diterima
+ Badge Status
+ Kekurangan DP
+ (Angka FU)
+ Sisa Pelunasan
+ Akhir
+1. Order Dibuat
+ Rp 0
+ Rp 0
+[BELUM DP (0%)]
+Rp 1.400.000 (70%)
+Rp 600.000
+(30%)
+2. Customer Transfer
+DP 1
+ Rp 700.000 (35%)
+ Rp 700.000
+[DP 1 DITERIMA]
+Rp 700.000 (Kurang
+35%)
+*Angka untuk FU
+tagihan
+Rp 600.000
+(30%)
+3. Customer Transfer
+DP 2
+ Rp 700.000 (35%)
+ Rp 1.400.000
+[DP 2 - SIAP
+PRODUKSI]
+Rp 0 (DP LENGKAP
+70%)
+*Kemeja mulai dijahit
+Rp 600.000
+(30%)
+*Ditagih saat
+beres
+4. Kemeja Jadi &
+Pelunasan
+ Rp 600.000 (30%)
+ Rp 2.000.000
+[LUNAS TOTAL (100%)]
+Rp 0
+Rp 0 (LUNAS
+TOTAL)
+C. Tampilan Lembar INVOICE Cetak (InvoicePreview)
+Di lembar Invoice yang dicetak atau dikirimkan ke WhatsApp customer, bagian bawah invoice akan memuat tabel Riwayat
+Pembayaran Diterima (Payment History) yang transparan:
+RINGKASAN TAGIHAN & RIWAYAT PEMBAYARAN INVOICE:
+Total Nilai Pesanan Kemeja .............................................................. : Rp
+2.000.000
+Syarat Uang Muka Produksi (DP 70%) .............................................. : Rp
+1.400.000
+----------------------------------------------------------------------------------------------
+----------------------------------
+Riwayat Pembayaran Customer Diterima:
+[✓] DP 1 (Tanggal 08/10/2026 via Transfer BCA) .......................... : Rp 700.000 (35.0%)
+[✓] DP 2 (Tanggal 09/10/2026 via Transfer BCA) .......................... : Rp 700.000 (35.0%)
+----------------------------------------------------------------------------------------------
+----------------------------------
+Total Uang Muka Diterima (DP 1 + DP 2) ........................................ : Rp 1.400.000
+(70.0% — DP Terpenuhi)
+SISA PELUNASAN SAAT BARANG SELESAI (30%) .................... : Rp 600.000
+*Catatan: Apabila customer baru membayar DP 1 (Rp 700.000), lembar invoice otomatis
+memunculkan highlight tebal:
+  'Kekurangan DP untuk Naik Produksi: Rp 700.000 (Menunggu pelunasan DP agar bahan dapat
+dipotong)'
+D. Contoh Template Pesan Follow-Up (FU) WhatsApp Siap Pakai
+Tim VisualKain dapat langsung mengirimkan pesan berikut ke WhatsApp customer dengan mengacu angka dari sistem:
+TEMPLATE 1: FOLLOW UP SISA DP 2 (Agar Kemeja Bisa Diproduksi)
+"Halo Kak [Nama Customer]! Pembayaran DP 1 sebesar Rp 700.000 (35%) untuk pesanan Kemeja telah kami terima ya.
+Sebagai informasi, sesuai SOP konveksi, kemeja akan mulai dipotong dan dijahit setelah DP genap 70% (Rp 1.400.000).
+Mohon dapat melunasi sisa DP sebesar Rp 700.000 agar antrean produksi kemeja kakak bisa langsung kami jalankan hari ini.
+Invoice terupdate kami lampirkan ya kak. Terima kasih!"
+TEMPLATE 2: NOTIFIKASI DP LENGKAP & FOLLOW UP PELUNASAN AKHIR
+"Halo Kak [Nama Customer]! Pembayaran DP 2 sebesar Rp 700.000 telah kami terima. Total DP telah LENGKAP 70% (Rp
+1.400.000) dan pesanan Kemeja saat ini RESMI NAIK PRODUKSI. Sisa pelunasan akhir sebesar Rp 600.000 (30%) dapat
+dibayarkan saat barang selesai sebelum dikirimkan ke alamat kakak. Terima kasih atas kerjasamanya!"
+VISUALKAIN MANAGEMENT — DOKUMEN KONFIRMASI SPESIFIKASI & LOGIKA FINANSIAL
+OKTOBER 2026
+Dokumen Konfirmasi Fitur & Arsitektur Finansial VisualKain  |  Halaman 3 dari 6
+STATUS: UNTUK TINJAUAN & KONFIRMASI KLIEN
+
+4. Rincian Pembaruan Fitur & Penyesuaian Antarmuka
+Fitur 1: Pencatatan Pembayaran Parsial / Bertahap (Partial Cash In)
+Mendukung pencatatan cicilan berulang per nomor invoice (tanggal, jumlah nominal, keterangan). Status invoice otomatis
+menampilkan: 'Belum Bayar', 'Parsial (Rp X dari Rp Y)', atau 'Lunas'. Setiap uang masuk langsung mengupdate saldo kas secara
+real-time tanpa menunggu status pesanan 'completed'.
+Fitur 2: Input Saldo Awal / Penyesuaian Kas VisualKain
+Menambahkan tombol input di samping kartu Saldo VisualKain untuk memasukkan modal awal atau penyesuaian saldo rekening riil,
+sehingga angka di sistem selalu selaras dengan buku tabungan/mutasi bank.
+Fitur 3: Kartu Baru 'Total Utang Vendor (Global)'
+Menghitung dan menampilkan total kewajiban yang masih belum dibayarkan ke seluruh vendor. Menjadi indikator krusial agar
+manajemen mengetahui berapa uang kas keluar yang harus disiapkan untuk melunasi vendor konveksi.
+Fitur 4: Tracking Asal-Usul Angka di Setiap Kartu (Audit Drilldown)
+Setiap kartu di Financial Dashboard dilengkapi tombol info '(?)' atau interaksi klik. Ketika diklik, modal transparan akan muncul
+menampilkan: (1) Rumus kalkulasi, (2) Daftar transaksi pembentuk angka, (3) Tanggal pembaruan.
+Fitur 5: Revamp UI/UX Kartu Outstanding
+Mengganti tampilan teks sederhana pada panel Outstanding dengan kartu visual informatif yang memisahkan jelas: Total Nilai
+Pesanan Berjalan, Uang Masuk/DP yang Sudah di Tangan, dan Sisa Piutang yang Masih Harus Ditagih.
+Fitur 6: Penataan Ulang Kategori Pengeluaran (Cash Outflow)
+Kategori dirombak menjadi: (1) Gaji/Upah, (2) Operasional (menggantikan Perawatan Web/Sistem), (3) Marketing dan Penjualan, (4)
+Logistik (menggantikan Transport/Ongkir), (5) Keuangan (biaya admin bank, fee transfer), (6) Pajak (input nominal angka rupiah
+langsung, bukan persen), (7) Biaya Lain.
+Fitur 7: Penghapusan Fitur Profit Aktual (Manual)
+Menghapus sub-menu navigasi 'Profit Aktual (Manual)' dan kolom 'Keuntungan Nominal / Profit Aktual' dari tabel finansial untuk
+merampingkan sistem dan menghilangkan ambiguitas.
+Fitur 8: Perbaikan Layout Penawaran Harga & Surat Kerjasama
+Memperbaiki bug layout formulir Daftar Barang/Jasa agar header tabel tidak patah vertikal ('D E S K R I P S I'). Pada pratinjau cetak
+penawaran, bagian rincian Subtotal/Diskon/PPN dihilangkan sesuai coretan merah dari klien.
+Fitur 9: Pengunggahan Gambar Format WebP
+Komponen AccImageUpload secara otomatis mengonversi gambar yang diunggah ke format WebP (Canvas compression quality
+0.85) sebelum dikirim ke server/Cloudinary untuk menghemat bandwidth dan mempercepat loading.
+Fitur 10: Pembaruan Rekening Bank / ATM pada Invoice
+Memperbarui nomor rekening bank BCA / ATM penerima pada lembar pratinjau invoice cetak sesuai nomor rekening baru dari klien.
+Fitur 11: Tipografi Data Tabel & Tabular Numbers
+Standardisasi font pada seluruh tabel data menggunakan font monospaced angka sejajar (tabular-nums) agar digit ribuan lurus
+vertikal, dan font sans-serif modern yang rapi.
+Fitur 12: Penyesuaian Color System Tema
+Variabel background abu-abu muda (--bg-primary) dan background kartu putih (--bg-card) digelapkan sedikit (menjadi off-white
+bertekstur teduh) untuk meningkatkan kenyamanan visual dan ketajaman kontras teks.
+Fitur 13: Modernisasi Grafik Analitik (Klinik Style)
+Merombak grafik analitik Beranda (Top Customer, Top Kategori, Top Profit, Top Bahan) mengadopsi standar Recharts dari project
+klinik: AreaChart Spline, Donut Chart dengan angka total di tengah, micro-proportion bar horizontal, dan tooltip dark frosted glass.
+VISUALKAIN MANAGEMENT — DOKUMEN KONFIRMASI SPESIFIKASI & LOGIKA FINANSIAL
+OKTOBER 2026
+Dokumen Konfirmasi Fitur & Arsitektur Finansial VisualKain  |  Halaman 4 dari 6
+STATUS: UNTUK TINJAUAN & KONFIRMASI KLIEN
+
+5. Analisis Dampak Antarmuka & Tab yang Mengalami Perubahan
+Menjawab pertanyaan klien mengenai tab mana saja yang akan berubah, berikut adalah matriks pemetaan dampaknya:
+ Nama Tab / Halaman
+ Tingkat Perubahan
+ Komponen yang Berubah & Rincian Modifikasi
+1. Financial Data & Analytics
+(Dashboard, Cash Outflow,
+Vendor)
+Signifikan (Tinggi)
+ Perubahan rumus kartu Saldo VisualKain (Kas Masuk − Keluar).
+ Tambah kartu baru: Total Utang Vendor Global.
+ Tambah tombol info tracking asal-usul angka di setiap kartu.
+ Revamp panel Outstanding (visual split ratio).
+ Hapus sub-menu navigasi 'Profit Aktual (Manual)'.
+ Kategori pengeluaran baru pada formulir Cash Outflow.
+2. Data Customer
+(Database, Order Detail &
+Form)
+Signifikan (Tinggi)
+ Menjadi Single Source of Truth (SSOT) keuangan.
+ Tambah modal/formulir pencatatan cicilan bertahap per invoice.
+ Konversi upload gambar ACC customer otomatis ke WebP.
+ Tampilan status pelunasan cicilan di tabel customer.
+3. Penawaran & Kerjasama
+(Penawaran Harga & Surat
+Kerjasama)
+Sedang (UI Layout)
+ Perbaikan tata letak form Daftar Barang/Jasa (hilangkan wrap vertikal).
+ Hilangkan kotak Subtotal/Diskon/PPN pada lembar cetak penawaran.
+ Standarisasi format kop surat dan tombol aksi cetak.
+4. Invoice & PO
+(Invoice Preview & PO Cetak)
+Sedang (Data &
+Tampilan)
+ Pembaruan nomor rekening ATM penerima pembayaran.
+ Penyesuaian informasi rincian pembayaran parsial pada invoice.
+ Integrasi catatan pembayaran real-time pada PO vendor.
+5. Beranda (Home)
+(Dashboard Utama & Grafik)
+Sedang (Visual
+Revamp)
+ Revamp seluruh grafik analitik mengadopsi standar project klinik.
+ Recharts Area, Donut dengan center label, micro proportion bar.
+ Dark frosted-glass tooltip bergaya modern.
+6. Global Stylesheet
+(globals.css & Theme)
+Menyeluruh (Sistemik)
+ Warna background abu-abu dan kartu putih digelapkan sedikit.
+ Font tabel distandarisasi ke tabular-nums / monospace rapi.
+6. Urutan Prioritas Pengerjaan (Implementation Roadmap)
+Untuk memastikan proses implementasi berjalan aman tanpa mengganggu basis data yang sedang aktif, pekerjaan dibagi menjadi 7
+fase terstruktur sesuai standar Spec-Driven Development (SDD):
+ Fase & Prioritas
+ Fokus Pengerjaan
+ Output Deliverables
+Fase 1 (Prioritas 1)
+Fondasi Finansial &
+Cicilan
+Logika Kas Masuk Parsial & Saldo
+Riil
+ Tipe data CustomerPayment di types/index.ts.
+ Rumus Saldo Kas Riil di calculations.ts & finance.ts.
+ Modal input cicilan pelanggan di Data Customer.
+ Fitur input penyesuaian modal kas awal.
+Fase 2 (Prioritas 2)
+Kategori Kas & Deprecate
+Cash Outflow & Hapus Profit
+Manual
+ Array kategori baru di Cash Outflow.
+ Input pajak nominal angka rupiah murni.
+ Hapus subtab navigasi Profit Aktual & kolom tabel.
+Fase 3 (Prioritas 3)
+Kartu Dashboard &
+Drilldown
+Transparansi Angka & Utang
+Vendor
+ Kartu baru: Total Utang Vendor Global.
+ Tombol tracking info (?) dan modal rincian angka.
+ Revamp panel Outstanding (visual rasio pembagian).
+Fase 4 (Prioritas 4)
+Penawaran & Invoice
+Dokumen Komersial & Legal
+ Bugfix layout Daftar Barang/Jasa di form penawaran.
+ Hapus kotak rincian Subtotal/Diskon/PPN di preview.
+ Perbarui nomor rekening bank BCA / ATM pada invoice.
+Fase 5 (Prioritas 5)
+Estetika & Aset WebP
+Theme, Font Tabel, & Upload
+Gambar
+ Konversi upload gambar otomatis ke format WebP.
+ Warna background abu-abu & putih digelapkan sedikit.
+ Tipografi angka tabel diganti dengan tabular-nums.
+Fase 6 (Prioritas 6)
+Grafik Beranda
+Modernisasi Visual (Klinik Style)
+ Pasang Recharts di AnalyticsCharts & MiniAnalytics.
+ Area Spline, Donut KPI center, bar progress, dark tooltip.
+Fase 7 (Prioritas 7)
+Verifikasi Mutu
+Quality Gate & Build Testing
+ Testing kompilasi Next.js (npm run build).
+ Audit simulasi seluruh alur kas masuk hingga pelunasan vendor.
+VISUALKAIN MANAGEMENT — DOKUMEN KONFIRMASI SPESIFIKASI & LOGIKA FINANSIAL
+OKTOBER 2026
+Dokumen Konfirmasi Fitur & Arsitektur Finansial VisualKain  |  Halaman 5 dari 6
+STATUS: UNTUK TINJAUAN & KONFIRMASI KLIEN
+
+7. Log Keputusan Kunci Terkonfirmasi (Decisions Log)
+Berikut adalah keputusan arsitektur dan antarmuka yang telah disepakati melalui sesi penelaahan teknis:
+ Komponen / Aspek
+ Keputusan yang Ditetapkan & Alasan Arsitektur
+Model Arus Kas & Saldo
+Model Arus Kas Riil + Tracking Cicilan Bertahap: Setiap pembayaran DP/termin harian (20k, 30k,
+50k) dicatat berbasis invoice dan langsung menambah Saldo Kas Bank secara real-time. Alokasi
+vendor (986rb) dipisah sebagai dana pokok HPP sehingga tidak memotong profit (434rb).
+Lembar Cetak Penawaran
+Sembunyikan Kotak Rincian Subtotal/Diskon/PPN: Sesuai coretan revisi dari klien, rincian diskon
+dan PPN ditiadakan dari pratinjau cetak penawaran agar dokumen lebih bersih dan fokus pada
+deskripsi item.
+Rekening Bank / ATM
+Slot Rekening Dinamis: Disediakan slot input pengaturan bank pada invoice agar nomor rekening
+dan atas nama dapat diubah secara mandiri oleh tim tanpa perlu mengubah kode sumber.
+Tipografi Data Tabel
+Hybrid Modern Fintech: Angka nominal rupiah, persentase, dan nomor invoice menggunakan font
+monospace tabular (JetBrains Mono / Space Grotesk tabular-nums), sedangkan nama dan label
+menggunakan sans-serif bersih.
+Grafik Analitik Beranda
+Adopsi Library Recharts (Project Klinik): Memasang library Recharts untuk menghasilkan grafik
+spline area bergradasi, donut chart dengan metrik total di tengah, dan micro-progress bar
+berpenampilan modern.
+8. Lembar Konfirmasi & Catatan Keputusan
+Dokumen ini disusun sebagai panduan definitif sebelum implementasi kode dilaksanakan. Mohon konfirmasi kesesuaian butir-butir di
+atas:
+Dikonfirmasi & Disetujui Oleh Klien:
+___________________________________
+Nama:
+Jabatan: Owner / Manajemen VisualKain
+Tanggal: ____ / ____ / 2026
+Disusun Oleh Tim Pengembang:
+___________________________________
+Nama: Tim Software Engineer
+Peran: Full-Stack & System Architect
+Tanggal: 09 / 10 / 2026
+VISUALKAIN MANAGEMENT — DOKUMEN KONFIRMASI SPESIFIKASI & LOGIKA FINANSIAL
+OKTOBER 2026
+Dokumen Konfirmasi Fitur & Arsitektur Finansial VisualKain  |  Halaman 6 dari 6
+STATUS: UNTUK TINJAUAN & KONFIRMASI KLIEN
