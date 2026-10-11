@@ -19,6 +19,7 @@ export type SyncState = 'connecting' | 'live' | 'fallback' | 'error';
 interface VendorInfo {
   id: string;
   nama: string;
+  pic?: string;
 }
 
 interface UseFirebaseFinanceResult {
@@ -66,7 +67,7 @@ export function useFirebaseFinance(
           snapshot.docs.forEach((d) => {
             const vData = d.data();
             map.set(d.id, vData.nama || 'Vendor');
-            list.push({ id: d.id, nama: vData.nama || 'Vendor' });
+            list.push({ id: d.id, nama: vData.nama || 'Vendor', pic: vData.pic || '-' });
           });
           vendorsMapRef.current = map;
           setVendors(list);
@@ -194,6 +195,8 @@ export function useFirebaseFinance(
               const tanggalInv = d.tanggalInv || d.tanggalOrder || '2026-10-01';
 
               return {
+                ...d,
+                rawOrder: d,
                 id: docSnap.id,
                 noInv: d.noInv || `INV-${docSnap.id.slice(0, 6)}`,
                 customerName: d.namaCustomer || d.customerName || 'Customer',

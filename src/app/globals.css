@@ -11,6 +11,16 @@
 
   --font-plus-jakarta: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-jetbrains-mono: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-open-sans: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  --accent: #0d9488;
+  --accent-hover: #0f766e;
+  --accent-light: rgba(13, 148, 136, 0.1);
+  --accent-glow: rgba(13, 148, 136, 0.15);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --radius: 0.5rem;
 }
 
 body {
@@ -49,3 +59,196 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* VisualKainDB Finance Report Paper Styles (Porting SSOT) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  text-decoration: none;
+  font-family: inherit;
+}
+.btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), #0f766e);
+  color: white;
+  box-shadow: 0 2px 4px var(--accent-glow);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+.btn-back {
+  background: transparent;
+  color: var(--text-secondary);
+  padding-left: 0;
+  font-weight: 600;
+}
+.btn-back:hover { color: var(--accent); }
+
+.invoice-preview-wrapper {
+  background: #e2e8f0;
+  padding: 1.5rem 1rem;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  min-height: 50vh;
+  overflow: auto;
+  width: 100%;
+}
+#techpackPreviewWrapper {
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+.techpack-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  background: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  width: 100%;
+  max-width: 210mm;
+}
+.techpack-paper {
+  background: #ffffff;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 15mm 20mm;
+  box-shadow: 0 0 15px rgba(0,0,0,0.1);
+  font-family: var(--font-open-sans), 'Open Sans', sans-serif;
+  color: #1e293b;
+  position: relative;
+  transform-origin: top center;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+}
+.tp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.tp-logo h1 {
+  font-family: var(--font-open-sans), 'Open Sans', sans-serif;
+  font-size: 1.4rem;
+  color: var(--accent);
+  margin: 0;
+  line-height: 1.1;
+  font-weight: 700;
+}
+.tp-logo p {
+  margin: 0.1rem 0 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.tp-info { 
+  text-align: right; 
+  padding-top: 0.15rem;
+}
+.tp-info > div { 
+  margin-bottom: 0.1rem;
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+.tp-grid-info { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.tp-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+}
+.tp-section.full-width {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 0.75rem;
+}
+.tp-section h3 {
+  font-size: 12pt !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.5rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.35rem;
+}
+.tp-row { 
+  display: flex; 
+  justify-content: space-between; 
+  margin-bottom: 0.25rem;
+  font-size: 0.8rem;
+}
+.tp-row span { font-weight: 400; color: var(--text-secondary); }
+.tp-row strong { font-weight: 600; color: var(--text-primary); text-align: right; }
+
+.invoice-items { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+.invoice-items th { background: #0f172a; color: white; padding: 0.55rem; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; }
+.invoice-items th:nth-child(1) { text-align: left; }
+.invoice-items th:nth-child(2) { text-align: center; }
+.invoice-items th:nth-child(3), .invoice-items th:nth-child(4), .invoice-items th:nth-child(5), .invoice-items th:nth-child(6) { text-align: right; }
+
+.invoice-items td { padding: 0.55rem; border-bottom: 1px solid #e2e8f0; font-size: 0.85rem; color: #1e293b; }
+.invoice-items td:nth-child(1) { text-align: left; }
+.invoice-items td:nth-child(2) { text-align: center; }
+.invoice-items td:nth-child(3), .invoice-items td:nth-child(4), .invoice-items td:nth-child(5), .invoice-items td:nth-child(6) { text-align: right; }
+
+.tp-footer-print { 
+  margin-top: 1rem;
+  text-align: center; 
+  border-top: 1px solid #e2e8f0; 
+  padding-top: 0.5rem;
+  font-size: 0.65rem;
+  color: var(--text-muted); 
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 15mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .no-print, .techpack-actions {
+    display: none !important;
+  }
+  #financeReportPaper, #financeReportPaper * {
+    visibility: visible;
+  }
+  #financeReportPaper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .invoice-preview-wrapper {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+

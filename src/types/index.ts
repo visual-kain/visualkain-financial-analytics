@@ -69,6 +69,9 @@ export interface Order {
   totalDibayarKeVendor: number;   // Akumulasi kas keluar ke vendor
   statusPembayaranVendor: 'belum_bayar' | 'dp_vendor' | 'lunas_vendor';
   statusOrder?: string;           // Status pengerjaan ('PRODUKSI', 'SELESAI', 'PEMBAYARAN', dll)
+  namaCustomer?: string;
+  namaProject?: string;
+  [key: string]: any;
 }
 
 export type MetricDrawerType =
@@ -114,6 +117,8 @@ export interface MasterFinanceRow {
   statusOrder: string;
   pembayaranList?: CustomerPayment[];
   vendorName?: string;
+  originalOrder?: any;
+  [key: string]: any;
 }
 
 export interface KasAdjustment {

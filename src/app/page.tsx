@@ -48,20 +48,40 @@ const initialOrdersData: Order[] = [
   {
     id: 'ord-41',
     noInv: 'VK260041',
+    namaCustomer: 'XBI SUKABUMI',
     customerName: 'XBI SUKABUMI',
+    namaProject: 'LAMPUNG EXPEDITION',
     projectName: 'LAMPUNG EXPEDITION',
-    noWaCustomer: '08123456789',
+    noWaCustomer: '0812-2168-8065',
     tanggalOrder: '2026-10-07',
+    tanggalInv: '2026-10-07',
+    status: 'production',
+    statusOrder: 'PRODUKSI',
+    kategoriOrder: 'T Shirt',
+    jenisBahan: 'COTTON COMBED 30S',
+    jenisMetodeProduksi: 'Sablon',
+    vendorId: 'vendor-lajuwarna',
+    vendorName: 'LAJUWARNA',
+    picVendor: 'Admin Lajuwarna',
+    hargaPendek: 100000,
+    hargaVendorPendek: 69000,
+    hargaPanjang: 110000,
+    hargaVendorPanjang: 79000,
+    pendekM: 12,
+    panjangM: 2,
     totalInvoice: 1420000,
-    totalHpp: 1020000,
-    targetMargin: 400000,
+    totalHpp: 986000,
+    targetMargin: 434000,
     totalQty: 14,
     biayaOperasional: 0,
-    biayaTambahanVendor: 34000,
+    biayaTambahanVendor: 0,
     biayaTambahanCustomer: 0,
     diskon: 0,
-    vendorName: 'CAHAYA BORDIR',
-    hppAktual: 1020000,
+    diskonHarga: 0,
+    dpPersen: 0,
+    dpNominal: 0,
+    dpNominalPO: 0,
+    hppAktual: 986000,
     profitAktual: 434000,
     catatanFinance: 'Revisi sablon aman',
     pembayaranList: [
@@ -80,7 +100,6 @@ const initialOrdersData: Order[] = [
     statusPembayaran: 'parsial',
     totalDibayarKeVendor: 700000,
     statusPembayaranVendor: 'dp_vendor',
-    statusOrder: 'PRODUKSI',
   },
   {
     id: 'ord-40',
@@ -247,6 +266,8 @@ function transformToMasterRows(orders: Order[]): MasterFinanceRow[] {
         : 'PEMBAYARAN');
 
     return {
+      ...o,
+      originalOrder: o,
       id: o.id,
       noInv: o.noInv,
       tanggalInv: o.tanggalOrder,
@@ -515,11 +536,15 @@ function FinancialDashboardContent() {
         onSave={handleSaveOrderFinance}
       />
 
-      {/* 5. Modal Preview Invoice Resmi */}
+      {/* 5. Modal Preview Invoice Resmi (SSOT VisualKainDB) */}
       <InvoicePreviewModal
         isOpen={!!previewInvoiceOrder}
         order={previewInvoiceOrder}
         onClose={() => setPreviewInvoiceOrder(null)}
+        getVendorById={(id) => {
+          const v = rawVendors.find((vend) => vend.id === id);
+          return v ? { nama: v.nama, pic: v.pic || '-' } : undefined;
+        }}
       />
 
       {/* 4. Main Content View Area */}

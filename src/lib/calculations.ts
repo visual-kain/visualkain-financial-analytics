@@ -154,6 +154,8 @@ export function calculateOrderTotals(order: Record<string, any>): CalculatedOrde
   };
 }
 
+export const calculateTotals = calculateOrderTotals;
+
 export function computeVendorPerformance(
   orders: Order[],
   vendors: Array<{ id: string; nama: string }>
