@@ -39,6 +39,10 @@ import {
 interface CashOutflowSectionProps {
   initialEntries?: CashTransaction[];
   selectedPeriod?: string;
+  activeBulan?: string;
+  activeTahun?: string;
+  onBulanChange?: (bulan: string) => void;
+  onTahunChange?: (tahun: string) => void;
   onAddTransaction?: (data: Omit<CashTransaction, 'id'>) => Promise<string>;
   onDeleteTransaction?: (id: string) => Promise<void>;
 }
@@ -105,22 +109,38 @@ const CATEGORY_FORM_OPTIONS = [
 export function CashOutflowSection({
   initialEntries = defaultOutflow,
   selectedPeriod = '2026-10',
+  activeBulan,
+  activeTahun,
+  onBulanChange,
+  onTahunChange,
   onAddTransaction,
   onDeleteTransaction,
 }: CashOutflowSectionProps) {
   const [entries, setEntries] = useState<CashTransaction[]>(initialEntries);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Filter Toolbar State
+  // Filter Toolbar State (tersinkronisasi dengan filter global periode di top header)
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [bulanFilter, setBulanFilter] = useState('all');
-  const [tahunFilter, setTahunFilter] = useState('all');
+  const [bulanFilter, setBulanFilter] = useState(activeBulan || 'all');
+  const [tahunFilter, setTahunFilter] = useState(activeTahun || 'all');
 
   // Synchronize with parent period updates
   React.useEffect(() => {
     setEntries(initialEntries);
   }, [initialEntries]);
+
+  React.useEffect(() => {
+    if (activeBulan !== undefined) {
+      setBulanFilter(activeBulan);
+    }
+  }, [activeBulan]);
+
+  React.useEffect(() => {
+    if (activeTahun !== undefined) {
+      setTahunFilter(activeTahun);
+    }
+  }, [activeTahun]);
 
   // Form State
   const [tanggal, setTanggal] = useState(new Date().toISOString().slice(0, 10));
@@ -541,7 +561,10 @@ export function CashOutflowSection({
               {/* CustomSelect Bulan Filter */}
               <CustomSelect
                 value={bulanFilter}
-                onValueChange={setBulanFilter}
+                onValueChange={(val) => {
+                  setBulanFilter(val);
+                  onBulanChange?.(val);
+                }}
                 options={BULAN_FILTER_OPTIONS}
                 className="h-10 w-full sm:w-[135px]"
               />
@@ -549,7 +572,10 @@ export function CashOutflowSection({
               {/* CustomSelect Tahun Filter */}
               <CustomSelect
                 value={tahunFilter}
-                onValueChange={setTahunFilter}
+                onValueChange={(val) => {
+                  setTahunFilter(val);
+                  onTahunChange?.(val);
+                }}
                 options={yearOptions}
                 className="h-10 w-full sm:w-[125px]"
               />
@@ -574,6 +600,8 @@ export function CashOutflowSection({
                   setBulanFilter('all');
                   setTahunFilter('all');
                   setSearchQuery('');
+                  onBulanChange?.('all');
+                  onTahunChange?.('all');
                 }}
                 className="inline-flex h-10 w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 active:scale-[0.98] transition-all cursor-pointer"
               >

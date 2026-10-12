@@ -6,7 +6,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { EscrowLiquidityBar } from '@/components/finance/EscrowLiquidityBar';
 import { FinanceStatsGrid } from '@/components/analytics/FinanceStatsGrid';
-import { AnalyticsCharts } from '@/components/analytics/AnalyticsCharts';
+import { AnalyticsCharts, type DonutDataPoint, type TrendDataPoint } from '@/components/analytics/AnalyticsCharts';
 import { MasterFinanceTable } from '@/components/finance/MasterFinanceTable';
 import { OrderInspectionDrawer } from '@/components/finance/OrderInspectionDrawer';
 import { MetricDetailDrawer } from '@/components/analytics/MetricDetailDrawer';
@@ -18,7 +18,7 @@ import { CashOutflowSection } from '@/components/finance/CashOutflowSection';
 import { VendorPerformanceSection } from '@/components/finance/VendorPerformanceSection';
 import { ProfitAktualSection } from '@/components/finance/ProfitAktualSection';
 import { CustomSelect } from '@/components/ui/custom-select';
-import { calculateFinancialSummary } from '@/lib/financial-calculator';
+import { calculateFinancialSummary, calculateEscrowAllocation } from '@/lib/financial-calculator';
 import { computeVendorPerformance, computeCheapestByKategori } from '@/lib/calculations';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { useAuth } from '@/context/AuthContext';
@@ -394,6 +394,78 @@ function FinancialDashboardContent() {
   const summary = calculateFinancialSummary(saldoAwal, filteredCashTxs, filteredOrders);
   const masterRows = transformToMasterRows(filteredOrders);
 
+  // Dynamic Escrow Allocation Donut Chart (Hak Pokok Vendor vs Margin VisualKain)
+  const dynamicDonutData: DonutDataPoint[] = useMemo(() => {
+    let hakVendor = 0;
+    let marginVisualKain = 0;
+
+    filteredOrders.forEach((o) => {
+      const alloc = calculateEscrowAllocation(o);
+      hakVendor += alloc.alokasiHakVendor;
+      marginVisualKain += alloc.alokasiMarginVisualKain;
+    });
+
+    const total = hakVendor + marginVisualKain;
+    if (total === 0) {
+      return [
+        { name: 'Hak Pokok Vendor (HPP)', value: 0, color: '#f59e0b' },
+        { name: 'Saldo Margin VisualKain', value: 0, color: '#10b981' },
+      ];
+    }
+
+    return [
+      { name: 'Hak Pokok Vendor (HPP)', value: Math.round(hakVendor), color: '#f59e0b' },
+      { name: 'Saldo Margin VisualKain', value: Math.round(marginVisualKain), color: '#10b981' },
+    ];
+  }, [filteredOrders]);
+
+  // Dynamic Real Cash Trend Data (Penerimaan kas bersih terhadap realisasi beban harian)
+  const dynamicTrendData: TrendDataPoint[] = useMemo(() => {
+    const map = new Map<string, { kasMasuk: number; kasKeluar: number }>();
+
+    filteredOrders.forEach((o) => {
+      if (Array.isArray(o.pembayaranList) && o.pembayaranList.length > 0) {
+        o.pembayaranList.forEach((p) => {
+          if (p.nominal > 0 && p.tanggal) {
+            const cur = map.get(p.tanggal) || { kasMasuk: 0, kasKeluar: 0 };
+            cur.kasMasuk += p.nominal;
+            map.set(p.tanggal, cur);
+          }
+        });
+      } else if (o.totalUangMasukCustomer > 0 && o.tanggalOrder) {
+        const cur = map.get(o.tanggalOrder) || { kasMasuk: 0, kasKeluar: 0 };
+        cur.kasMasuk += o.totalUangMasukCustomer;
+        map.set(o.tanggalOrder, cur);
+      }
+    });
+
+    filteredCashTxs.forEach((t) => {
+      if (t.tanggal) {
+        const cur = map.get(t.tanggal) || { kasMasuk: 0, kasKeluar: 0 };
+        if (t.tipe === 'masuk') {
+          cur.kasMasuk += t.nominal;
+        } else {
+          cur.kasKeluar += t.nominal;
+        }
+        map.set(t.tanggal, cur);
+      }
+    });
+
+    if (map.size === 0) {
+      return [];
+    }
+
+    return Array.from(map.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .slice(-14)
+      .map(([date, val]) => ({
+        periode: date.slice(5),
+        kasMasuk: val.kasMasuk,
+        kasKeluar: val.kasKeluar,
+        netCash: val.kasMasuk - val.kasKeluar,
+      }));
+  }, [filteredOrders, filteredCashTxs]);
+
   const viewTitles: Record<FinanceSubTab, { title: string; subtitle: string }> = {
     dashboard: {
       title: 'Finance Data Management VisualKain',
@@ -679,7 +751,10 @@ function FinancialDashboardContent() {
               />
 
               {/* Recharts Spline & Donut Escrow Allocation */}
-              <AnalyticsCharts />
+              <AnalyticsCharts
+                donutData={dynamicDonutData}
+                trendData={dynamicTrendData.length > 0 ? dynamicTrendData : undefined}
+              />
 
               {/* Master 17-Column Table with Dual-Sticky & Fullscreen Expand */}
               <MasterFinanceTable
@@ -698,6 +773,10 @@ function FinancialDashboardContent() {
                 orders={rawOrders}
                 cashTransactions={allCashTransactions}
                 selectedPeriod={selectedPeriod}
+                activeBulan={bulan}
+                activeTahun={tahun}
+                onBulanChange={setBulan}
+                onTahunChange={setTahun}
                 onOpenAddIncome={() => setIsAddIncomeOpen(true)}
                 onSelectOrder={(order) => {
                   const row = masterRows.find((r) => r.id === order.id) || transformToMasterRows([order])[0];
@@ -713,6 +792,10 @@ function FinancialDashboardContent() {
               <CashOutflowSection
                 initialEntries={allCashTransactions}
                 selectedPeriod={selectedPeriod}
+                activeBulan={bulan}
+                activeTahun={tahun}
+                onBulanChange={setBulan}
+                onTahunChange={setTahun}
                 onAddTransaction={addKas}
                 onDeleteTransaction={deleteKas}
               />

@@ -38,6 +38,10 @@ interface CashInflowSectionProps {
   orders: Order[];
   cashTransactions: CashTransaction[];
   selectedPeriod?: string;
+  activeBulan?: string;
+  activeTahun?: string;
+  onBulanChange?: (bulan: string) => void;
+  onTahunChange?: (tahun: string) => void;
   onOpenAddIncome?: () => void;
   onSelectOrder?: (order: Order) => void;
   onDeleteTransaction?: (id: string) => Promise<void>;
@@ -85,15 +89,31 @@ export function CashInflowSection({
   orders,
   cashTransactions,
   selectedPeriod = '2026-10',
+  activeBulan,
+  activeTahun,
+  onBulanChange,
+  onTahunChange,
   onOpenAddIncome,
   onSelectOrder,
   onDeleteTransaction,
 }: CashInflowSectionProps) {
-  // Filter Toolbar States
+  // Filter Toolbar States (tersinkronisasi dengan filter global periode di top header)
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [bulanFilter, setBulanFilter] = useState('all');
-  const [tahunFilter, setTahunFilter] = useState('all');
+  const [bulanFilter, setBulanFilter] = useState(activeBulan || 'all');
+  const [tahunFilter, setTahunFilter] = useState(activeTahun || 'all');
+
+  React.useEffect(() => {
+    if (activeBulan !== undefined) {
+      setBulanFilter(activeBulan);
+    }
+  }, [activeBulan]);
+
+  React.useEffect(() => {
+    if (activeTahun !== undefined) {
+      setTahunFilter(activeTahun);
+    }
+  }, [activeTahun]);
 
   // 1. Dual-Source Data Aggregator: Order Payments + Direct Cash Inflows
   const rawInflows: CashInflowEntry[] = useMemo(() => {
@@ -280,6 +300,8 @@ export function CashInflowSection({
     setCategoryFilter('all');
     setBulanFilter('all');
     setTahunFilter('all');
+    onBulanChange?.('all');
+    onTahunChange?.('all');
     toast.info('Filter berhasil direset.');
   };
 
@@ -574,14 +596,20 @@ export function CashInflowSection({
           <div className="flex flex-wrap items-center gap-2">
             <CustomSelect
               value={bulanFilter}
-              onValueChange={setBulanFilter}
+              onValueChange={(val) => {
+                setBulanFilter(val);
+                onBulanChange?.(val);
+              }}
               options={BULAN_FILTER_OPTIONS}
               className="w-32 h-9"
             />
 
             <CustomSelect
               value={tahunFilter}
-              onValueChange={setTahunFilter}
+              onValueChange={(val) => {
+                setTahunFilter(val);
+                onTahunChange?.(val);
+              }}
               options={yearOptions}
               className="w-28 h-9"
             />

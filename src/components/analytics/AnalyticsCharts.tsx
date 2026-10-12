@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import { formatRupiah, formatCompactRupiah } from '@/lib/utils';
 import { ChartSkeleton } from '@/components/ui/shimmer';
-import { TrendingUp, PieChart as PieIcon } from 'lucide-react';
+import { TrendingUp, PieChart as PieIcon, Info } from 'lucide-react';
 
 export interface TrendDataPoint {
   periode: string;
@@ -254,6 +254,21 @@ export function AnalyticsCharts({
               </span>
             </div>
           ))}
+        </div>
+
+        {/* Audit Transparency Note (Menjawab feedback client: "data ini dr mana") */}
+        <div className="mt-3.5 rounded-xl bg-slate-50 border border-slate-200/80 p-3 text-[11px] text-slate-500 space-y-1.5">
+          <div className="flex items-center gap-1.5 font-bold text-slate-700">
+            <Info className="h-3.5 w-3.5 text-teal-600 shrink-0" />
+            <span>Transparansi Sumber & Formula Data</span>
+          </div>
+          <p className="text-[10.5px] leading-relaxed text-slate-600">
+            Dihitung otomatis dari akumulasi uang masuk customer pada order periode aktif:
+          </p>
+          <div className="space-y-1 text-[10px] font-mono text-slate-600 bg-white p-2 rounded-lg border border-slate-200/60">
+            <div>&bull; <strong className="text-amber-700">Hak Vendor (HPP)</strong> = &Sigma; (Uang Masuk &times; (HPP &divide; Total Order))</div>
+            <div>&bull; <strong className="text-emerald-700">Margin VisualKain</strong> = &Sigma; (Uang Masuk &times; (Laba &divide; Total Order))</div>
+          </div>
         </div>
       </div>
     </div>

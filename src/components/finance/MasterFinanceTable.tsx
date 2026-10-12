@@ -17,6 +17,8 @@ import {
   Building,
   FileText,
   Pencil,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { CustomSelect } from '@/components/ui/custom-select';
 import * as XLSX from 'xlsx';
@@ -82,6 +84,22 @@ export function MasterFinanceTable({
       return true;
     });
   }, [rows, searchQuery, statusFilter, vendorDebtFilter]);
+
+  // Client-side Pagination (10 order per halaman - Feedback Client #6)
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, vendorDebtFilter, rows]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedRows = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, safeCurrentPage, pageSize]);
 
   const handleExportCsv = () => {
     const csvData = filteredRows.map((r) => ({
@@ -200,12 +218,12 @@ export function MasterFinanceTable({
   // Mobile Order Card View (< 768px - Adaptive Ergonomic 2-Grid Layout)
   const renderMobileCardContent = () => (
     <div className="p-2 sm:p-3 grid grid-cols-2 gap-2 sm:gap-2.5 bg-slate-50/40">
-      {filteredRows.length === 0 ? (
+      {paginatedRows.length === 0 ? (
         <div className="col-span-2 py-12 text-center text-slate-400 text-xs">
           Tidak ada order yang cocok dengan kriteria pencarian / filter.
         </div>
       ) : (
-        filteredRows.map((row) => (
+        paginatedRows.map((row) => (
           <div
             key={row.id}
             className="flex flex-col justify-between rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-card-double hover:border-teal-300 transition-all duration-200 gap-2 overflow-hidden"
@@ -365,14 +383,14 @@ export function MasterFinanceTable({
         </thead>
 
         <tbody className="divide-y divide-slate-100 text-slate-700">
-          {filteredRows.length === 0 ? (
+          {paginatedRows.length === 0 ? (
             <tr>
               <td colSpan={19} className="px-6 py-12 text-center text-slate-400">
                 Tidak ada order yang cocok dengan kriteria pencarian / filter.
               </td>
             </tr>
           ) : (
-            filteredRows.map((row) => (
+            paginatedRows.map((row) => (
               <tr
                 key={row.id}
                 onClick={() => onSelectRow?.(row)}
@@ -497,6 +515,109 @@ export function MasterFinanceTable({
     </div>
   );
 
+  // Reusable Pagination Bar (10 order per page, responsive & ergonomic - Feedback Client #6)
+  const renderPaginationBar = () => {
+    if (filteredRows.length === 0) return null;
+
+    const startIdx = (safeCurrentPage - 1) * pageSize + 1;
+    const endIdx = Math.min(safeCurrentPage * pageSize, filteredRows.length);
+
+    // Hitung tombol nomor halaman (tampilkan max 5 tombol)
+    const pageNumbers: number[] = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, safeCurrentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <div className="border-t border-slate-100 bg-white px-3 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 select-none">
+        {/* Info Text */}
+        <div className="text-xs text-slate-500 font-medium text-center sm:text-left">
+          Menampilkan <strong className="text-slate-800 font-mono">{startIdx}</strong>–
+          <strong className="text-slate-800 font-mono">{endIdx}</strong> dari{' '}
+          <strong className="text-slate-800 font-mono">{filteredRows.length}</strong> order
+        </div>
+
+        {/* Page Navigation Controls */}
+        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+          {/* Tombol Prev */}
+          <button
+            type="button"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={safeCurrentPage === 1}
+            className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-35 disabled:cursor-not-allowed active:scale-95 transition-all cursor-pointer"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Prev</span>
+          </button>
+
+          {/* First page link if truncated */}
+          {startPage > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setCurrentPage(1)}
+                className="h-9 w-9 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+              >
+                1
+              </button>
+              {startPage > 2 && <span className="text-slate-400 px-1 text-xs">&hellip;</span>}
+            </>
+          )}
+
+          {/* Numbered buttons */}
+          {pageNumbers.map((num) => (
+            <button
+              key={num}
+              type="button"
+              onClick={() => setCurrentPage(num)}
+              className={cn(
+                'h-9 min-w-[36px] px-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer',
+                num === safeCurrentPage
+                  ? 'bg-teal-600 text-white shadow-sm font-extrabold'
+                  : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs'
+              )}
+            >
+              {num}
+            </button>
+          ))}
+
+          {/* Last page link if truncated */}
+          {endPage < totalPages && (
+            <>
+              {endPage < totalPages - 1 && <span className="text-slate-400 px-1 text-xs">&hellip;</span>}
+              <button
+                type="button"
+                onClick={() => setCurrentPage(totalPages)}
+                className="h-9 w-9 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+
+          {/* Tombol Next */}
+          <button
+            type="button"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={safeCurrentPage === totalPages}
+            className="inline-flex min-h-[36px] items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-35 disabled:cursor-not-allowed active:scale-95 transition-all cursor-pointer"
+          >
+            <span className="hidden sm:inline">Next</span>
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* 1. STANDARD CARD VIEW */}
@@ -523,7 +644,7 @@ export function MasterFinanceTable({
               <button
                 type="button"
                 onClick={() => setMobileViewMode('card')}
-                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
                   mobileViewMode === 'card'
                     ? 'bg-white text-teal-700 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800'
@@ -534,7 +655,7 @@ export function MasterFinanceTable({
               <button
                 type="button"
                 onClick={() => setMobileViewMode('table')}
-                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
                   mobileViewMode === 'table'
                     ? 'bg-white text-teal-700 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800'
@@ -547,7 +668,7 @@ export function MasterFinanceTable({
             <button
               onClick={() => setIsExpanded(true)}
               title="Perluas Tabel ke Seluruh Layar (Fullscreen)"
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-teal-700 active:scale-95 transition-all"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-teal-700 active:scale-95 transition-all cursor-pointer"
             >
               <Maximize2 className="h-3.5 w-3.5 text-teal-600" />
               <span className="hidden sm:inline">Expand Layar Penuh</span>
@@ -556,6 +677,72 @@ export function MasterFinanceTable({
             <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700 border border-teal-200">
               Total {filteredRows.length} Order
             </span>
+          </div>
+        </div>
+
+        {/* Dedicated Standard Search & Filter Toolbar (Feedback Client #5: Kasih kolom search) */}
+        <div className="border-b border-slate-100 bg-slate-50/70 p-3 sm:px-6 sm:py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-full md:max-w-md">
+            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari No Invoice, Customer, atau Project..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-8 text-xs text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Status & Debt Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <CustomSelect
+              value={statusFilter}
+              onValueChange={(val) => setStatusFilter(val as typeof statusFilter)}
+              icon={<Filter className="h-3.5 w-3.5" />}
+              options={[
+                { value: 'all', label: 'Semua Status DP' },
+                { value: 'dp1_parsial', label: 'DP 1 (< 70% Butuh FU)' },
+                { value: 'dp2_siap_produksi', label: 'DP 2 (>= 70% Siap Produksi)' },
+                { value: 'lunas_total', label: '100% Lunas Penuh' },
+              ]}
+              className="h-9 text-xs w-full sm:w-auto"
+            />
+
+            <CustomSelect
+              value={vendorDebtFilter}
+              onValueChange={(val) => setVendorDebtFilter(val as typeof vendorDebtFilter)}
+              icon={<Building className="h-3.5 w-3.5" />}
+              options={[
+                { value: 'all', label: 'Semua Utang Vendor' },
+                { value: 'has_debt', label: 'Ada Sisa Utang' },
+                { value: 'settled', label: 'Vendor Lunas' },
+              ]}
+              className="h-9 text-xs w-full sm:w-auto"
+            />
+
+            {(searchQuery || statusFilter !== 'all' || vendorDebtFilter !== 'all') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                  setVendorDebtFilter('all');
+                }}
+                className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer"
+              >
+                Reset
+              </button>
+            )}
           </div>
         </div>
 
@@ -568,6 +755,9 @@ export function MasterFinanceTable({
         ) : (
           renderTableContent()
         )}
+
+        {/* Pagination Bar (Feedback Client #6: Page 1/2/3) */}
+        {renderPaginationBar()}
       </div>
 
       {/* 2. FULLSCREEN EXPANDED OVERLAY (POLISHED FULL-VIEWPORT) */}
@@ -662,8 +852,9 @@ export function MasterFinanceTable({
           </div>
 
           {/* Fullscreen Table Container */}
-          <div className="flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card-double flex flex-col">
+          <div className="flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card-double flex flex-col justify-between">
             {renderTableContent()}
+            {renderPaginationBar()}
           </div>
         </div>
       )}

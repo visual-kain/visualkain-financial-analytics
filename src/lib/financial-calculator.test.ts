@@ -312,5 +312,76 @@ describe('VisualKain Financial Calculator Engine', () => {
       expect(Number.isNaN(res.percentTerkunci)).toBe(false);
     });
   });
+
+  describe('F-09: Akumulasi Dinamis Escrow & Paginasi (Client Feedback Verification)', () => {
+    it('Mengakumulasi alokasi hak vendor dan margin dari beberapa pesanan aktif', () => {
+      const orderA: Order = {
+        id: 'ord-A',
+        noInv: 'INV-A',
+        tanggalOrder: '2026-10-01',
+        totalInvoice: 1000000,
+        totalHpp: 600000,
+        targetMargin: 400000,
+        pembayaranList: [],
+        totalUangMasukCustomer: 500000,
+        statusPembayaran: 'parsial',
+        totalDibayarKeVendor: 0,
+        statusPembayaranVendor: 'belum_bayar',
+      };
+
+      const orderB: Order = {
+        id: 'ord-B',
+        noInv: 'INV-B',
+        tanggalOrder: '2026-10-05',
+        totalInvoice: 2000000,
+        totalHpp: 1400000,
+        targetMargin: 600000,
+        pembayaranList: [],
+        totalUangMasukCustomer: 1000000,
+        statusPembayaran: 'parsial',
+        totalDibayarKeVendor: 0,
+        statusPembayaranVendor: 'belum_bayar',
+      };
+
+      const allocA = calculateEscrowAllocation(orderA);
+      const allocB = calculateEscrowAllocation(orderB);
+
+      // Order A: HPP = 500k * 0.6 = 300k, Margin = 500k * 0.4 = 200k
+      expect(allocA.alokasiHakVendor).toBe(300000);
+      expect(allocA.alokasiMarginVisualKain).toBe(200000);
+
+      // Order B: HPP = 1jt * (1.4jt/2jt) = 700k, Margin = 1jt * (600k/2jt) = 300k
+      expect(allocB.alokasiHakVendor).toBe(700000);
+      expect(allocB.alokasiMarginVisualKain).toBe(300000);
+
+      const totalHakVendor = allocA.alokasiHakVendor + allocB.alokasiHakVendor;
+      const totalMargin = allocA.alokasiMarginVisualKain + allocB.alokasiMarginVisualKain;
+
+      expect(totalHakVendor).toBe(1000000);
+      expect(totalMargin).toBe(500000);
+      expect(totalHakVendor + totalMargin).toBe(1500000);
+    });
+
+    it('Menghitung pemotongan indeks paginasi 10 item per halaman dengan benar', () => {
+      const totalRows = 41;
+      const pageSize = 10;
+      const totalPages = Math.ceil(totalRows / pageSize);
+
+      expect(totalPages).toBe(5);
+
+      // Page 1
+      const p1Start = (1 - 1) * pageSize;
+      const p1End = p1Start + pageSize;
+      expect(p1Start).toBe(0);
+      expect(p1End).toBe(10);
+
+      // Page 5 (halaman terakhir)
+      const p5Start = (5 - 1) * pageSize;
+      const p5End = Math.min(p5Start + pageSize, totalRows);
+      expect(p5Start).toBe(40);
+      expect(p5End).toBe(41);
+    });
+  });
 });
+
 

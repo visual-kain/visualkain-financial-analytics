@@ -51,6 +51,7 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
 
   // State untuk baris input termin baru
   const [isAddingPayment, setIsAddingPayment] = useState<boolean>(false);
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [newPayTanggal, setNewPayTanggal] = useState<string>(new Date().toISOString().slice(0, 10));
   const [newPayJenis, setNewPayJenis] = useState<'dp' | 'termin' | 'pelunasan'>('termin');
   const [newPayNominal, setNewPayNominal] = useState<number>(0);
@@ -93,6 +94,7 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
         setPembayaranList([]);
       }
       setIsAddingPayment(false);
+      setEditingPaymentId(null);
     }
   }, [order]);
 
@@ -111,31 +113,70 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
   const sisaMenuju70 = Math.max(0, (0.7 * netInvoice) - nominalDpCustomer);
   const isSiapProduksi = dpPersenCustomer >= 70;
 
-  const handleAddPaymentEntry = () => {
+  const handleStartEditPayment = (pay: CustomerPayment) => {
+    setEditingPaymentId(pay.id);
+    setNewPayTanggal(pay.tanggal);
+    setNewPayJenis(pay.jenis);
+    setNewPayNominal(pay.nominal);
+    const parts = (pay.keterangan || '').split(' - ');
+    if (parts.length > 1) {
+      setNewPayRekening(parts[0]);
+      setNewPayKeterangan(parts.slice(1).join(' - '));
+    } else {
+      setNewPayKeterangan(pay.keterangan || '');
+    }
+    setIsAddingPayment(true);
+  };
+
+  const handleSavePaymentEntry = () => {
     if (newPayNominal <= 0) {
       toast.error('Nominal pembayaran termin harus lebih dari Rp 0');
       return;
     }
 
-    const newPayment: CustomerPayment = {
-      id: `pay-${Date.now()}`,
-      orderId: order.id,
-      noInv: order.noInv,
-      tanggal: newPayTanggal || new Date().toISOString().slice(0, 10),
-      nominal: newPayNominal,
-      jenis: newPayJenis,
-      keterangan: newPayKeterangan ? `${newPayRekening} - ${newPayKeterangan}` : `${newPayRekening}`,
-      createdAt: new Date().toISOString(),
-    };
+    const ketText = newPayKeterangan ? `${newPayRekening} - ${newPayKeterangan}` : `${newPayRekening}`;
 
-    setPembayaranList((prev) => [...prev, newPayment]);
+    if (editingPaymentId) {
+      setPembayaranList((prev) =>
+        prev.map((p) =>
+          p.id === editingPaymentId
+            ? {
+                ...p,
+                tanggal: newPayTanggal || new Date().toISOString().slice(0, 10),
+                jenis: newPayJenis,
+                nominal: newPayNominal,
+                keterangan: ketText,
+              }
+            : p
+        )
+      );
+      setEditingPaymentId(null);
+      toast.success('Baris pembayaran termin berhasil diperbarui!');
+    } else {
+      const newPayment: CustomerPayment = {
+        id: `pay-${Date.now()}`,
+        orderId: order.id,
+        noInv: order.noInv,
+        tanggal: newPayTanggal || new Date().toISOString().slice(0, 10),
+        nominal: newPayNominal,
+        jenis: newPayJenis,
+        keterangan: ketText,
+        createdAt: new Date().toISOString(),
+      };
+      setPembayaranList((prev) => [...prev, newPayment]);
+      toast.success(`Termin ${newPayJenis.toUpperCase()} sebesar ${formatRupiah(newPayment.nominal)} ditambahkan!`);
+    }
+
     setNewPayNominal(0);
     setNewPayKeterangan('');
     setIsAddingPayment(false);
-    toast.success(`Termin ${newPayJenis.toUpperCase()} sebesar ${formatRupiah(newPayment.nominal)} ditambahkan!`);
   };
 
   const handleRemovePaymentEntry = (paymentId: string) => {
+    if (editingPaymentId === paymentId) {
+      setEditingPaymentId(null);
+      setIsAddingPayment(false);
+    }
     setPembayaranList((prev) => prev.filter((p) => p.id !== paymentId));
     toast.info('Baris termin pembayaran dihapus');
   };
@@ -352,7 +393,7 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
                       <th className="px-3 py-2">Jenis Termin</th>
                       <th className="px-3 py-2">Keterangan / Rekening</th>
                       <th className="px-3 py-2 text-right">Nominal (Rp)</th>
-                      <th className="px-2 py-2 text-center w-10">Aksi</th>
+                      <th className="px-2 py-2 text-center w-16">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -384,14 +425,24 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
                             {formatRupiah(pay.nominal)}
                           </td>
                           <td className="px-2 py-2.5 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemovePaymentEntry(pay.id)}
-                              title="Hapus baris pembayaran ini"
-                              className="text-slate-400 hover:text-rose-600 transition-colors p-1 active:scale-95"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEditPayment(pay)}
+                                title="Edit baris pembayaran ini"
+                                className="text-slate-400 hover:text-teal-600 transition-colors p-1 active:scale-95"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemovePaymentEntry(pay.id)}
+                                title="Hapus baris pembayaran ini"
+                                className="text-slate-400 hover:text-rose-600 transition-colors p-1 active:scale-95"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -400,16 +451,21 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
                 </table>
               </div>
 
-              {/* Form Tambah Termin Baru (Expandable) */}
+              {/* Form Tambah / Edit Termin (Expandable) */}
               {isAddingPayment ? (
                 <div className="mt-3 rounded-xl border border-teal-200 bg-white p-3 space-y-3 animate-fadeIn">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
                     <span className="text-[11px] font-bold text-teal-900">
-                      Form Input Cicilan / Termin Pembayaran Baru
+                      {editingPaymentId ? 'Edit Cicilan / Termin Pembayaran' : 'Form Input Cicilan / Termin Pembayaran Baru'}
                     </span>
                     <button
                       type="button"
-                      onClick={() => setIsAddingPayment(false)}
+                      onClick={() => {
+                        setIsAddingPayment(false);
+                        setEditingPaymentId(null);
+                        setNewPayNominal(0);
+                        setNewPayKeterangan('');
+                      }}
                       className="text-slate-400 hover:text-slate-600 text-xs font-bold"
                     >
                       Batal
@@ -465,10 +521,10 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
                     />
                     <button
                       type="button"
-                      onClick={handleAddPaymentEntry}
+                      onClick={handleSavePaymentEntry}
                       className="h-9 px-4 rounded-xl bg-teal-600 text-xs font-bold text-white hover:bg-teal-700 active:scale-95 transition-all shadow-sm"
                     >
-                      Simpan Baris Termin
+                      {editingPaymentId ? 'Simpan Perubahan' : 'Simpan Baris Termin'}
                     </button>
                   </div>
                 </div>
@@ -476,7 +532,12 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
                 <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setIsAddingPayment(true)}
+                    onClick={() => {
+                      setEditingPaymentId(null);
+                      setNewPayNominal(0);
+                      setNewPayKeterangan('');
+                      setIsAddingPayment(true);
+                    }}
                     className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-teal-300 bg-white px-3.5 py-2 text-xs font-bold text-teal-700 shadow-sm hover:bg-teal-50 active:scale-95 transition-all"
                   >
                     <Plus className="h-4 w-4 text-teal-600" />

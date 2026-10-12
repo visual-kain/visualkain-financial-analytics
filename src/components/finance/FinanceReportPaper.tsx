@@ -146,9 +146,6 @@ export default function FinanceReportPaper({ order, getVendorById }: FinanceRepo
         <h3>Profit</h3>
         <div className="tp-row"><span>Profit Bersih (Estimasi):</span> <strong>{formatIdr(t.profit)}</strong></div>
         <div className="tp-row"><span>Margin:</span> <strong>{t.profitPercent.toFixed(1)}%</strong></div>
-        {order.profitAktual != null && (
-          <div className="tp-row"><span>Keuntungan Real (Manual):</span> <strong>{formatIdr(order.profitAktual)}</strong></div>
-        )}
         {order.catatanFinance && (
           <div className="tp-row"><span>Catatan Finance:</span> <strong>{order.catatanFinance}</strong></div>
         )}
