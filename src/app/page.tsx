@@ -13,6 +13,7 @@ import { MetricDetailDrawer } from '@/components/analytics/MetricDetailDrawer';
 import { AddIncomeModal } from '@/components/finance/AddIncomeModal';
 import { EditFinanceModal } from '@/components/finance/EditFinanceModal';
 import { InvoicePreviewModal } from '@/components/finance/InvoicePreviewModal';
+import { CashInflowSection } from '@/components/finance/CashInflowSection';
 import { CashOutflowSection } from '@/components/finance/CashOutflowSection';
 import { VendorPerformanceSection } from '@/components/finance/VendorPerformanceSection';
 import { ProfitAktualSection } from '@/components/finance/ProfitAktualSection';
@@ -306,7 +307,7 @@ function FinancialDashboardContent() {
   const [tab, setTab] = useQueryState<FinanceSubTab>('tab', {
     defaultValue: 'dashboard',
     parse: (v) => {
-      if (['dashboard', 'cashout', 'vendor'].includes(v)) return v as FinanceSubTab;
+      if (['dashboard', 'cashin', 'cashout', 'vendor'].includes(v)) return v as FinanceSubTab;
       if (v === 'manual') return 'manual';
       return 'dashboard';
     },
@@ -397,6 +398,10 @@ function FinancialDashboardContent() {
     dashboard: {
       title: 'Finance Data Management VisualKain',
       subtitle: 'Master data keuangan, arus kas riil & alokasi pokok vendor vs margin',
+    },
+    cashin: {
+      title: 'Cash Inflow (Dana Masuk)',
+      subtitle: 'Pelacakan seluruh penerimaan kas masuk dari order konsumen dan mutasi kas',
     },
     cashout: {
       title: 'Cash Outflow (Dana Keluar)',
@@ -683,6 +688,22 @@ function FinancialDashboardContent() {
                 onEditFinance={(row) => setEditingOrder(row)}
                 onPreviewInvoice={(row) => setPreviewInvoiceOrder(row)}
                 onQuickWaFollowUp={(row) => setSelectedOrder(row)}
+              />
+            </div>
+          )}
+
+          {tab === 'cashin' && (
+            <div className="animate-fadeIn">
+              <CashInflowSection
+                orders={rawOrders}
+                cashTransactions={allCashTransactions}
+                selectedPeriod={selectedPeriod}
+                onOpenAddIncome={() => setIsAddIncomeOpen(true)}
+                onSelectOrder={(order) => {
+                  const row = masterRows.find((r) => r.id === order.id) || transformToMasterRows([order])[0];
+                  setSelectedOrder(row);
+                }}
+                onDeleteTransaction={deleteKas}
               />
             </div>
           )}

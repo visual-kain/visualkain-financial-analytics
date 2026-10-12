@@ -3,7 +3,23 @@
  * Sumber Spesifikasi: docs/specs/design.md & Dokumen_Konfirmasi_Fitur_Update_VisualKain.pdf
  */
 
-export type FinanceSubTab = 'dashboard' | 'cashout' | 'vendor' | 'manual';
+export type FinanceSubTab = 'dashboard' | 'cashin' | 'cashout' | 'vendor' | 'manual';
+
+export type InflowCategoryType = 'dp' | 'termin' | 'pelunasan' | 'kas_masuk';
+
+export interface CashInflowEntry {
+  id: string;
+  tanggal: string;              // YYYY-MM-DD
+  sumber: 'order' | 'manual';   // 'order' dari invoice konsumen, 'manual' dari koleksi kas
+  jenis: InflowCategoryType;
+  noInv?: string;               // Referensi nomor invoice (misal: 'VK260041')
+  orderId?: string;             // ID order untuk inspeksi drilldown
+  customerName: string;         // Nama customer atau sumber dana
+  projectName?: string;         // Nama project pesanan
+  keterangan: string;           // Keterangan / catatan pembayaran
+  nominal: number;              // Jumlah rupiah masuk
+  rawOrder?: Order;             // Referensi order lengkap untuk modal inspeksi
+}
 
 export interface CustomerPayment {
   id: string;               // ID unik pembayaran

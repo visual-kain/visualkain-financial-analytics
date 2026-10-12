@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { FinanceSubTab } from '@/types';
 import {
   LayoutDashboard,
+  Coins,
   WalletCards,
   Award,
   FileSpreadsheet,
@@ -41,6 +42,12 @@ export function Sidebar({
       label: 'Financial Dashboard',
       icon: LayoutDashboard,
       badge: 'Master',
+    },
+    {
+      id: 'cashin' as FinanceSubTab,
+      label: 'Cash Inflow',
+      icon: Coins,
+      badge: 'Pemasukan',
     },
     {
       id: 'cashout' as FinanceSubTab,

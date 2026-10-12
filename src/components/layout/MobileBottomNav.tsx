@@ -4,6 +4,7 @@ import React from 'react';
 import type { FinanceSubTab } from '@/types';
 import {
   LayoutDashboard,
+  Coins,
   WalletCards,
   Award,
   FileSpreadsheet,
@@ -26,6 +27,12 @@ export function MobileBottomNav({
       label: 'Dashboard',
       icon: LayoutDashboard,
       badge: 'Master',
+    },
+    {
+      id: 'cashin' as FinanceSubTab,
+      label: 'Dana Masuk',
+      icon: Coins,
+      badge: 'Masuk',
     },
     {
       id: 'cashout' as FinanceSubTab,
