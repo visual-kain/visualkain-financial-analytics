@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -22,7 +22,7 @@ import {
   isFromFinanceStartDate,
   getDefaultFinanceDate,
 } from '@/lib/constants';
-import type { CustomerPayment, Order } from '@/types';
+import type { CustomerPayment, Order, CashOutflowCategory } from '@/types';
 import { toast, Toaster } from 'sonner';
 import {
   ArrowLeft,
@@ -83,19 +83,29 @@ function buildInitialCustomerRows(order: Order | undefined): LedgerRow[] {
   ) as LedgerRow[];
 }
 
-export default function CashInNewPage() {
+function CashInNewContent() {
   const router = useRouter();
-  const { orders, updateOrderFinance, addKas } = useFirebaseFinance();
+  const searchParams = useSearchParams();
+  const { orders, cashTransactions, updateOrderFinance, addKas, updateKas } = useFirebaseFinance();
 
-  const [entryMode, setEntryMode] = useState<'order' | 'direct'>('order');
-  const [selectedOrderId, setSelectedOrderId] = useState<string>('');
+  const modeParam = searchParams.get('mode');
+  const orderIdParam = searchParams.get('orderId') || '';
+  const editPaymentIdParam = searchParams.get('editPaymentId');
+  const editKasIdParam = searchParams.get('editKasId');
+  const isEditMode = Boolean(editPaymentIdParam || editKasIdParam);
+
+  const [entryMode, setEntryMode] = useState<'order' | 'direct'>(
+    modeParam === 'direct' || editKasIdParam ? 'direct' : 'order'
+  );
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(orderIdParam);
 
   // State khusus mode Kas Masuk Langsung (non-order)
   const [tanggal, setTanggal] = useState<string>(getDefaultFinanceDate);
   const [nominal, setNominal] = useState<number>(0);
   const [rekening, setRekening] = useState<string>('Transfer BCA');
-  const [kategori, setKategori] = useState<'Saldo Awal' | 'Biaya Lain'>('Saldo Awal');
+  const [kategori, setKategori] = useState<string>('Saldo Awal');
   const [keterangan, setKeterangan] = useState<string>('');
+  const [hasUserEditedDirect, setHasUserEditedDirect] = useState<boolean>(false);
 
   // State khusus mode Termin Pesanan
   const [ledgerRows, setLedgerRows] = useState<LedgerRow[]>([]);
@@ -109,6 +119,12 @@ export default function CashInNewPage() {
   const [isDirty, setIsDirty] = useState<boolean>(false);
   const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (orderIdParam && !selectedOrderId) {
+      setSelectedOrderId(orderIdParam);
+    }
+  }, [orderIdParam, selectedOrderId]);
 
   const selectedOrder = useMemo<Order | undefined>(() => {
     return orders.find((o) => o.id === selectedOrderId || o.noInv === selectedOrderId);
@@ -126,14 +142,39 @@ export default function CashInNewPage() {
   }, [selectedOrder]);
 
   const accountOptions = useMemo(
-    () =>
-      DEFAULT_PAYMENT_CHANNELS.map((ch) => ({
+    () => [
+      ...DEFAULT_PAYMENT_CHANNELS.map((ch) => ({
         value: ch.value,
         label: ch.label,
         badge: 'badge' in ch ? (ch as { badge: string }).badge : undefined,
       })),
+      { value: '', label: 'Tanpa Prefix Rekening (Langsung)' },
+    ],
     []
   );
+
+  // Pre-fill form jika sedang mengedit transaksi Kas Masuk Non-Order (editKasIdParam)
+  useEffect(() => {
+    if (!editKasIdParam || hasUserEditedDirect) return;
+    const targetTx = cashTransactions.find((t) => t.id === editKasIdParam);
+    if (!targetTx) return;
+    setEntryMode('direct');
+    setTanggal(targetTx.tanggal || getDefaultFinanceDate());
+    setNominal(Number(targetTx.nominal) || 0);
+    setKategori((targetTx.kategori as CashOutflowCategory) || 'Saldo Awal');
+
+    const rawKet = (targetTx.keterangan || '').trim();
+    const matchedCh = DEFAULT_PAYMENT_CHANNELS.find(
+      (ch) => rawKet === ch.value || rawKet.startsWith(`${ch.value} - `)
+    );
+    if (matchedCh) {
+      setRekening(matchedCh.value);
+      setKeterangan(rawKet === matchedCh.value ? '' : rawKet.slice(matchedCh.value.length + 3).trim());
+    } else {
+      setRekening('');
+      setKeterangan(rawKet);
+    }
+  }, [editKasIdParam, cashTransactions, hasUserEditedDirect]);
 
   const orderSelectOptions = useMemo(() => {
     return [
@@ -284,27 +325,47 @@ export default function CashInNewPage() {
 
     try {
       setIsSaving(true);
-      const ketText = keterangan.trim()
-        ? `${rekening} - ${keterangan.trim()}`
-        : `${rekening}`;
+      const ketText = rekening
+        ? keterangan.trim()
+          ? `${rekening} - ${keterangan.trim()}`
+          : rekening
+        : keterangan.trim() || 'Kas Masuk Non-Order';
 
-      await addKas({
-        tanggal,
-        tipe: 'masuk',
-        nominal,
-        kategori,
-        keterangan: ketText,
-      });
+      if (editKasIdParam) {
+        await updateKas(editKasIdParam, {
+          tanggal,
+          tipe: 'masuk',
+          nominal,
+          kategori,
+          keterangan: ketText,
+        });
+        toast.success('Perubahan transaksi kas masuk berhasil disimpan!');
+      } else {
+        await addKas({
+          tanggal,
+          tipe: 'masuk',
+          nominal,
+          kategori,
+          keterangan: ketText,
+        });
+        toast.success('Penerimaan kas masuk berhasil dicatat ke pembukuan!');
+      }
 
-      toast.success('Penerimaan kas masuk berhasil dicatat ke pembukuan!');
       setIsDirty(false);
       router.push('/?tab=cashin');
     } catch {
-      toast.error('Gagal mencatat penerimaan kas ke database');
+      toast.error('Gagal menyimpan penerimaan kas ke database');
     } finally {
       setIsSaving(false);
     }
   };
+
+  const kategoriKasMasukOptions = useMemo(() => {
+    if (KATEGORI_KAS_MASUK_OPTIONS.some((o) => o.value === kategori)) {
+      return KATEGORI_KAS_MASUK_OPTIONS;
+    }
+    return [...KATEGORI_KAS_MASUK_OPTIONS, { value: kategori, label: kategori }];
+  }, [kategori]);
 
   return (
     <div className="min-h-screen bg-[#E8ECF2] pb-12 text-slate-900 antialiased">
@@ -328,10 +389,10 @@ export default function CashInNewPage() {
                 <span className="hidden sm:inline">/</span>
                 <span>Kas Masuk</span>
                 <span>/</span>
-                <span className="text-teal-700">Pencatatan Baru</span>
+                <span className="text-teal-700">{isEditMode ? 'Edit Transaksi' : 'Pencatatan Baru'}</span>
               </div>
               <h1 className="text-xs sm:text-base font-extrabold tracking-tight text-slate-900 truncate">
-                Catat Penerimaan Kas &amp; Termin DP
+                {isEditMode ? 'Edit Penerimaan Kas & Termin DP' : 'Catat Penerimaan Kas & Termin DP'}
               </h1>
             </div>
           </div>
@@ -345,7 +406,7 @@ export default function CashInNewPage() {
                   : 'bg-emerald-50 text-emerald-800 border-emerald-200'
               )}
             >
-              {isDirty ? 'Belum Disimpan' : 'Arus Kas Masuk'}
+              {isDirty ? 'Belum Disimpan' : isEditMode ? 'Mode Edit Kas Masuk' : 'Arus Kas Masuk'}
             </span>
 
             <button
@@ -363,7 +424,9 @@ export default function CashInNewPage() {
             >
               <Save className="h-3.5 w-3.5 shrink-0" />
               <span className="sm:hidden">{isSaving ? 'Proses...' : 'Simpan'}</span>
-              <span className="hidden sm:inline">{isSaving ? 'Menyimpan...' : 'Simpan Penerimaan'}</span>
+              <span className="hidden sm:inline">
+                {isSaving ? 'Menyimpan...' : isEditMode ? 'Simpan Perubahan' : 'Simpan Penerimaan'}
+              </span>
             </button>
           </div>
         </div>
@@ -490,6 +553,7 @@ export default function CashInNewPage() {
                   accountOptions={accountOptions}
                   defaultTanggal={getDefaultFinanceDate()}
                   defaultRekening="Transfer BCA"
+                  initialEditId={editPaymentIdParam}
                   onDraftChange={handleDraftChange}
                 />
               ) : (
@@ -526,6 +590,7 @@ export default function CashInNewPage() {
                       value={tanggal}
                       onChange={(e) => {
                         setTanggal(e.target.value);
+                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
@@ -540,6 +605,7 @@ export default function CashInNewPage() {
                       value={nominal}
                       onValueChange={(val: number) => {
                         setNominal(val);
+                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       placeholder="Rp 0"
@@ -555,6 +621,7 @@ export default function CashInNewPage() {
                       value={rekening}
                       onValueChange={(val) => {
                         setRekening(val);
+                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       options={accountOptions}
@@ -569,10 +636,11 @@ export default function CashInNewPage() {
                     <CustomSelect
                       value={kategori}
                       onValueChange={(val) => {
-                        setKategori(val as 'Saldo Awal' | 'Biaya Lain');
+                        setKategori(val as CashOutflowCategory);
+                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
-                      options={KATEGORI_KAS_MASUK_OPTIONS}
+                      options={kategoriKasMasukOptions}
                       className="h-11 w-full"
                     />
                   </div>
@@ -587,6 +655,7 @@ export default function CashInNewPage() {
                     value={keterangan}
                     onChange={(e) => {
                       setKeterangan(e.target.value);
+                      setHasUserEditedDirect(true);
                       setIsDirty(true);
                     }}
                     placeholder="Contoh: Setoran modal kas operasional via rekening BCA..."
@@ -728,7 +797,7 @@ export default function CashInNewPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">Rekening Penerima:</span>
-                    <span className="font-bold text-slate-800">{rekening}</span>
+                    <span className="font-bold text-slate-800">{rekening || 'Langsung / Sesuai Catatan'}</span>
                   </div>
                   <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
                     <span className="font-bold text-slate-700">Nominal Diterima:</span>
@@ -753,7 +822,7 @@ export default function CashInNewPage() {
                   className="w-full sm:w-auto sm:flex-1 inline-flex min-h-11 h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="h-4 w-4 shrink-0" />
-                  <span>{isSaving ? 'Menyimpan...' : 'Simpan Penerimaan Kas'}</span>
+                  <span>{isSaving ? 'Menyimpan...' : isEditMode ? 'Simpan Perubahan' : 'Simpan Penerimaan Kas'}</span>
                 </button>
               </div>
             </section>
@@ -794,5 +863,19 @@ export default function CashInNewPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CashInNewPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-[#E8ECF2] text-slate-600 font-mono text-xs">
+          Memuat Form Kas Masuk...
+        </div>
+      }
+    >
+      <CashInNewContent />
+    </React.Suspense>
   );
 }

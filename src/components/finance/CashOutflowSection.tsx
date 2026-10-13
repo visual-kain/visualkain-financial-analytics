@@ -27,6 +27,7 @@ import {
   Plus,
   Download,
   Trash2,
+  Pencil,
   Eye,
   X,
   PieChart as PieChartIcon,
@@ -155,6 +156,20 @@ export function CashOutflowSection({
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [bulanFilter, setBulanFilter] = useState(activeBulan || 'all');
   const [tahunFilter, setTahunFilter] = useState(activeTahun || 'all');
+
+  const handleEdit = (item: CashOutflowEntry) => {
+    if (item.sumber === 'order' && item.rawOrder) {
+      if (item.kategori === 'Biaya Operasional Order' || item.id.startsWith('opex-')) {
+        router.push(`/orders/${item.rawOrder.id}/edit`);
+      } else {
+        router.push(
+          `/cash-out/new?mode=vendor&orderId=${encodeURIComponent(item.rawOrder.id)}&editPaymentId=${encodeURIComponent(item.id)}`
+        );
+      }
+    } else if (item.sumber === 'manual') {
+      router.push(`/cash-out/new?mode=operasional&editKasId=${encodeURIComponent(item.id)}`);
+    }
+  };
 
   React.useEffect(() => {
     setEntries(initialEntries);
@@ -702,33 +717,45 @@ export function CashOutflowSection({
                   <span className="font-mono font-extrabold text-xs sm:text-sm text-rose-600 tabular-nums truncate">
                     -{formatRupiah(item.nominal)}
                   </span>
-                  {item.sumber === 'order' && item.rawOrder ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
-                      onClick={() => {
-                        if (onSelectOrder && item.rawOrder) {
-                          onSelectOrder(item.rawOrder);
-                        } else if (item.rawOrder) {
-                          router.push(`/orders/${item.rawOrder.id}/edit`);
-                        }
-                      }}
-                      title="Lihat Detail Order"
-                      className="h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-[11px] font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
+                      onClick={() => handleEdit(item)}
+                      title="Edit Pengeluaran Kas"
+                      className="h-9 px-2.5 inline-flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white text-slate-700 text-[11px] font-bold hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0 shadow-2xs"
                     >
-                      <Eye className="h-3.5 w-3.5 shrink-0" />
-                      <span>Detail Order</span>
+                      <Pencil className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                      <span>Edit</span>
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item.id)}
-                      title="Hapus Transaksi"
-                      className="h-9 px-2.5 inline-flex items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                      <span>Hapus</span>
-                    </button>
-                  )}
+
+                    {item.sumber === 'order' && item.rawOrder ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onSelectOrder && item.rawOrder) {
+                            onSelectOrder(item.rawOrder);
+                          } else if (item.rawOrder) {
+                            router.push(`/orders/${item.rawOrder.id}/edit`);
+                          }
+                        }}
+                        title="Lihat Detail Order"
+                        className="h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-[11px] font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
+                      >
+                        <Eye className="h-3.5 w-3.5 shrink-0" />
+                        <span>Detail Order</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item.id)}
+                        title="Hapus Transaksi"
+                        className="h-9 px-2.5 inline-flex items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -791,32 +818,44 @@ export function CashOutflowSection({
                       {formatRupiah(item.nominal)}
                     </td>
                     <td className="px-4 py-3.5 text-center">
-                      {item.sumber === 'order' && item.rawOrder ? (
+                      <div className="inline-flex items-center justify-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => {
-                            if (onSelectOrder && item.rawOrder) {
-                              onSelectOrder(item.rawOrder);
-                            } else if (item.rawOrder) {
-                              router.push(`/orders/${item.rawOrder.id}/edit`);
-                            }
-                          }}
-                          title="Lihat Detail Order"
-                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 text-[10px] font-bold text-teal-700 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                          onClick={() => handleEdit(item)}
+                          title="Edit Pengeluaran Kas"
+                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 hover:text-rose-700 hover:border-rose-200 active:scale-[0.96] transition-all duration-150 shadow-2xs cursor-pointer"
                         >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>Detail Order</span>
+                          <Pencil className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Edit</span>
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(item.id)}
-                          title="Hapus Transaksi Kas"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
+
+                        {item.sumber === 'order' && item.rawOrder ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onSelectOrder && item.rawOrder) {
+                                onSelectOrder(item.rawOrder);
+                              } else if (item.rawOrder) {
+                                router.push(`/orders/${item.rawOrder.id}/edit`);
+                              }
+                            }}
+                            title="Lihat Detail Order"
+                            className="inline-flex h-8 items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 text-[10px] font-bold text-teal-700 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            <span>Detail Order</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item.id)}
+                            title="Hapus Transaksi Kas"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.96] transition-all duration-150 cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

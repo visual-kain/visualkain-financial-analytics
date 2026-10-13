@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -117,13 +117,22 @@ function buildInitialVendorRows(order: Order | undefined): LedgerRow[] {
   ) as LedgerRow[];
 }
 
-export default function CashOutNewPage() {
+function CashOutNewContent() {
   const router = useRouter();
-  const { orders, updateOrderFinance, addKas } = useFirebaseFinance();
+  const searchParams = useSearchParams();
+  const { orders, cashTransactions, updateOrderFinance, addKas, updateKas } = useFirebaseFinance();
 
-  const [entryMode, setEntryMode] = useState<'operasional' | 'vendor'>('operasional');
+  const modeParam = searchParams.get('mode');
+  const orderIdParam = searchParams.get('orderId') || '';
+  const editPaymentIdParam = searchParams.get('editPaymentId');
+  const editKasIdParam = searchParams.get('editKasId');
+  const isEditMode = Boolean(editPaymentIdParam || editKasIdParam);
+
+  const [entryMode, setEntryMode] = useState<'operasional' | 'vendor'>(
+    modeParam === 'vendor' || editPaymentIdParam ? 'vendor' : 'operasional'
+  );
   const [kategori, setKategori] = useState<CashOutflowCategory>('Operasional');
-  const [selectedOrderId, setSelectedOrderId] = useState<string>('');
+  const [selectedOrderId, setSelectedOrderId] = useState<string>(orderIdParam);
 
   // State khusus mode Beban Operasional
   const [tanggal, setTanggal] = useState<string>(getDefaultFinanceDate);
@@ -131,6 +140,7 @@ export default function CashOutNewPage() {
   const [sumberRekening, setSumberRekening] = useState<string>('Transfer BCA');
   const [noVoucher, setNoVoucher] = useState<string>('');
   const [keterangan, setKeterangan] = useState<string>('');
+  const [hasUserEditedDirect, setHasUserEditedDirect] = useState<boolean>(false);
 
   // State khusus mode Pembayaran Mitra Vendor (berbasis pesanan)
   const [vendorLedgerRows, setVendorLedgerRows] = useState<LedgerRow[]>([]);
@@ -144,6 +154,12 @@ export default function CashOutNewPage() {
   const [isDirty, setIsDirty] = useState<boolean>(false);
   const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (orderIdParam && !selectedOrderId) {
+      setSelectedOrderId(orderIdParam);
+    }
+  }, [orderIdParam, selectedOrderId]);
 
   const selectedOrder = useMemo<Order | undefined>(() => {
     if (!selectedOrderId) return undefined;
@@ -168,14 +184,49 @@ export default function CashOutNewPage() {
   }, [selectedOrder]);
 
   const accountOptions = useMemo(
-    () =>
-      DEFAULT_PAYMENT_CHANNELS.map((ch) => ({
+    () => [
+      ...DEFAULT_PAYMENT_CHANNELS.map((ch) => ({
         value: ch.value,
         label: ch.label,
         badge: 'badge' in ch ? (ch as { badge: string }).badge : undefined,
       })),
+      { value: '', label: 'Kas Operasional (Tanpa Prefix Rekening)' },
+    ],
     []
   );
+
+  // Pre-fill form jika sedang mengedit transaksi Kas Keluar Non-Order (editKasIdParam)
+  useEffect(() => {
+    if (!editKasIdParam || hasUserEditedDirect) return;
+    const targetTx = cashTransactions.find((t) => t.id === editKasIdParam);
+    if (!targetTx) return;
+    setEntryMode('operasional');
+    setTanggal(targetTx.tanggal || getDefaultFinanceDate());
+    setNominal(Number(targetTx.nominal) || 0);
+    setKategori((targetTx.kategori as CashOutflowCategory) || 'Operasional');
+
+    const rawKet = (targetTx.keterangan || '').trim();
+    let parsedVoucher = '';
+    let restText = rawKet;
+
+    const voucherMatch = rawKet.match(/^\[Voucher:\s*([^\]]+)\]\s*(.*)$/);
+    if (voucherMatch) {
+      parsedVoucher = voucherMatch[1].trim();
+      restText = voucherMatch[2].trim();
+    }
+    setNoVoucher(parsedVoucher);
+
+    const matchedCh = DEFAULT_PAYMENT_CHANNELS.find(
+      (ch) => restText === ch.value || restText.startsWith(`${ch.value} - `)
+    );
+    if (matchedCh) {
+      setSumberRekening(matchedCh.value);
+      setKeterangan(restText === matchedCh.value ? '' : restText.slice(matchedCh.value.length + 3).trim());
+    } else {
+      setSumberRekening('');
+      setKeterangan(restText);
+    }
+  }, [editKasIdParam, cashTransactions, hasUserEditedDirect]);
 
   const orderSelectOptions = useMemo(() => {
     return [
@@ -338,25 +389,44 @@ export default function CashOutNewPage() {
     try {
       setIsSaving(true);
       const voucherText = noVoucher.trim() ? `[Voucher: ${noVoucher.trim()}] ` : '';
-      const ketFull = `${voucherText}${sumberRekening} - ${keterangan.trim()}`;
+      const accountPrefix = sumberRekening.trim() ? `${sumberRekening.trim()} - ` : '';
+      const ketFull = `${voucherText}${accountPrefix}${keterangan.trim()}`;
 
-      await addKas({
-        tanggal,
-        tipe: 'keluar',
-        nominal,
-        kategori,
-        keterangan: ketFull,
-      });
+      if (editKasIdParam) {
+        await updateKas(editKasIdParam, {
+          tanggal,
+          tipe: 'keluar',
+          nominal,
+          kategori,
+          keterangan: ketFull,
+        });
+        toast.success(`Perubahan pengeluaran ${kategori} berhasil disimpan!`);
+      } else {
+        await addKas({
+          tanggal,
+          tipe: 'keluar',
+          nominal,
+          kategori,
+          keterangan: ketFull,
+        });
+        toast.success(`Pengeluaran operasional ${kategori} berhasil dicatat!`);
+      }
 
-      toast.success(`Pengeluaran operasional ${kategori} berhasil dicatat!`);
       setIsDirty(false);
       router.push('/?tab=cashout');
     } catch {
-      toast.error('Gagal mencatat pengeluaran kas ke database');
+      toast.error('Gagal menyimpan pengeluaran kas ke database');
     } finally {
       setIsSaving(false);
     }
   };
+
+  const kategoriBebanOptions = useMemo(() => {
+    if (KATEGORI_BEBAN_OPTIONS.some((o) => o.value === kategori)) {
+      return KATEGORI_BEBAN_OPTIONS;
+    }
+    return [...KATEGORI_BEBAN_OPTIONS, { value: kategori, label: kategori }];
+  }, [kategori]);
 
   return (
     <div className="min-h-screen bg-[#E8ECF2] pb-12 text-slate-900 antialiased">
@@ -380,10 +450,10 @@ export default function CashOutNewPage() {
                 <span className="hidden sm:inline">/</span>
                 <span>Kas Keluar</span>
                 <span>/</span>
-                <span className="text-rose-700">Pencatatan Baru</span>
+                <span className="text-rose-700">{isEditMode ? 'Edit Transaksi' : 'Pencatatan Baru'}</span>
               </div>
               <h1 className="text-xs sm:text-base font-extrabold tracking-tight text-slate-900 truncate">
-                Catat Pengeluaran Kas &amp; Bayar Vendor
+                {isEditMode ? 'Edit Pengeluaran Kas & Pembayaran Vendor' : 'Catat Pengeluaran Kas & Bayar Vendor'}
               </h1>
             </div>
           </div>
@@ -397,7 +467,7 @@ export default function CashOutNewPage() {
                   : 'bg-rose-50 text-rose-800 border-rose-200'
               )}
             >
-              {isDirty ? 'Belum Disimpan' : 'Arus Kas Keluar'}
+              {isDirty ? 'Belum Disimpan' : isEditMode ? 'Mode Edit Kas Keluar' : 'Arus Kas Keluar'}
             </span>
 
             <button
@@ -415,7 +485,9 @@ export default function CashOutNewPage() {
             >
               <Save className="h-3.5 w-3.5 shrink-0" />
               <span className="sm:hidden">{isSaving ? 'Proses...' : 'Simpan'}</span>
-              <span className="hidden sm:inline">{isSaving ? 'Menyimpan...' : 'Simpan Pengeluaran'}</span>
+              <span className="hidden sm:inline">
+                {isSaving ? 'Menyimpan...' : isEditMode ? 'Simpan Perubahan' : 'Simpan Pengeluaran'}
+              </span>
             </button>
           </div>
         </div>
@@ -499,9 +571,10 @@ export default function CashOutNewPage() {
                     value={kategori}
                     onValueChange={(val) => {
                       setKategori(val as CashOutflowCategory);
+                      setHasUserEditedDirect(true);
                       setIsDirty(true);
                     }}
-                    options={KATEGORI_BEBAN_OPTIONS}
+                    options={kategoriBebanOptions}
                     className="w-full h-11"
                   />
                 </div>
@@ -585,6 +658,7 @@ export default function CashOutNewPage() {
                   accountOptions={accountOptions}
                   defaultTanggal={getDefaultFinanceDate()}
                   defaultRekening="Transfer BCA"
+                  initialEditId={editPaymentIdParam}
                   onDraftChange={handleDraftChange}
                   disabled={!hasValidVendor}
                 />
@@ -622,6 +696,7 @@ export default function CashOutNewPage() {
                       value={tanggal}
                       onChange={(e) => {
                         setTanggal(e.target.value);
+                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
@@ -636,6 +711,7 @@ export default function CashOutNewPage() {
                       value={nominal}
                       onValueChange={(val: number) => {
                         setNominal(val);
+                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       placeholder="Rp 0"
@@ -651,6 +727,7 @@ export default function CashOutNewPage() {
                       value={sumberRekening}
                       onValueChange={(val) => {
                         setSumberRekening(val);
+                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       options={accountOptions}
@@ -667,6 +744,7 @@ export default function CashOutNewPage() {
                       value={noVoucher}
                       onChange={(e) => {
                         setNoVoucher(e.target.value);
+                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       placeholder="Contoh: VCR-2026-10-092"
@@ -684,6 +762,7 @@ export default function CashOutNewPage() {
                     value={keterangan}
                     onChange={(e) => {
                       setKeterangan(e.target.value);
+                      setHasUserEditedDirect(true);
                       setIsDirty(true);
                     }}
                     placeholder="Contoh: Pembayaran listrik dan internet kantor bulan Oktober 2026..."
@@ -837,7 +916,7 @@ export default function CashOutNewPage() {
                   className="w-full sm:w-auto sm:flex-1 inline-flex min-h-11 h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-rose-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="h-4 w-4 shrink-0" />
-                  <span>{isSaving ? 'Menyimpan...' : 'Simpan Pengeluaran Kas'}</span>
+                  <span>{isSaving ? 'Menyimpan...' : isEditMode ? 'Simpan Perubahan' : 'Simpan Pengeluaran Kas'}</span>
                 </button>
               </div>
             </section>
@@ -880,3 +959,18 @@ export default function CashOutNewPage() {
     </div>
   );
 }
+
+export default function CashOutNewPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-[#E8ECF2] text-slate-600 font-mono text-xs">
+          Memuat Form Kas Keluar...
+        </div>
+      }
+    >
+      <CashOutNewContent />
+    </React.Suspense>
+  );
+}
+

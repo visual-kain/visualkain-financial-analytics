@@ -45,6 +45,7 @@ interface PaymentLedgerPanelProps {
   accountOptions: ReadonlyArray<AccountOption>;
   defaultTanggal: string;
   defaultRekening: string;
+  initialEditId?: string | null;
   onPendingChange?: (hasPending: boolean) => void;
   onDraftChange?: (draft: LedgerDraftState) => void;
   disabled?: boolean;
@@ -78,10 +79,35 @@ const COPY = {
 } as const;
 
 function splitKeterangan(raw: string | undefined, accounts: ReadonlyArray<AccountOption>, fallback: string) {
-  const text = raw || '';
-  const hit = accounts.find((a) => text === a.value || text.startsWith(`${a.value} - `));
-  if (!hit) return { rekening: fallback, catatan: text };
-  return { rekening: hit.value, catatan: text === hit.value ? '' : text.slice(hit.value.length + 3) };
+  const text = (raw || '').trim();
+  if (!text) return { rekening: fallback, catatan: '' };
+  const hit = accounts.find((a) => a.value && (text === a.value || text.startsWith(`${a.value} - `)));
+  if (!hit) return { rekening: '', catatan: text };
+  const extracted = text === hit.value ? '' : text.slice(hit.value.length + 3).trim();
+  return { rekening: hit.value, catatan: extracted === hit.value ? '' : extracted };
+}
+
+function formatKeterangan(rekening: string, catatan: string): string {
+  const cleanCat = catatan.trim();
+  const cleanRek = rekening.trim();
+  if (!cleanRek) return cleanCat || 'Transfer BCA';
+  return cleanCat ? `${cleanRek} - ${cleanCat}` : cleanRek;
+}
+
+function findTargetEditRow(rows: LedgerRow[], targetId: string): LedgerRow | undefined {
+  const exact = rows.find((e) => e.id === targetId);
+  if (exact) return exact;
+  if (targetId.endsWith('-single') || targetId.startsWith('vp-rem-') || targetId.endsWith('-init')) {
+    return rows.find((e) => e.id.endsWith('-init')) || rows[0];
+  }
+  const idxMatch = targetId.match(/-(?:p-)?(\d+)$/);
+  if (idxMatch) {
+    const n = Number(idxMatch[1]);
+    if (rows[n]) return rows[n];
+    if (n > 0 && rows[n - 1]) return rows[n - 1];
+  }
+  if (rows.length === 1) return rows[0];
+  return undefined;
 }
 
 export function PaymentLedgerPanel({
@@ -93,6 +119,7 @@ export function PaymentLedgerPanel({
   accountOptions,
   defaultTanggal,
   defaultRekening,
+  initialEditId = null,
   onPendingChange,
   onDraftChange,
   disabled = false,
@@ -109,6 +136,15 @@ export function PaymentLedgerPanel({
   const [catatan, setCatatan] = useState<string>('');
   const [label, setLabel] = useState<string>('');
   const [labelTouched, setLabelTouched] = useState<boolean>(false);
+  const [userTouchedDraft, setUserTouchedDraft] = useState<boolean>(false);
+
+  const effectiveAccountOptions = useMemo<ReadonlyArray<AccountOption>>(() => {
+    if (accountOptions.some((a) => a.value === '')) return accountOptions;
+    return [
+      ...accountOptions,
+      { value: '', label: 'Tanpa Prefix Rekening (Sesuai Catatan)' },
+    ];
+  }, [accountOptions]);
 
   const editingRow = useMemo(() => entries.find((e) => e.id === editingId) || null, [entries, editingId]);
   const terminKe = editingRow ? editingRow.terminKe : nextTerminNumber(entries);
@@ -128,7 +164,7 @@ export function PaymentLedgerPanel({
 
   const previewEntries = useMemo<LedgerRow[]>(() => {
     if (!canSubmit) return entries;
-    const keterangan = catatan.trim() ? `${rekening} - ${catatan.trim()}` : rekening;
+    const keterangan = formatKeterangan(rekening, catatan);
     if (editingRow) {
       const next = entries.map((row) =>
         row.id === editingRow.id
@@ -174,12 +210,14 @@ export function PaymentLedgerPanel({
     setCatatan('');
     setLabel('');
     setLabelTouched(false);
+    setUserTouchedDraft(false);
+    setRekening(defaultRekening);
     setTanggal(defaultTanggal);
   };
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    const keterangan = catatan.trim() ? `${rekening} - ${catatan.trim()}` : rekening;
+    const keterangan = formatKeterangan(rekening, catatan);
 
     if (editingRow) {
       const next = entries.map((row) =>
@@ -215,6 +253,22 @@ export function PaymentLedgerPanel({
     setIsFormOpen(true);
     focusNominalInput();
   };
+
+  useEffect(() => {
+    if (!initialEditId || entries.length === 0 || userTouchedDraft) return;
+    const target = findTargetEditRow(entries, initialEditId);
+    if (target) {
+      const parts = splitKeterangan(target.keterangan, accountOptions, defaultRekening);
+      setEditingId(target.id);
+      setTanggal(target.tanggal);
+      setNominal(target.nominal);
+      setRekening(parts.rekening);
+      setCatatan(parts.catatan);
+      setLabel(target.label);
+      setLabelTouched(true);
+      setIsFormOpen(true);
+    }
+  }, [initialEditId, entries, accountOptions, defaultRekening, userTouchedDraft]);
 
   const removeRow = (id: string) => {
     if (editingId === id) resetForm();
@@ -367,7 +421,10 @@ export function PaymentLedgerPanel({
                 type="date"
                 min={FINANCE_START_DATE}
                 value={tanggal}
-                onChange={(e) => setTanggal(e.target.value)}
+                onChange={(e) => {
+                  setTanggal(e.target.value);
+                  setUserTouchedDraft(true);
+                }}
                 className={inputBase}
               />
               {dateError && <p role="alert" className="mt-1 text-[11px] font-semibold text-rose-700">{dateError}</p>}
@@ -378,7 +435,10 @@ export function PaymentLedgerPanel({
               <CurrencyInput
                 id={`${uid}-nom`}
                 value={nominal}
-                onValueChange={setNominal}
+                onValueChange={(val) => {
+                  setNominal(val);
+                  setUserTouchedDraft(true);
+                }}
                 placeholder="Rp 0"
                 className="h-11 text-sm font-bold font-mono"
               />
@@ -387,7 +447,10 @@ export function PaymentLedgerPanel({
                 <button
                   type="button"
                   disabled={sisaBoleh <= 0}
-                  onClick={() => setNominal(sisaBoleh)}
+                  onClick={() => {
+                    setNominal(sisaBoleh);
+                    setUserTouchedDraft(true);
+                  }}
                   className="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
                 >
                   Sisa penuh ({formatRupiah(sisaBoleh)})
@@ -395,7 +458,10 @@ export function PaymentLedgerPanel({
                 {isCustomer && !summary.isReady70 && (
                   <button
                     type="button"
-                    onClick={() => setNominal(Math.min(sisaBoleh, Math.max(0, summary.target70 - outstandingPaid(entries, editingId))))}
+                    onClick={() => {
+                      setNominal(Math.min(sisaBoleh, Math.max(0, summary.target70 - outstandingPaid(entries, editingId))));
+                      setUserTouchedDraft(true);
+                    }}
                     className="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
                   >
                     Sisa menuju 70% ({formatRupiah(Math.max(0, summary.target70 - outstandingPaid(entries, editingId)))})
@@ -413,6 +479,7 @@ export function PaymentLedgerPanel({
                 onChange={(e) => {
                   setLabel(e.target.value);
                   setLabelTouched(true);
+                  setUserTouchedDraft(true);
                 }}
                 className={inputBase}
               />
@@ -424,6 +491,7 @@ export function PaymentLedgerPanel({
                     onClick={() => {
                       setLabel(chip);
                       setLabelTouched(true);
+                      setUserTouchedDraft(true);
                     }}
                     className={cn(
                       'inline-flex h-10 items-center rounded-lg border px-3 text-[11px] font-bold cursor-pointer',
@@ -440,8 +508,11 @@ export function PaymentLedgerPanel({
               <span className="block text-[11px] font-bold text-slate-700 mb-1">{copy.accountLabel}</span>
               <CustomSelect
                 value={rekening}
-                onValueChange={setRekening}
-                options={accountOptions.map((a) => ({ value: a.value, label: a.label, badge: a.badge }))}
+                onValueChange={(val) => {
+                  setRekening(val);
+                  setUserTouchedDraft(true);
+                }}
+                options={effectiveAccountOptions.map((a) => ({ value: a.value, label: a.label, badge: a.badge }))}
                 className="h-11 w-full"
               />
             </div>
@@ -453,7 +524,10 @@ export function PaymentLedgerPanel({
               id={`${uid}-cat`}
               type="text"
               value={catatan}
-              onChange={(e) => setCatatan(e.target.value)}
+              onChange={(e) => {
+                setCatatan(e.target.value);
+                setUserTouchedDraft(true);
+              }}
               placeholder="Contoh: Transfer BCA, ref #8271"
               className={inputBase}
             />

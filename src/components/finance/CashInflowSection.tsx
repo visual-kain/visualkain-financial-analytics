@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   cn,
@@ -21,6 +22,7 @@ import {
   Plus,
   Download,
   Trash2,
+  Pencil,
   PieChart as PieChartIcon,
   BarChart3,
   Search,
@@ -93,10 +95,21 @@ export function CashInflowSection({
   onSelectOrder,
   onDeleteTransaction,
 }: CashInflowSectionProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [bulanFilter, setBulanFilter] = useState(activeBulan || 'all');
   const [tahunFilter, setTahunFilter] = useState(activeTahun || 'all');
+
+  const handleEdit = (item: CashInflowEntry) => {
+    if (item.sumber === 'order' && item.orderId) {
+      router.push(
+        `/cash-in/new?mode=order&orderId=${encodeURIComponent(item.orderId)}&editPaymentId=${encodeURIComponent(item.id)}`
+      );
+    } else if (item.sumber === 'manual') {
+      router.push(`/cash-in/new?mode=direct&editKasId=${encodeURIComponent(item.id)}`);
+    }
+  };
 
   React.useEffect(() => {
     if (activeBulan !== undefined) {
@@ -828,27 +841,39 @@ export function CashInflowSection({
                     +{formatRupiah(item.nominal)}
                   </span>
 
-                  {item.rawOrder ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
-                      onClick={() => onSelectOrder?.(item.rawOrder!)}
-                      title="Inspeksi Detail Order"
-                      className="h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-[11px] font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
+                      onClick={() => handleEdit(item)}
+                      title="Edit Transaksi Kas Masuk"
+                      className="h-9 px-2.5 inline-flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white text-slate-700 text-[11px] font-bold hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0 shadow-2xs"
                     >
-                      <Eye className="h-3.5 w-3.5 shrink-0" />
-                      <span>Detail Order</span>
+                      <Pencil className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                      <span>Edit</span>
                     </button>
-                  ) : item.sumber === 'manual' ? (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item.id)}
-                      title="Hapus Transaksi Kas Masuk"
-                      className="h-9 px-2.5 inline-flex items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                      <span>Hapus</span>
-                    </button>
-                  ) : null}
+
+                    {item.rawOrder ? (
+                      <button
+                        type="button"
+                        onClick={() => onSelectOrder?.(item.rawOrder!)}
+                        title="Inspeksi Detail Order"
+                        className="h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-[11px] font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
+                      >
+                        <Eye className="h-3.5 w-3.5 shrink-0" />
+                        <span>Detail Order</span>
+                      </button>
+                    ) : item.sumber === 'manual' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item.id)}
+                        title="Hapus Transaksi Kas Masuk"
+                        className="h-9 px-2.5 inline-flex items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                        <span>Hapus</span>
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             ))
@@ -907,28 +932,37 @@ export function CashInflowSection({
                       +{formatRupiah(item.nominal)}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      {item.rawOrder ? (
+                      <div className="inline-flex items-center justify-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => onSelectOrder?.(item.rawOrder!)}
-                          title="Inspeksi Detail Order"
-                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 shadow-2xs cursor-pointer"
+                          onClick={() => handleEdit(item)}
+                          title="Edit Transaksi Kas Masuk"
+                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 hover:text-teal-700 hover:border-teal-200 active:scale-[0.96] transition-all duration-150 shadow-2xs cursor-pointer"
                         >
-                          <Eye className="h-3.5 w-3.5 text-slate-400" />
-                          <span>Detail</span>
+                          <Pencil className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Edit</span>
                         </button>
-                      ) : item.sumber === 'manual' ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(item.id)}
-                          title="Hapus Transaksi Kas Masuk"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      ) : (
-                        <span className="text-slate-300">-</span>
-                      )}
+                        {item.rawOrder ? (
+                          <button
+                            type="button"
+                            onClick={() => onSelectOrder?.(item.rawOrder!)}
+                            title="Inspeksi Detail Order"
+                            className="inline-flex h-8 items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 text-[11px] font-bold text-teal-700 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            <span>Detail</span>
+                          </button>
+                        ) : item.sumber === 'manual' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(item.id)}
+                            title="Hapus Transaksi Kas Masuk"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.96] transition-all duration-150 cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))

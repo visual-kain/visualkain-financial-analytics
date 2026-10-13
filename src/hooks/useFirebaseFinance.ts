@@ -39,6 +39,7 @@ interface UseFirebaseFinanceResult {
     }
   ) => Promise<boolean>;
   addKas: (data: Omit<CashTransaction, 'id'>) => Promise<string>;
+  updateKas: (id: string, data: Partial<Omit<CashTransaction, 'id'>>) => Promise<boolean>;
   deleteKas: (id: string) => Promise<void>;
 }
 
@@ -364,17 +365,50 @@ export function useFirebaseFinance(
       }
 
       if (data.pembayaranList !== undefined && Array.isArray(data.pembayaranList)) {
-        const riwayatPembayaranFirestore = data.pembayaranList.map((p) => ({
+        const sanitizedCustomerList = data.pembayaranList.map((p, idx) => ({
+          id: p.id || `${orderId}-p-${idx}`,
+          orderId: p.orderId || orderId,
+          noInv: p.noInv || 'INV',
+          tanggal: p.tanggal,
+          nominal: Number(p.nominal),
+          jenis: p.jenis || (idx === 0 ? 'dp' : 'termin'),
+          terminKe: typeof p.terminKe === 'number' ? p.terminKe : idx + 1,
+          label: p.label || `Termin ${idx + 1}`,
+          keterangan: p.keterangan || (p.jenis === 'dp' ? 'DP Pembayaran' : 'Pembayaran Termin'),
+          createdAt: p.createdAt || new Date().toISOString(),
+        }));
+        const riwayatPembayaranFirestore = sanitizedCustomerList.map((p) => ({
+          id: p.id,
           jumlah: Number(p.nominal),
           nominal: Number(p.nominal),
           tanggal: p.tanggal,
-          catatan: p.keterangan || (p.jenis === 'dp' ? 'DP Pembayaran' : 'Pembayaran Termin'),
+          catatan: p.keterangan,
+          keterangan: p.keterangan,
           jenis: p.jenis,
+          terminKe: p.terminKe,
+          label: p.label,
         }));
+        firestorePayload.pembayaranList = sanitizedCustomerList;
         firestorePayload.riwayatPembayaran = riwayatPembayaranFirestore;
-        const totalMasuk = data.pembayaranList.reduce((acc, p) => acc + Number(p.nominal), 0);
+        const totalMasuk = sanitizedCustomerList.reduce((acc, p) => acc + Number(p.nominal), 0);
         firestorePayload.dpNominal = totalMasuk;
         firestorePayload.totalUangMasukCustomer = totalMasuk;
+      }
+
+      if (data.vendorPembayaranList !== undefined && Array.isArray(data.vendorPembayaranList)) {
+        firestorePayload.vendorPembayaranList = data.vendorPembayaranList.map((vp, idx) => ({
+          id: vp.id || `vp-${orderId}-${idx + 1}`,
+          orderId: vp.orderId || orderId,
+          vendorName: vp.vendorName || '-',
+          tanggal: vp.tanggal,
+          nominal: Number(vp.nominal),
+          jenis: vp.jenis || (idx === 0 ? 'dp_vendor' : 'termin_vendor'),
+          terminKe: typeof vp.terminKe === 'number' ? vp.terminKe : idx + 1,
+          label: vp.label || `Pembayaran ke-${idx + 1}`,
+          keterangan: vp.keterangan || vp.catatan || 'Transfer BCA',
+          catatan: vp.catatan || vp.keterangan || 'Transfer BCA',
+          createdAt: vp.createdAt || new Date().toISOString(),
+        }));
       }
 
       setOrders((prev) =>
@@ -401,6 +435,7 @@ export function useFirebaseFinance(
         kategori: data.kategori,
         keterangan: data.keterangan,
         jumlah: data.nominal,
+        nominal: data.nominal,
         createdAt: serverTimestamp(),
       });
       if (isFromFinanceStartDate(data.tanggal)) {
@@ -436,6 +471,38 @@ export function useFirebaseFinance(
     }
   }, []);
 
+  const updateKas = useCallback(
+    async (id: string, data: Partial<Omit<CashTransaction, 'id'>>): Promise<boolean> => {
+      setCashTransactions((prev) =>
+        prev
+          .map((t) => (t.id === id ? { ...t, ...data } : t))
+          .filter((t) => isFromFinanceStartDate(t.tanggal))
+          .sort((a, b) => b.tanggal.localeCompare(a.tanggal))
+      );
+
+      try {
+        const payload: Record<string, unknown> = {
+          updatedAt: serverTimestamp(),
+        };
+        if (data.tanggal !== undefined) payload.tanggal = data.tanggal;
+        if (data.tipe !== undefined) payload.jenis = data.tipe;
+        if (data.kategori !== undefined) payload.kategori = data.kategori;
+        if (data.keterangan !== undefined) payload.keterangan = data.keterangan;
+        if (data.nominal !== undefined) {
+          payload.jumlah = Number(data.nominal);
+          payload.nominal = Number(data.nominal);
+        }
+
+        await updateDoc(doc(db, 'kas', id), payload);
+        return true;
+      } catch (err: unknown) {
+        console.warn('[Firestore] updateKas failed, keeping local state:', err);
+        return true;
+      }
+    },
+    []
+  );
+
   const deleteKas = useCallback(async (id: string): Promise<void> => {
     setCashTransactions((prev) => prev.filter((t) => t.id !== id));
     try {
@@ -454,6 +521,7 @@ export function useFirebaseFinance(
     error,
     updateOrderFinance,
     addKas,
+    updateKas,
     deleteKas,
   };
 }
