@@ -65,13 +65,6 @@ const INFLOW_FILTER_OPTIONS = [
   { value: 'kas_masuk', label: 'Kas Masuk Non-Order' },
 ];
 
-const BULAN_FILTER_OPTIONS_2026 = [
-  { value: 'all', label: 'Mulai Oktober (Semua)' },
-  { value: '10', label: 'Oktober' },
-  { value: '11', label: 'November' },
-  { value: '12', label: 'Desember' },
-];
-
 const BULAN_FILTER_OPTIONS_ALL = [
   { value: 'all', label: 'Semua Bulan' },
   { value: '01', label: 'Januari' },
@@ -91,7 +84,7 @@ const BULAN_FILTER_OPTIONS_ALL = [
 export function CashInflowSection({
   orders,
   cashTransactions,
-  selectedPeriod = 'Mulai Oktober 2026',
+  selectedPeriod = 'Semua Periode',
   activeBulan,
   activeTahun,
   onBulanChange,
@@ -194,13 +187,10 @@ export function CashInflowSection({
     const set = new Set<string>(['2026']);
     rawInflows.forEach((e) => e.tanggal && e.tanggal >= '2026-10-01' && set.add(e.tanggal.slice(0, 4)));
     const sorted = [...set].sort().reverse();
-    return [{ value: 'all', label: 'Tahun 2026+' }, ...sorted.map((y) => ({ value: y, label: y }))];
+    return [{ value: 'all', label: 'Semua Tahun' }, ...sorted.map((y) => ({ value: y, label: y }))];
   }, [rawInflows]);
 
-  const bulanOptions = useMemo(() => {
-    const isOnly2026 = tahunFilter === '2026' || tahunFilter === 'all';
-    return isOnly2026 ? BULAN_FILTER_OPTIONS_2026 : BULAN_FILTER_OPTIONS_ALL;
-  }, [tahunFilter]);
+  const bulanOptions = BULAN_FILTER_OPTIONS_ALL;
 
   // Filtered dataset
   const filteredInflows = useMemo(() => {
