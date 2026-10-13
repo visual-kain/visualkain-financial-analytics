@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
+import { useInitOnce } from '@/hooks/useInitOnce';
+import { useBeforeUnloadGuard } from '@/hooks/useBeforeUnloadGuard';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import {
@@ -15,6 +18,8 @@ import {
   deriveCustomerJenis,
 } from '@/lib/payment-ledger';
 import { formatRupiah, cn } from '@/lib/utils';
+import { deriveEditableInvoice, computeEditableNet, deriveVendorPaid } from '@/lib/calculations';
+import { resolveVendorRef, isPlaceholderVendorName } from '@/lib/vendor-ref';
 import {
   DEFAULT_VENDOR_OPTIONS,
   DEFAULT_PAYMENT_CHANNELS,
@@ -40,7 +45,7 @@ export default function OrderEditFinancePage() {
   const router = useRouter();
   const orderId = params.id as string;
 
-  const { orders, vendors, updateOrderFinance } = useFirebaseFinance();
+  const { orders, vendors, syncState, updateOrderFinance } = useFirebaseFinance();
 
   const currentOrder = useMemo(() => {
     return orders.find((o) => o.id === orderId || o.noInv === orderId);
@@ -48,9 +53,11 @@ export default function OrderEditFinancePage() {
 
   const [totalInvoice, setTotalInvoice] = useState<number>(0);
   const [diskon, setDiskon] = useState<number>(0);
+  const [biayaTambahanCustomer, setBiayaTambahanCustomer] = useState<number>(0);
   const [biayaOperasional, setBiayaOperasional] = useState<number>(0);
 
-  const [vendorNama, setVendorNama] = useState<string>('AMRIN');
+  const [vendorNama, setVendorNama] = useState<string>('');
+  const [vendorTouched, setVendorTouched] = useState<boolean>(false);
   const [totalBiayaVendor, setTotalBiayaVendor] = useState<number>(0);
   const [dpVendor, setDpVendor] = useState<number>(0);
   const [catatanFinance, setCatatanFinance] = useState<string>('');
@@ -63,24 +70,22 @@ export default function OrderEditFinancePage() {
   });
 
   const [isDirty, setIsDirty] = useState<boolean>(false);
+  useBeforeUnloadGuard(isDirty);
   const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  useEffect(() => {
+  useInitOnce(currentOrder?.id, () => {
     if (currentOrder) {
-      const currentDiskon = currentOrder.diskon || 0;
-      const grossTagihan =
-        currentOrder.grossTotal !== undefined && Number(currentOrder.grossTotal) > 0
-          ? Number(currentOrder.grossTotal)
-          : (currentOrder.totalInvoice || 0) + currentDiskon;
-      const netTagihan = Math.max(0, grossTagihan - currentDiskon);
+      const editable = deriveEditableInvoice(currentOrder);
+      const netTagihan = computeEditableNet(editable.gross, editable.diskon, editable.biayaTambahanCustomer);
 
-      setTotalInvoice(grossTagihan);
-      setDiskon(currentDiskon);
+      setTotalInvoice(editable.gross);
+      setDiskon(editable.diskon);
+      setBiayaTambahanCustomer(editable.biayaTambahanCustomer);
       setBiayaOperasional(currentOrder.biayaOperasional || 0);
-      setVendorNama(currentOrder.vendorName || 'AMRIN');
+      setVendorNama(isPlaceholderVendorName(currentOrder.vendorName) ? '' : currentOrder.vendorName || '');
       setTotalBiayaVendor(currentOrder.totalHpp || 0);
-      setDpVendor(currentOrder.totalDibayarKeVendor || 0);
+      setDpVendor(deriveVendorPaid(currentOrder));
       setCatatanFinance(currentOrder.catatanFinance || '');
 
       const rawPayments: CustomerPayment[] =
@@ -129,7 +134,7 @@ export default function OrderEditFinancePage() {
       });
       setIsDirty(false);
     }
-  }, [currentOrder]);
+  }, { skip: isDirty });
 
   const accountOptions = useMemo(
     () =>
@@ -158,14 +163,14 @@ export default function OrderEditFinancePage() {
       if (
         o.vendorName &&
         o.vendorName.trim() &&
-        o.vendorName !== '-' &&
+        !isPlaceholderVendorName(o.vendorName) &&
         !list.some((opt) => opt.value.toLowerCase() === o.vendorName!.toLowerCase())
       ) {
         list.push({ value: o.vendorName, label: o.vendorName, badge: 'Order Aktif' });
       }
     });
 
-    if (currentOrder?.vendorName && currentOrder.vendorName.trim() && currentOrder.vendorName !== '-') {
+    if (currentOrder?.vendorName && !isPlaceholderVendorName(currentOrder.vendorName)) {
       if (!list.some((opt) => opt.value.toLowerCase() === currentOrder.vendorName!.toLowerCase())) {
         list.push({ value: currentOrder.vendorName, label: currentOrder.vendorName, badge: 'Saat Ini' });
       }
@@ -188,7 +193,7 @@ export default function OrderEditFinancePage() {
     return ledgerRows;
   }, [ledgerDraft, ledgerRows]);
 
-  const netInvoice = Math.max(0, totalInvoice - diskon);
+  const netInvoice = computeEditableNet(totalInvoice, diskon, biayaTambahanCustomer);
   const nominalDpCustomer = useMemo(() => {
     return effectiveEntries.reduce((acc, p) => acc + (Number(p.nominal) || 0), 0);
   }, [effectiveEntries]);
@@ -241,10 +246,8 @@ export default function OrderEditFinancePage() {
 
     try {
       setIsSaving(true);
-      const matchedVendor = vendors.find(
-        (v) => v.nama.toLowerCase() === vendorNama.toLowerCase() || v.id === vendorNama
-      );
-      const vendorId = matchedVendor ? matchedVendor.id : (currentOrder.vendorId || vendorNama);
+      // Field vendor hanya ditulis bila diubah, supaya snapshot vendors yang belum tiba tidak menghapus vendorId yang sah.
+      const vendorPatch = vendorTouched ? resolveVendorRef(vendorNama, vendors) : {};
 
       let running = 0;
       const updatedPayments: CustomerPayment[] = effectiveEntries.map((row, idx) => {
@@ -281,10 +284,7 @@ export default function OrderEditFinancePage() {
         hppAktual: totalBiayaVendor,
         profitAktual: netProfit,
         targetMargin: netProfit,
-        dpNominalPO: dpVendor,
-        totalDibayarKeVendor: dpVendor,
-        vendorName: vendorNama,
-        vendorId,
+        ...vendorPatch,
         catatanFinance,
         isManualFinanceOverride: true,
         statusPembayaran:
@@ -316,9 +316,25 @@ export default function OrderEditFinancePage() {
     return (
       <div className="min-h-screen bg-[#E8ECF2] p-4 sm:p-6 flex flex-col items-center justify-center">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 max-w-md w-full text-center shadow-card-double">
-          <Clock className="h-10 w-10 text-teal-600 animate-spin mx-auto mb-3" />
-          <h3 className="text-base font-bold text-slate-800">Memuat Data Finansial Order...</h3>
-          <p className="text-xs text-slate-500 mt-1">Mengambil rincian invoice {orderId} dari Firestore</p>
+          {syncState === 'connecting' ? (
+            <>
+              <Clock className="h-10 w-10 text-teal-600 animate-spin mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-800">Memuat Data Finansial Order...</h3>
+              <p className="text-xs text-slate-500 mt-1">Mengambil rincian invoice {orderId} dari Firestore</p>
+            </>
+          ) : (
+            <>
+              <AlertTriangle className="h-10 w-10 text-amber-600 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-800">
+                {syncState === 'error' ? 'Gagal memuat data dari Firestore' : 'Pesanan tidak ditemukan'}
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                {syncState === 'error'
+                  ? 'Periksa koneksi lalu muat ulang halaman.'
+                  : `Invoice ${orderId} tidak ada atau berada di luar periode pembukuan (mulai 1 Oktober 2026).`}
+              </p>
+            </>
+          )}
           <button
             type="button"
             onClick={() => router.push('/')}
@@ -429,7 +445,11 @@ export default function OrderEditFinancePage() {
                     }}
                     className="h-11 text-xs font-semibold"
                   />
-                  <span className="text-[11px] text-slate-500 mt-1 block">Sebelum potongan diskon</span>
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    {biayaTambahanCustomer > 0
+                      ? `Sebelum diskon. Net sudah termasuk biaya tambahan customer ${formatRupiah(biayaTambahanCustomer)}`
+                      : 'Sebelum potongan diskon'}
+                  </span>
                 </div>
 
                 <div>
@@ -493,6 +513,7 @@ export default function OrderEditFinancePage() {
                     value={vendorNama}
                     onValueChange={(val) => {
                       setVendorNama(val);
+                      setVendorTouched(true);
                       setIsDirty(true);
                     }}
                     options={vendorOptions}
@@ -515,16 +536,14 @@ export default function OrderEditFinancePage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">DP Diserahkan ke Vendor (Rp)</label>
-                  <CurrencyInput
-                    value={dpVendor}
-                    onValueChange={(val: number) => {
-                      setDpVendor(val);
-                      setIsDirty(true);
-                    }}
-                    className="h-11 text-xs font-semibold"
-                  />
-                  <span className="text-[11px] text-slate-500 mt-1 block">Dana nyata keluar dari kas</span>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Sudah Dibayar ke Vendor (Rp)</label>
+                  <CurrencyInput value={dpVendor} onValueChange={() => undefined} disabled className="h-11 text-xs font-semibold" />
+                  <Link
+                    href={`/cash-out/new?mode=vendor&orderId=${encodeURIComponent(currentOrder.id)}`}
+                    className="text-[11px] font-semibold text-rose-700 underline-offset-2 hover:underline mt-1 inline-block"
+                  >
+                    Total dari riwayat pembayaran vendor. Kelola di Dana Keluar
+                  </Link>
                 </div>
               </div>
 

@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { buildCashInflowEntries, collectYearOptions } from '@/lib/cash-ledger';
 import {
   cn,
   formatRupiah,
@@ -123,85 +124,18 @@ export function CashInflowSection({
     }
   }, [activeTahun]);
 
-  const rawInflows: CashInflowEntry[] = useMemo(() => {
-    const list: CashInflowEntry[] = [];
+  const rawInflows: CashInflowEntry[] = useMemo(
+    () => buildCashInflowEntries(orders, cashTransactions),
+    [orders, cashTransactions]
+  );
 
-    orders.forEach((order) => {
-      if (order.tanggalOrder && order.tanggalOrder < '2026-10-01') return;
-
-      if (Array.isArray(order.pembayaranList) && order.pembayaranList.length > 0) {
-        order.pembayaranList.forEach((p, idx) => {
-          const tgl = p.tanggal || order.tanggalOrder || '2026-10-01';
-          if (p.nominal > 0 && tgl >= '2026-10-01') {
-            let catType: InflowCategoryType = 'termin';
-            if (p.jenis === 'dp' || idx === 0) catType = 'dp';
-            if (p.jenis === 'pelunasan') catType = 'pelunasan';
-
-            list.push({
-              id: p.id || `pay-${order.id}-${idx}`,
-              tanggal: tgl,
-              sumber: 'order',
-              jenis: catType,
-              noInv: order.noInv,
-              orderId: order.id,
-              customerName: order.customerName || order.namaCustomer || 'Customer',
-              projectName: order.projectName || order.namaProject || '-',
-              keterangan: p.keterangan || (catType === 'dp' ? 'Pembayaran DP 1' : catType === 'pelunasan' ? 'Pelunasan Order' : 'Pembayaran Termin'),
-              nominal: p.nominal,
-              rawOrder: order,
-            });
-          }
-        });
-      } else if (order.totalUangMasukCustomer > 0) {
-        const totalTagihan = order.totalInvoice || order.totalJumlah || 0;
-        const isLunas = order.statusPembayaran === 'lunas' || (totalTagihan > 0 && order.totalUangMasukCustomer >= totalTagihan);
-        const dpPersen = totalTagihan > 0 ? (order.totalUangMasukCustomer / totalTagihan) * 100 : (order.dpPersenCustomer || 0);
-        const isTermin70 = dpPersen >= 70;
-        const catType: InflowCategoryType = isLunas ? 'pelunasan' : isTermin70 ? 'termin' : 'dp';
-
-        list.push({
-          id: `pay-${order.id}-single`,
-          tanggal: order.tanggalOrder || '2026-10-01',
-          sumber: 'order',
-          jenis: catType,
-          noInv: order.noInv,
-          orderId: order.id,
-          customerName: order.customerName || order.namaCustomer || 'Customer',
-          projectName: order.projectName || order.namaProject || '-',
-          keterangan: `Pembayaran ${catType === 'pelunasan' ? 'Pelunasan 30%' : catType === 'termin' ? 'Termin 70% Produksi' : 'DP 1 Booking'} Konsumen`,
-          nominal: order.totalUangMasukCustomer,
-          rawOrder: order,
-        });
-      }
-    });
-
-    cashTransactions.forEach((tx) => {
-      if (tx.tipe === 'masuk' && tx.kategori !== 'Penerimaan Konsumen' && (!tx.tanggal || tx.tanggal >= '2026-10-01')) {
-        list.push({
-          id: tx.id,
-          tanggal: tx.tanggal,
-          sumber: 'manual',
-          jenis: 'kas_masuk',
-          noInv: tx.refInvoice || '-',
-          orderId: tx.orderId,
-          customerName: tx.kategori || 'Penerimaan Kas',
-          projectName: '-',
-          keterangan: tx.keterangan || 'Kas Masuk Non-Order',
-          nominal: tx.nominal,
-        });
-      }
-    });
-
-    list.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-    return list;
-  }, [orders, cashTransactions]);
-
-  const yearOptions = useMemo(() => {
-    const set = new Set<string>(['2026']);
-    rawInflows.forEach((e) => e.tanggal && e.tanggal >= '2026-10-01' && set.add(e.tanggal.slice(0, 4)));
-    const sorted = [...set].sort().reverse();
-    return [{ value: 'all', label: 'Semua Tahun' }, ...sorted.map((y) => ({ value: y, label: y }))];
-  }, [rawInflows]);
+  const yearOptions = useMemo(
+    () => [
+      { value: 'all', label: 'Semua Tahun' },
+      ...collectYearOptions(orders, cashTransactions).map((y) => ({ value: y, label: y })),
+    ],
+    [orders, cashTransactions]
+  );
 
   const bulanOptions = BULAN_FILTER_OPTIONS_ALL;
 
@@ -521,7 +455,7 @@ export function CashInflowSection({
       {/* 2. Visual Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart A: Daily Trend Bar Chart */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-card-double">
+        <div className="lg:col-span-2 flex flex-col rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-card-double">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-4">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-emerald-600" />
@@ -537,16 +471,18 @@ export function CashInflowSection({
             )}
           </div>
 
-          <div className="h-56 w-full">
+          {/* Grafik mengisi sisa tinggi kartu agar sejajar dengan kartu piutang di sebelahnya. */}
+          <div className="min-h-56 w-full flex-1">
             {dailyTrendData.length === 0 ? (
               <div className="h-full flex items-center justify-center text-xs text-slate-400">
                 Belum ada data transaksi pemasukan pada periode ini
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={dailyTrendData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                   <XAxis dataKey="tanggal" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
                   <YAxis
+                    width={68}
                     tickLine={false}
                     axisLine={false}
                     tick={{ fontSize: 10, fill: '#64748b' }}

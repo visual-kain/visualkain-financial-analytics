@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
+import { formatRupiah, formatCompactRupiah, cn, normalizeWaNumber } from '@/lib/utils';
 import { buildCashOutflowEntries } from '@/lib/financial-calculator';
+import { matchPeriod, type CashPeriod } from '@/lib/cash-ledger';
 import type {
   Order,
   CashTransaction,
@@ -39,6 +40,10 @@ interface MetricDetailDrawerProps {
   summary: FinancialSummary;
   orders: Order[];
   transactions: CashTransaction[];
+  /** Sumber daftar Dana Masuk/Keluar (cash basis): semua order dan kas, difilter per tanggal entri. */
+  cashOrders?: Order[];
+  cashTransactions?: CashTransaction[];
+  cashPeriod?: CashPeriod;
   saldoAwal?: number;
   initialVendorFilter?: string | null;
   onOpenAddIncome?: () => void;
@@ -53,6 +58,9 @@ export function MetricDetailDrawer({
   summary,
   orders,
   transactions,
+  cashOrders,
+  cashTransactions,
+  cashPeriod,
   saldoAwal = 0,
   initialVendorFilter = null,
   onOpenAddIncome,
@@ -131,7 +139,7 @@ export function MetricDetailDrawer({
       }
 
       if (metricType === 'omzet') {
-        const isLunas = o.statusPembayaran === 'lunas' || o.totalUangMasukCustomer >= o.totalInvoice;
+        const isLunas = o.totalInvoice - o.totalUangMasukCustomer <= 0;
         if (statusFilter === 'lunas') return isLunas;
         if (statusFilter === 'berjalan') return !isLunas;
       }
@@ -140,9 +148,14 @@ export function MetricDetailDrawer({
     });
   }, [orders, searchQuery, selectedVendorFilter, statusFilter, metricType]);
 
+  const inPeriod = (tanggal: string | undefined) =>
+    !cashPeriod || matchPeriod(tanggal, cashPeriod.bulan, cashPeriod.tahun);
+  const flowOrders = cashOrders ?? orders;
+  const flowTransactions = cashTransactions ?? transactions;
+
   const allOutflowEntries: CashOutflowEntry[] = useMemo(() => {
-    return buildCashOutflowEntries(orders, transactions);
-  }, [orders, transactions]);
+    return buildCashOutflowEntries(flowOrders, flowTransactions).filter((e) => inPeriod(e.tanggal));
+  }, [flowOrders, flowTransactions, cashPeriod?.bulan, cashPeriod?.tahun]);
 
   const filteredOutflows = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -189,7 +202,7 @@ export function MetricDetailDrawer({
       keterangan: string;
     }> = [];
 
-    orders.forEach((o) => {
+    flowOrders.forEach((o) => {
       if (o.pembayaranList && o.pembayaranList.length > 0) {
         o.pembayaranList.forEach((p, idx) => {
           if (!p.nominal || p.nominal <= 0) return;
@@ -233,7 +246,7 @@ export function MetricDetailDrawer({
       }
     });
 
-    transactions.forEach((tx) => {
+    flowTransactions.forEach((tx) => {
       if (tx.tipe === 'masuk' && tx.kategori !== 'Penerimaan Konsumen') {
         list.push({
           id: tx.id,
@@ -250,8 +263,8 @@ export function MetricDetailDrawer({
       }
     });
 
-    return list.sort((a, b) => (b.tanggal > a.tanggal ? 1 : -1));
-  }, [orders, transactions]);
+    return list.filter((item) => inPeriod(item.tanggal)).sort((a, b) => (b.tanggal > a.tanggal ? 1 : -1));
+  }, [flowOrders, flowTransactions, cashPeriod?.bulan, cashPeriod?.tahun]);
 
   const filteredInflows = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -303,7 +316,7 @@ export function MetricDetailDrawer({
       badge: summary.saldoKasRiil < 0 ? 'Defisit Kas Periode' : 'Kas Bank Riil',
       badgeColor: summary.saldoKasRiil < 0 ? 'bg-rose-50 text-rose-700 border-rose-200 font-bold' : 'bg-teal-50 text-teal-700 border-teal-200',
       totalValue: summary.saldoKasRiil,
-      subtitle: `Saldo Awal: ${formatCompactRupiah(saldoAwal)} • Kas Masuk: ${formatCompactRupiah(summary.totalKasMasuk)}`,
+      subtitle: `Saldo Awal Periode: ${formatCompactRupiah(saldoAwal)} • Kas Masuk: ${formatCompactRupiah(summary.totalKasMasuk)}`,
       formula: 'Saldo Kas = (Saldo Awal + Total Uang Masuk) - (Bayar Vendor + Beban Operasional)',
       formulaDesc:
         'Posisi kas nyata yang tersedia di rekening bank. Mengikuti prinsip alokasi dana agar uang operasional dan titipan pokok vendor terpisah.',
@@ -420,10 +433,9 @@ export function MetricDetailDrawer({
   };
 
   // Helper WhatsApp generator
-  const getWhatsAppLink = (order: Order) => {
-    const cleanPhone = (order.noWaCustomer || '08123456789')
-      .replace(/[^0-9]/g, '')
-      .replace(/^0/, '62');
+  const getWhatsAppLink = (order: Order): string | null => {
+    const cleanPhone = normalizeWaNumber(order.noWaCustomer);
+    if (!cleanPhone) return null;
     const sisa = Math.max(0, order.totalInvoice - order.totalUangMasukCustomer);
     const dpPersen = order.totalInvoice > 0 ? (order.totalUangMasukCustomer / order.totalInvoice) * 100 : 0;
 
@@ -824,7 +836,7 @@ export function MetricDetailDrawer({
                   <div className="space-y-3">
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2 text-xs">
                       <div className="flex justify-between items-center text-slate-600">
-                        <span>1. Saldo Awal Pembukuan Bank</span>
+                        <span>1. Saldo Awal Periode (akumulasi sejak 1 Okt 2026)</span>
                         <span className="font-bold text-slate-900 tabular-nums font-mono">
                           {formatRupiah(saldoAwal)}
                         </span>
@@ -1021,7 +1033,17 @@ export function MetricDetailDrawer({
                                   {o.statusOrder || 'PRODUKSI'}
                                 </span>
 
-                                {metricType === 'outstanding' && sisaPiutang > 0 && (
+                                {metricType === 'outstanding' && sisaPiutang > 0 && !waLink && (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-500"
+                                    title="Nomor WA customer belum diisi"
+                                  >
+                                    <MessageCircle className="h-3 w-3" />
+                                    <span className="hidden sm:inline">Nomor WA belum diisi</span>
+                                  </span>
+                                )}
+
+                                {metricType === 'outstanding' && sisaPiutang > 0 && waLink && (
                                   <a
                                     href={waLink}
                                     target="_blank"

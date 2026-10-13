@@ -13,6 +13,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface VendorPerformanceSectionProps {
   vendors?: VendorPerformanceItem[];
@@ -26,153 +27,12 @@ interface VendorPerformanceSectionProps {
   tanpaOrder?: Array<{ vendorId: string; vendorNama: string }>;
 }
 
-const defaultCheapest: CheapestByCategory[] = [
-  { kategori: 'Hoodie', vendorNama: 'CITITEX', avgCost: 176000 },
-  { kategori: 'Jaket', vendorNama: 'FJ MERCHANDISE', avgCost: 175469 },
-  { kategori: 'Jersey', vendorNama: 'FJ MERCHANDISE', avgCost: 70833 },
-  { kategori: 'Kemeja PDH', vendorNama: 'CAHAYA BORDIR', avgCost: 92059 },
-  { kategori: 'Kemeja PDL', vendorNama: 'CAHAYA BORDIR', avgCost: 136667 },
-  { kategori: 'Kemeja Workshirt', vendorNama: 'CAHAYA BORDIR', avgCost: 110000 },
-  { kategori: 'Polo Shirt', vendorNama: 'CAHAYA BORDIR', avgCost: 63268 },
-  { kategori: 'T Shirt', vendorNama: 'AMRIN', avgCost: 54335 },
-  { kategori: 'Topi', vendorNama: 'VENDOR TOPI PK UCI', avgCost: 30000 },
-];
-
-const defaultVendors: VendorPerformanceItem[] = [
-  {
-    vendorId: 'v-1',
-    vendorNama: 'AMRIN',
-    orderCount: 11,
-    pcsTotal: 462,
-    avgLenganPendek: 60000,
-    avgLenganPanjang: 63571,
-    avgTanpaLengan: 0,
-    hppQuotation: 26840000,
-    hppAktual: 26840000,
-    selisihQuotation: 0,
-    profit: 9266000,
-    marginPercent: 25.6,
-  },
-  {
-    vendorId: 'v-2',
-    vendorNama: 'LAJUWARNA',
-    orderCount: 8,
-    pcsTotal: 169,
-    avgLenganPendek: 71250,
-    avgLenganPanjang: 81100,
-    avgTanpaLengan: 73500,
-    hppQuotation: 12670500,
-    hppAktual: 12670500,
-    selisihQuotation: 0,
-    profit: 5405500,
-    marginPercent: 30.0,
-  },
-  {
-    vendorId: 'v-3',
-    vendorNama: 'FJ MERCHANDISE',
-    orderCount: 7,
-    pcsTotal: 163,
-    avgLenganPendek: 85000,
-    avgLenganPanjang: 92500,
-    avgTanpaLengan: 0,
-    hppQuotation: 16995000,
-    hppAktual: 16995000,
-    selisihQuotation: 0,
-    profit: 5467000,
-    marginPercent: 24.2,
-  },
-  {
-    vendorId: 'v-4',
-    vendorNama: 'Vendor Wisnu',
-    orderCount: 5,
-    pcsTotal: 102,
-    avgLenganPendek: 120000,
-    avgLenganPanjang: 166667,
-    avgTanpaLengan: 0,
-    hppQuotation: 13395000,
-    hppAktual: 13395000,
-    selisihQuotation: 0,
-    profit: 5590000,
-    marginPercent: 29.3,
-  },
-  {
-    vendorId: 'v-5',
-    vendorNama: 'CAHAYA BORDIR',
-    orderCount: 5,
-    pcsTotal: 289,
-    avgLenganPendek: 115500,
-    avgLenganPanjang: 100667,
-    avgTanpaLengan: 0,
-    hppQuotation: 20705000,
-    hppAktual: 20705000,
-    selisihQuotation: 0,
-    profit: 4393000,
-    marginPercent: 17.4,
-  },
-  {
-    vendorId: 'v-6',
-    vendorNama: "INDI'S COLLECTION",
-    orderCount: 2,
-    pcsTotal: 20,
-    avgLenganPendek: 135000,
-    avgLenganPanjang: 145000,
-    avgTanpaLengan: 320000,
-    hppQuotation: 2915000,
-    hppAktual: 2915000,
-    selisihQuotation: 0,
-    profit: 75000,
-    marginPercent: 2.0,
-  },
-  {
-    vendorId: 'v-7',
-    vendorNama: 'VENDOR TOPI PK UCI',
-    orderCount: 1,
-    pcsTotal: 20,
-    avgLenganPendek: 30000,
-    avgLenganPanjang: 0,
-    avgTanpaLengan: 0,
-    hppQuotation: 600000,
-    hppAktual: 600000,
-    selisihQuotation: 0,
-    profit: 600000,
-    marginPercent: 50.0,
-  },
-  {
-    vendorId: 'v-8',
-    vendorNama: 'FITRA F',
-    orderCount: 1,
-    pcsTotal: 16,
-    avgLenganPendek: 130000,
-    avgLenganPanjang: 0,
-    avgTanpaLengan: 0,
-    hppQuotation: 2100000,
-    hppAktual: 2100000,
-    selisihQuotation: 0,
-    profit: 220000,
-    marginPercent: 9.1,
-  },
-  {
-    vendorId: 'v-9',
-    vendorNama: 'CITITEX',
-    orderCount: 1,
-    pcsTotal: 1,
-    avgLenganPendek: 0,
-    avgLenganPanjang: 176000,
-    avgTanpaLengan: 0,
-    hppQuotation: 176000,
-    hppAktual: 176000,
-    selisihQuotation: 0,
-    profit: 54000,
-    marginPercent: 23.0,
-  },
-];
-
 export function VendorPerformanceSection({
-  vendors = defaultVendors,
-  cheapestList = defaultCheapest,
-  mostUsedVendor = { nama: 'AMRIN', orderCount: 11, pcsTotal: 462 },
+  vendors = [],
+  cheapestList = [],
+  mostUsedVendor,
   cheapestBySleeve,
-  tanpaOrder = [{ vendorId: 'mQKvwQPf4eXLin4aaK9z', vendorNama: 'HARMONY INDUSTRY' }],
+  tanpaOrder = [],
 }: VendorPerformanceSectionProps) {
   const [sortField, setSortField] = useState<keyof VendorPerformanceItem>('orderCount');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -376,6 +236,9 @@ export function VendorPerformanceSection({
           Gunakan sebagai acuan rujukan quotation saat menawarkan harga ke konsumen baru
         </p>
 
+        {cheapestList.length === 0 && (
+          <EmptyState title="Belum ada data harga vendor di periode ini" className="h-auto" />
+        )}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {cheapestList.map((item, idx) => (
             <div

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Pencil, Plus, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -15,6 +15,9 @@ import {
   summarizeLedger,
   validateEntryNominal,
   normalizeLedger,
+  resolveEditTarget,
+  isAutoLabel,
+  isUnitemizedPaymentId,
   TARGET_DP_PERCENT,
 } from '@/lib/payment-ledger';
 
@@ -94,22 +97,6 @@ function formatKeterangan(rekening: string, catatan: string): string {
   return cleanCat ? `${cleanRek} - ${cleanCat}` : cleanRek;
 }
 
-function findTargetEditRow(rows: LedgerRow[], targetId: string): LedgerRow | undefined {
-  const exact = rows.find((e) => e.id === targetId);
-  if (exact) return exact;
-  if (targetId.endsWith('-single') || targetId.startsWith('vp-rem-') || targetId.endsWith('-init')) {
-    return rows.find((e) => e.id.endsWith('-init')) || rows[0];
-  }
-  const idxMatch = targetId.match(/-(?:p-)?(\d+)$/);
-  if (idxMatch) {
-    const n = Number(idxMatch[1]);
-    if (rows[n]) return rows[n];
-    if (n > 0 && rows[n - 1]) return rows[n - 1];
-  }
-  if (rows.length === 1) return rows[0];
-  return undefined;
-}
-
 export function PaymentLedgerPanel({
   variant,
   totalTagihan,
@@ -136,7 +123,8 @@ export function PaymentLedgerPanel({
   const [catatan, setCatatan] = useState<string>('');
   const [label, setLabel] = useState<string>('');
   const [labelTouched, setLabelTouched] = useState<boolean>(false);
-  const [userTouchedDraft, setUserTouchedDraft] = useState<boolean>(false);
+  const [editTargetMissing, setEditTargetMissing] = useState<boolean>(false);
+  const consumedEditIdRef = useRef<string | null>(null);
 
   const effectiveAccountOptions = useMemo<ReadonlyArray<AccountOption>>(() => {
     if (accountOptions.some((a) => a.value === '')) return accountOptions;
@@ -210,7 +198,6 @@ export function PaymentLedgerPanel({
     setCatatan('');
     setLabel('');
     setLabelTouched(false);
-    setUserTouchedDraft(false);
     setRekening(defaultRekening);
     setTanggal(defaultTanggal);
   };
@@ -249,26 +236,29 @@ export function PaymentLedgerPanel({
     setRekening(parts.rekening);
     setCatatan(parts.catatan);
     setLabel(row.label);
-    setLabelTouched(true);
+    setLabelTouched(!isAutoLabel(row.label));
     setIsFormOpen(true);
     focusNominalInput();
   };
 
+  // Edit dari tabel dibuka sekali per ID; baris yang berubah setelahnya tidak boleh membuka form lagi.
   useEffect(() => {
-    if (!initialEditId || entries.length === 0 || userTouchedDraft) return;
-    const target = findTargetEditRow(entries, initialEditId);
+    if (!initialEditId || entries.length === 0 || consumedEditIdRef.current === initialEditId) return;
+    consumedEditIdRef.current = initialEditId;
+    const target = resolveEditTarget(entries, initialEditId);
     if (target) {
-      const parts = splitKeterangan(target.keterangan, accountOptions, defaultRekening);
-      setEditingId(target.id);
-      setTanggal(target.tanggal);
-      setNominal(target.nominal);
-      setRekening(parts.rekening);
-      setCatatan(parts.catatan);
-      setLabel(target.label);
-      setLabelTouched(true);
-      setIsFormOpen(true);
+      startEdit(target);
+    } else {
+      setEditTargetMissing(true);
     }
-  }, [initialEditId, entries, accountOptions, defaultRekening, userTouchedDraft]);
+  }, [initialEditId, entries]);
+
+  // Enter di input baris menambah/memperbarui baris panel, bukan men-submit form halaman.
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' || (e.target as HTMLElement).tagName !== 'INPUT') return;
+    e.preventDefault();
+    handleSubmit();
+  };
 
   const removeRow = (id: string) => {
     if (editingId === id) resetForm();
@@ -393,8 +383,14 @@ export function PaymentLedgerPanel({
       </div>
 
       {/* Form baris */}
+      {editTargetMissing && (
+        <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
+          Transaksi tidak ditemukan, mungkin sudah diubah atau dihapus. Pilih baris di daftar bawah untuk mengedit.
+        </div>
+      )}
+
       {isFormOpen && !isFormHidden && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3.5">
+        <div onKeyDown={handleFormKeyDown} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3.5">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-xs font-bold text-slate-900">
               {editingRow ? `Edit ${copy.rowNoun} ke-${terminKe}` : `${copy.rowNoun === 'termin' ? 'Termin' : 'Pembayaran'} ke-${terminKe}`}
@@ -423,7 +419,6 @@ export function PaymentLedgerPanel({
                 value={tanggal}
                 onChange={(e) => {
                   setTanggal(e.target.value);
-                  setUserTouchedDraft(true);
                 }}
                 className={inputBase}
               />
@@ -437,7 +432,6 @@ export function PaymentLedgerPanel({
                 value={nominal}
                 onValueChange={(val) => {
                   setNominal(val);
-                  setUserTouchedDraft(true);
                 }}
                 placeholder="Rp 0"
                 className="h-11 text-sm font-bold font-mono"
@@ -449,7 +443,6 @@ export function PaymentLedgerPanel({
                   disabled={sisaBoleh <= 0}
                   onClick={() => {
                     setNominal(sisaBoleh);
-                    setUserTouchedDraft(true);
                   }}
                   className="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
                 >
@@ -460,7 +453,6 @@ export function PaymentLedgerPanel({
                     type="button"
                     onClick={() => {
                       setNominal(Math.min(sisaBoleh, Math.max(0, summary.target70 - outstandingPaid(entries, editingId))));
-                      setUserTouchedDraft(true);
                     }}
                     className="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
                   >
@@ -479,7 +471,6 @@ export function PaymentLedgerPanel({
                 onChange={(e) => {
                   setLabel(e.target.value);
                   setLabelTouched(true);
-                  setUserTouchedDraft(true);
                 }}
                 className={inputBase}
               />
@@ -491,7 +482,6 @@ export function PaymentLedgerPanel({
                     onClick={() => {
                       setLabel(chip);
                       setLabelTouched(true);
-                      setUserTouchedDraft(true);
                     }}
                     className={cn(
                       'inline-flex h-10 items-center rounded-lg border px-3 text-[11px] font-bold cursor-pointer',
@@ -510,7 +500,6 @@ export function PaymentLedgerPanel({
                 value={rekening}
                 onValueChange={(val) => {
                   setRekening(val);
-                  setUserTouchedDraft(true);
                 }}
                 options={effectiveAccountOptions.map((a) => ({ value: a.value, label: a.label, badge: a.badge }))}
                 className="h-11 w-full"
@@ -526,7 +515,6 @@ export function PaymentLedgerPanel({
               value={catatan}
               onChange={(e) => {
                 setCatatan(e.target.value);
-                setUserTouchedDraft(true);
               }}
               placeholder="Contoh: Transfer BCA, ref #8271"
               className={inputBase}
@@ -576,6 +564,11 @@ export function PaymentLedgerPanel({
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-xs font-bold text-slate-900 truncate">{row.terminKe}. {row.label}</div>
+                  {isUnitemizedPaymentId(row.id) && (
+                    <span className="mt-1 inline-flex rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
+                      Belum dirinci per termin
+                    </span>
+                  )}
                   <div className="text-[11px] text-slate-500">{row.tanggal}</div>
                 </div>
                 <div className="font-mono text-sm font-extrabold text-slate-900 tabular-nums shrink-0">{formatRupiah(row.nominal)}</div>
@@ -625,7 +618,14 @@ export function PaymentLedgerPanel({
                 <tr key={row.id} className={cn('hover:bg-slate-50/70', editingId === row.id && 'bg-amber-50/60')}>
                   <td className="px-4 py-3 font-mono font-bold text-slate-900">{row.terminKe}</td>
                   <td className="px-4 py-3 whitespace-nowrap font-medium">{row.tanggal}</td>
-                  <td className="px-4 py-3 font-semibold text-slate-900">{row.label}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-900">
+                    {row.label}
+                    {isUnitemizedPaymentId(row.id) && (
+                      <span className="ml-2 inline-flex rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 whitespace-nowrap">
+                        Belum dirinci per termin
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-slate-600 max-w-[280px] break-words">{row.keterangan || '-'}</td>
                   <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 tabular-nums">{formatRupiah(row.nominal)}</td>
                   {!disabled && (

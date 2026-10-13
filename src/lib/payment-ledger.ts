@@ -35,6 +35,40 @@ export function suggestTerminLabel(terminKe: number, settles: boolean, kind: Led
   return kind === 'customer' ? `DP ${terminKe}` : `Pembayaran ke-${terminKe}`;
 }
 
+// Label hasil saran sistem (termasuk pola lama dari hook); dihitung ulang dari urutan supaya tidak basi setelah baris dihapus.
+const AUTO_LABEL_PATTERN = /^(dp \d+|termin \d+|pembayaran ke-\d+|pelunasan)$/i;
+
+export function isAutoLabel(label: string | null | undefined): boolean {
+  const text = (label || '').trim();
+  return text === '' || AUTO_LABEL_PATTERN.test(text);
+}
+
+/** Label otomatis disimpan kosong; hanya label yang diketik user yang dipersist. */
+export function toPersistedLabel(label: string | null | undefined): string {
+  return isAutoLabel(label) ? '' : (label || '').trim();
+}
+
+/**
+ * Cari baris ledger untuk ID entri dari tabel Kas Masuk/Keluar.
+ * Hanya kecocokan persis atau alias deterministik; tidak pernah menebak dari posisi supaya tidak mengedit termin yang salah.
+ */
+export function resolveEditTarget<T extends LedgerEntry>(rows: ReadonlyArray<T>, targetId: string): T | null {
+  const exact = rows.find((r) => r.id === targetId);
+  if (exact) return exact;
+
+  const aliasId = tableIdAlias(targetId);
+  return aliasId ? rows.find((r) => r.id === aliasId) ?? null : null;
+}
+
+// Entri tabel tanpa ID pembayaran sendiri dipetakan ke baris awal yang dibuat halaman form (`*-init`).
+function tableIdAlias(targetId: string): string | null {
+  const customerSingle = /^pay-(.+)-single$/.exec(targetId);
+  if (customerSingle) return `pay-${customerSingle[1]}-init`;
+  const vendorAggregate = /^vp-(?:rem-)?(.+)$/.exec(targetId);
+  if (vendorAggregate) return `vp-${vendorAggregate[1]}-init`;
+  return null;
+}
+
 type CustomerJenis = 'dp' | 'termin' | 'pelunasan';
 
 /** Nilai `jenis` lama yang tetap diisi demi kompatibilitas data dan laporan. */
@@ -68,11 +102,10 @@ export function normalizeLedger<T extends LedgerEntry>(
     running += Number(entry.nominal) || 0;
     const terminKe = index + 1;
     const settles = total > 0 && running >= Math.round(total);
-    const hasCustomLabel = typeof entry.label === 'string' && entry.label.trim() !== '';
     return {
       ...entry,
       terminKe,
-      label: hasCustomLabel ? entry.label : suggestTerminLabel(terminKe, settles, kind),
+      label: isAutoLabel(entry.label) ? suggestTerminLabel(terminKe, settles, kind) : entry.label!.trim(),
     };
   });
 }
@@ -126,4 +159,21 @@ export function validateEntryNominal(
   if (sisaBoleh <= 0) return 'Pesanan sudah lunas, tidak ada sisa yang bisa dibayar';
   if (nominal > sisaBoleh) return `Nominal melebihi sisa ${formatRupiah(sisaBoleh)}`;
   return null;
+}
+
+/**
+ * Pembayaran hasil fallback data lama: `-dp-legacy` dari dpNominal/dpPersen VisualKainDB, atau baris `*-init` saat uang tercatat tanpa daftar termin.
+ * Hanya penanda tampilan; tidak mengubah perhitungan (F-10 K-3).
+ */
+export function isUnitemizedPaymentId(id: string): boolean {
+  return id.endsWith('-dp-legacy') || /^(pay|vp)-.+-init$/.test(id);
+}
+
+export function hasUnitemizedCustomerPayment(order: {
+  pembayaranList?: ReadonlyArray<{ id: string; nominal: number }>;
+  totalUangMasukCustomer?: number;
+}): boolean {
+  const list = order.pembayaranList || [];
+  if (list.length === 0) return Number(order.totalUangMasukCustomer || 0) > 0;
+  return list.some((p) => isUnitemizedPaymentId(p.id));
 }

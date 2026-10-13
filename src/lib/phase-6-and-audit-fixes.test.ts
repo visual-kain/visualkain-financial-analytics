@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateOrderTotals } from './calculations';
 import { calculateFinancialSummary, transformToMasterRows } from './financial-calculator';
-import { initialOrdersData, initialCashTransactions } from './seed-data';
+import { initialOrdersData, initialCashTransactions } from '@/test/fixtures/seed-data';
 import { Order, CashTransaction, FinanceSubTab } from '../types';
 
 describe('Phase 6 & Codebase Audit Fixes Verification', () => {

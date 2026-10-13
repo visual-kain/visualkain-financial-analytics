@@ -12,11 +12,36 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { calculateOrderTotals } from '@/lib/calculations';
-import { isFromFinanceStartDate } from '@/lib/constants';
-import { initialOrdersData, initialCashTransactions } from '@/lib/seed-data';
+import { isFromFinanceStartDate, todayInJakarta } from '@/lib/constants';
+import { toPersistedLabel } from '@/lib/payment-ledger';
 import type { Order, CashTransaction, CustomerPayment, CashOutflowCategory } from '@/types';
 
-export type SyncState = 'connecting' | 'live' | 'fallback' | 'error';
+export type SyncState = 'connecting' | 'live' | 'error';
+
+export type FinanceWriteOperation = 'updateOrder' | 'addKas' | 'updateKas' | 'deleteKas';
+
+/** Dilempar saat penulisan Firestore gagal; state lokal sudah dikembalikan ke nilai sebelum mutasi. */
+export class FinanceWriteError extends Error {
+  readonly operation: FinanceWriteOperation;
+
+  constructor(operation: FinanceWriteOperation, cause: unknown) {
+    super(cause instanceof Error ? cause.message : 'Penulisan Firestore gagal');
+    this.name = 'FinanceWriteError';
+    this.operation = operation;
+    this.cause = cause;
+  }
+}
+
+// Entri riwayat berlabel pinjaman bukan pembayaran customer: dikecualikan saat dibaca, tetapi wajib dipertahankan saat ditulis ulang.
+function isPinjamanEntry(p: { catatan?: unknown } | null | undefined): boolean {
+  return String(p?.catatan || '').toLowerCase().includes('pinjaman');
+}
+
+type ListenerName = 'orders' | 'kas' | 'vendors' | 'init';
+
+function sortKasDesc(list: CashTransaction[]): CashTransaction[] {
+  return [...list].sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+}
 
 interface VendorInfo {
   id: string;
@@ -31,38 +56,51 @@ interface UseFirebaseFinanceResult {
   syncState: SyncState;
   lastSyncAt: Date | null;
   error: string | null;
+  retry: () => void;
+  kasReady: boolean;
   updateOrderFinance: (
     orderId: string,
     data: Partial<Order> & {
       pembayaranList?: CustomerPayment[];
       vendorPrices?: { pendek: number; panjang: number; tanpaLengan: number };
     }
-  ) => Promise<boolean>;
+  ) => Promise<void>;
   addKas: (data: Omit<CashTransaction, 'id'>) => Promise<string>;
-  updateKas: (id: string, data: Partial<Omit<CashTransaction, 'id'>>) => Promise<boolean>;
+  updateKas: (id: string, data: Partial<Omit<CashTransaction, 'id'>>) => Promise<void>;
   deleteKas: (id: string) => Promise<void>;
 }
 
-export function useFirebaseFinance(
-  initialOrders: Order[] = initialOrdersData,
-  initialTransactions: CashTransaction[] = initialCashTransactions
-): UseFirebaseFinanceResult {
-  const [orders, setOrders] = useState<Order[]>(
-    (initialOrders.length > 0 ? initialOrders : initialOrdersData).filter((o) =>
-      isFromFinanceStartDate(o.tanggalOrder)
-    )
-  );
-  const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(
-    (initialTransactions.length > 0 ? initialTransactions : initialCashTransactions).filter((t) =>
-      isFromFinanceStartDate(t.tanggal)
-    )
-  );
+export function useFirebaseFinance(): UseFirebaseFinanceResult {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>([]);
+  const [subscriptionKey, setSubscriptionKey] = useState<number>(0);
+  const [kasReady, setKasReady] = useState<boolean>(false);
   const [vendors, setVendors] = useState<VendorInfo[]>([]);
-  const [syncState, setSyncState] = useState<SyncState>('connecting');
+  const [ordersLoaded, setOrdersLoaded] = useState<boolean>(false);
+  const [listenerErrors, setListenerErrors] = useState<Partial<Record<ListenerName, string>>>({});
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  // Status gabungan: satu listener gagal cukup untuk menandai error, supaya angka kas yang tidak lengkap tidak tampil sebagai live.
+  const errorMessages = Object.values(listenerErrors);
+  const syncState: SyncState = errorMessages.length > 0 ? 'error' : ordersLoaded ? 'live' : 'connecting';
+  const error = errorMessages[0] ?? null;
+  const markListenerOk = useCallback((name: ListenerName) => {
+    setListenerErrors((prev) => {
+      if (!(name in prev)) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
+  }, []);
+  const markListenerError = useCallback((name: ListenerName, message: string) => {
+    setListenerErrors((prev) => ({ ...prev, [name]: message }));
+  }, []);
 
   const vendorsMapRef = useRef<Map<string, string>>(new Map());
+  const ordersRef = useRef<Order[]>(orders);
+  ordersRef.current = orders;
+  const cashTransactionsRef = useRef<CashTransaction[]>(cashTransactions);
+  cashTransactionsRef.current = cashTransactions;
 
   useEffect(() => {
     let unsubscribeOrders: (() => void) | undefined;
@@ -83,9 +121,11 @@ export function useFirebaseFinance(
           });
           vendorsMapRef.current = map;
           setVendors(list);
+          markListenerOk('vendors');
         },
         (err) => {
-          console.warn('[Firebase] Listener vendors fallback:', err.message);
+          console.warn('[Firebase] Listener vendors gagal:', err.message);
+          markListenerError('vendors', err.message);
         }
       );
 
@@ -94,210 +134,205 @@ export function useFirebaseFinance(
       unsubscribeOrders = onSnapshot(
         ordersRef,
         (snapshot) => {
-          if (!snapshot.empty) {
-            const mappedOrders: Order[] = snapshot.docs.map((docSnap) => {
-              const d = docSnap.data();
-              const totals = calculateOrderTotals(d);
+          const mappedOrders: Order[] = snapshot.docs.map((docSnap) => {
+            const d = docSnap.data();
+            const totals = calculateOrderTotals(d);
 
-              const totalInv = totals.jumlahSemua;
-              const totalHpp = totals.totalHpp;
+            const totalInv = totals.jumlahSemua;
+            const totalHpp = totals.totalHpp;
 
-              // Prioritaskan nilai positif antara totalDibayarKeVendor dan dpNominalPO agar nilai 0 salah satu field tidak menimpa pembayaran vendor yang sah.
-              const rawPaidVendor = Number(d.totalDibayarKeVendor || 0);
-              const rawDpPo = Number(d.dpNominalPO || 0);
-              const dpVendor = Array.isArray(d.vendorPembayaranList) && d.totalDibayarKeVendor !== undefined
-                ? rawPaidVendor
-                : rawPaidVendor > 0
-                ? rawPaidVendor
-                : rawDpPo > 0
-                ? rawDpPo
-                : d.totalDibayarKeVendor !== undefined
-                ? rawPaidVendor
-                : Math.round(totalHpp * (Number(d.dpPersenPO || 0) / 100));
+            // Prioritaskan nilai positif antara totalDibayarKeVendor dan dpNominalPO agar nilai 0 salah satu field tidak menimpa pembayaran vendor yang sah.
+            const rawPaidVendor = Number(d.totalDibayarKeVendor || 0);
+            const rawDpPo = Number(d.dpNominalPO || 0);
+            const dpVendor = Array.isArray(d.vendorPembayaranList) && d.totalDibayarKeVendor !== undefined
+              ? rawPaidVendor
+              : rawPaidVendor > 0
+              ? rawPaidVendor
+              : rawDpPo > 0
+              ? rawDpPo
+              : d.totalDibayarKeVendor !== undefined
+              ? rawPaidVendor
+              : Math.round(totalHpp * (Number(d.dpPersenPO || 0) / 100));
 
-              const payments: CustomerPayment[] = [];
-              let hasModernPaymentRecord = false;
+            const payments: CustomerPayment[] = [];
+            let hasModernPaymentRecord = false;
 
-              const validPembayaranList = Array.isArray(d.pembayaranList)
-                ? d.pembayaranList.filter((p: any) => Number(p?.nominal || p?.jumlah || 0) > 0)
-                : [];
-              const validRiwayatList = Array.isArray(d.riwayatPembayaran)
-                ? d.riwayatPembayaran.filter((p: any) => {
-                    const nom = Number(p?.jumlah || p?.nominal || 0);
-                    const cat = String(p?.catatan || '').toLowerCase();
-                    return nom > 0 && !cat.includes('pinjaman');
-                  })
-                : [];
+            const validPembayaranList = Array.isArray(d.pembayaranList)
+              ? d.pembayaranList.filter((p: any) => Number(p?.nominal || p?.jumlah || 0) > 0)
+              : [];
+            const validRiwayatList = Array.isArray(d.riwayatPembayaran)
+              ? d.riwayatPembayaran.filter((p: any) => {
+                  const nom = Number(p?.jumlah || p?.nominal || 0);
+                  return nom > 0 && !isPinjamanEntry(p);
+                })
+              : [];
 
-              // Gunakan array pembayaran yang memiliki entri bernominal > 0 agar riwayatPembayaran: [] tidak mengabaikan pembayaranList yang terisi.
-              if (validPembayaranList.length > 0 && validPembayaranList.length >= validRiwayatList.length) {
-                hasModernPaymentRecord = true;
-                validPembayaranList.forEach((p: any, idx: number) => {
-                  const nominal = Number(p.nominal || p.jumlah || 0);
-                  payments.push({
-                    id: p.id || `${docSnap.id}-p-${idx}`,
-                    orderId: docSnap.id,
-                    noInv: d.noInv || 'INV',
-                    tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
-                    nominal,
-                    jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
-                    terminKe: typeof p.terminKe === 'number' ? p.terminKe : undefined,
-                    label: typeof p.label === 'string' ? p.label : undefined,
-                    keterangan: p.keterangan || p.catatan || 'Pembayaran Termin',
-                    createdAt: p.createdAt || new Date().toISOString(),
-                  });
+            // Gunakan array pembayaran yang memiliki entri bernominal > 0 agar riwayatPembayaran: [] tidak mengabaikan pembayaranList yang terisi.
+            if (validPembayaranList.length > 0 && validPembayaranList.length >= validRiwayatList.length) {
+              hasModernPaymentRecord = true;
+              validPembayaranList.forEach((p: any, idx: number) => {
+                const nominal = Number(p.nominal || p.jumlah || 0);
+                payments.push({
+                  id: p.id || `${docSnap.id}-p-${idx}`,
+                  orderId: docSnap.id,
+                  noInv: d.noInv || 'INV',
+                  tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
+                  nominal,
+                  jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
+                  terminKe: typeof p.terminKe === 'number' ? p.terminKe : undefined,
+                  label: typeof p.label === 'string' ? p.label : undefined,
+                  keterangan: p.keterangan || p.catatan || 'Pembayaran Termin',
+                  createdAt: p.createdAt || new Date().toISOString(),
                 });
-              } else if (validRiwayatList.length > 0) {
-                hasModernPaymentRecord = true;
-                validRiwayatList.forEach((p: any, idx: number) => {
-                  const nominal = Number(p.jumlah || p.nominal || 0);
-                  payments.push({
-                    id: `${docSnap.id}-p-${idx}`,
-                    orderId: docSnap.id,
-                    noInv: d.noInv || 'INV',
-                    tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
-                    nominal,
-                    jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
-                    terminKe: typeof p.terminKe === 'number' ? p.terminKe : undefined,
-                    label: typeof p.label === 'string' ? p.label : undefined,
-                    keterangan: p.catatan || (idx === 0 ? 'DP Pembayaran' : 'Pembayaran Termin'),
-                    createdAt: new Date().toISOString(),
-                  });
+              });
+            } else if (validRiwayatList.length > 0) {
+              hasModernPaymentRecord = true;
+              validRiwayatList.forEach((p: any, idx: number) => {
+                const nominal = Number(p.jumlah || p.nominal || 0);
+                payments.push({
+                  id: `${docSnap.id}-p-${idx}`,
+                  orderId: docSnap.id,
+                  noInv: d.noInv || 'INV',
+                  tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
+                  nominal,
+                  jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
+                  terminKe: typeof p.terminKe === 'number' ? p.terminKe : undefined,
+                  label: typeof p.label === 'string' ? p.label : undefined,
+                  keterangan: p.catatan || (idx === 0 ? 'DP Pembayaran' : 'Pembayaran Termin'),
+                  createdAt: new Date().toISOString(),
                 });
-              } else if (Array.isArray(d.riwayatPembayaran) || Array.isArray(d.pembayaranList)) {
-                hasModernPaymentRecord = true;
+              });
+            } else if (Array.isArray(d.riwayatPembayaran) || Array.isArray(d.pembayaranList)) {
+              hasModernPaymentRecord = true;
+            }
+
+            if (!hasModernPaymentRecord) {
+              const dp1 = Number(d.dp1Nominal || 0);
+              const dp2 = Number(d.dp2Nominal || 0);
+              const pelunasan = Number(d.pelunasanNominal || 0);
+              const legacyDp = Number(d.dpNominal || totals.nominalDP || 0);
+
+              if (dp1 > 0) {
+                payments.push({
+                  id: `${docSnap.id}-dp1`,
+                  orderId: docSnap.id,
+                  noInv: d.noInv || 'INV',
+                  tanggal: d.dp1Tanggal || d.tanggalInv || '2026-10-07',
+                  nominal: dp1,
+                  jenis: 'dp',
+                  keterangan: d.dp1Notes || 'DP 1 Transfer',
+                  createdAt: new Date().toISOString(),
+                });
               }
 
-              if (!hasModernPaymentRecord) {
-                const dp1 = Number(d.dp1Nominal || 0);
-                const dp2 = Number(d.dp2Nominal || 0);
-                const pelunasan = Number(d.pelunasanNominal || 0);
-                const legacyDp = Number(d.dpNominal || totals.nominalDP || 0);
-
-                if (dp1 > 0) {
-                  payments.push({
-                    id: `${docSnap.id}-dp1`,
-                    orderId: docSnap.id,
-                    noInv: d.noInv || 'INV',
-                    tanggal: d.dp1Tanggal || d.tanggalInv || '2026-10-07',
-                    nominal: dp1,
-                    jenis: 'dp',
-                    keterangan: d.dp1Notes || 'DP 1 Transfer',
-                    createdAt: new Date().toISOString(),
-                  });
-                }
-
-                if (dp2 > 0) {
-                  payments.push({
-                    id: `${docSnap.id}-dp2`,
-                    orderId: docSnap.id,
-                    noInv: d.noInv || 'INV',
-                    tanggal: d.dp2Tanggal || d.tanggalInv || '2026-10-07',
-                    nominal: dp2,
-                    jenis: 'termin',
-                    keterangan: d.dp2Notes || 'DP 2 (70% Produksi)',
-                    createdAt: new Date().toISOString(),
-                  });
-                }
-
-                if (pelunasan > 0) {
-                  payments.push({
-                    id: `${docSnap.id}-pelunasan`,
-                    orderId: docSnap.id,
-                    noInv: d.noInv || 'INV',
-                    tanggal: d.pelunasanTanggal || d.tanggalInv || '2026-10-07',
-                    nominal: pelunasan,
-                    jenis: 'pelunasan',
-                    keterangan: 'Pelunasan Penuh',
-                    createdAt: new Date().toISOString(),
-                  });
-                }
-
-                if (payments.length === 0 && legacyDp > 0) {
-                  payments.push({
-                    id: `${docSnap.id}-dp-legacy`,
-                    orderId: docSnap.id,
-                    noInv: d.noInv || 'INV',
-                    tanggal: d.tanggalInv || '2026-10-07',
-                    nominal: legacyDp,
-                    jenis: 'dp',
-                    keterangan: 'DP Terkunci',
-                    createdAt: new Date().toISOString(),
-                  });
-                }
+              if (dp2 > 0) {
+                payments.push({
+                  id: `${docSnap.id}-dp2`,
+                  orderId: docSnap.id,
+                  noInv: d.noInv || 'INV',
+                  tanggal: d.dp2Tanggal || d.tanggalInv || '2026-10-07',
+                  nominal: dp2,
+                  jenis: 'termin',
+                  keterangan: d.dp2Notes || 'DP 2 (70% Produksi)',
+                  createdAt: new Date().toISOString(),
+                });
               }
 
-              const sumPayments = payments.reduce((acc, p) => acc + p.nominal, 0);
-              const fallbackPaidCust = Number(d.totalUangMasukCustomer || d.dpNominal || 0);
-              const lockedDpCustomer = hasModernPaymentRecord
-                ? (sumPayments > 0 ? sumPayments : fallbackPaidCust)
-                : (d.dpNominal !== undefined && Number(d.dpNominal) >= 0
-                    ? Number(d.dpNominal)
-                    : (sumPayments > 0 ? sumPayments : totals.nominalDP));
-              const isOrderCompleted = (d.status === 'completed' || d.statusOrder === 'SELESAI' || d.statusPembayaran === 'lunas') && lockedDpCustomer >= totalInv;
-              const totalMasuk = isOrderCompleted ? totalInv : lockedDpCustomer;
+              if (pelunasan > 0) {
+                payments.push({
+                  id: `${docSnap.id}-pelunasan`,
+                  orderId: docSnap.id,
+                  noInv: d.noInv || 'INV',
+                  tanggal: d.pelunasanTanggal || d.tanggalInv || '2026-10-07',
+                  nominal: pelunasan,
+                  jenis: 'pelunasan',
+                  keterangan: 'Pelunasan Penuh',
+                  createdAt: new Date().toISOString(),
+                });
+              }
 
-              const resolvedVendorName =
-                (d.vendorId && vendorsMapRef.current.get(d.vendorId)) ||
-                d.vendorName ||
-                (d.vendorId ? 'Vendor Mitra' : 'Tanpa Vendor');
+              if (payments.length === 0 && legacyDp > 0) {
+                payments.push({
+                  id: `${docSnap.id}-dp-legacy`,
+                  orderId: docSnap.id,
+                  noInv: d.noInv || 'INV',
+                  tanggal: d.tanggalInv || '2026-10-07',
+                  nominal: legacyDp,
+                  jenis: 'dp',
+                  keterangan: 'DP Terkunci',
+                  createdAt: new Date().toISOString(),
+                });
+              }
+            }
 
-              const tanggalInv = d.tanggalInv || d.tanggalOrder || '2026-10-01';
+            const sumPayments = payments.reduce((acc, p) => acc + p.nominal, 0);
+            const fallbackPaidCust = Number(d.totalUangMasukCustomer || d.dpNominal || 0);
+            const lockedDpCustomer = hasModernPaymentRecord
+              ? (sumPayments > 0 ? sumPayments : fallbackPaidCust)
+              : (d.dpNominal !== undefined && Number(d.dpNominal) >= 0
+                  ? Number(d.dpNominal)
+                  : (sumPayments > 0 ? sumPayments : totals.nominalDP));
+            const isOrderCompleted = (d.status === 'completed' || d.statusOrder === 'SELESAI' || d.statusPembayaran === 'lunas') && lockedDpCustomer >= totalInv;
+            const totalMasuk = isOrderCompleted ? totalInv : lockedDpCustomer;
 
-              return {
-                ...d,
-                rawOrder: d,
-                id: docSnap.id,
-                noInv: d.noInv || `INV-${docSnap.id.slice(0, 6)}`,
-                customerName: d.namaCustomer || d.customerName || 'Customer',
-                projectName: d.namaProject || d.projectName || '-',
-                noWaCustomer: d.noWaCustomer || '',
-                tanggalOrder: tanggalInv,
-                grossTotal: totals.grossTotal,
-                totalInvoice: totalInv,
-                totalHpp: totalHpp,
-                targetMargin: totals.profit,
-                totalQty: totals.totalPesanan,
-                biayaOperasional: Number(d.biayaOperasional || 0),
-                biayaTambahanVendor: Number(d.biayaTambahanVendor || d.biayaLainnya || 0),
-                biayaTambahanCustomer: Number(d.biayaTambahanCustomer || d.biayaTambahanCust || 0),
-                diskon: totals.diskon,
-                kategoriOrder: (d.kategoriOrder || '').trim(),
-                hargaVendorPendek: Number(d.hargaVendorPendek || 0),
-                hargaVendorPanjang: Number(d.hargaVendorPanjang || 0),
-                hargaVendorTanpaLengan: Number(d.hargaVendorTanpaLengan || 0),
-                hppAktual: d.hppAktual !== undefined ? Number(d.hppAktual) : totalHpp,
-                profitAktual: d.profitAktual !== undefined && d.profitAktual !== null ? Number(d.profitAktual) : totals.profit,
-                catatanFinance: d.catatanFinance || '',
-                vendorId: d.vendorId || '',
-                vendorName: resolvedVendorName,
-                pembayaranList: payments,
-                dpNominal: lockedDpCustomer,
-                dpNominalPO: dpVendor,
-                totalUangMasukCustomer: totalMasuk,
-                statusPembayaran: totalMasuk >= totalInv && totalInv > 0 ? 'lunas' : totalMasuk > 0 ? 'parsial' : 'belum_bayar',
-                totalDibayarKeVendor: dpVendor,
-                statusPembayaranVendor: dpVendor >= totalHpp && totalHpp > 0 ? 'lunas_vendor' : dpVendor > 0 ? 'dp_vendor' : 'belum_bayar',
-                statusOrder: d.status || d.statusOrder || 'production',
-              };
-            });
+            const resolvedVendorName =
+              (d.vendorId && vendorsMapRef.current.get(d.vendorId)) ||
+              d.vendorName ||
+              (d.vendorId ? 'Vendor Mitra' : 'Tanpa Vendor');
 
-            // Saring hanya pesanan mulai 1 Oktober 2026 ke atas sesuai kesepakatan pembukuan klien.
-            const filteredByCutoff = mappedOrders
-              .filter((o) => isFromFinanceStartDate(o.tanggalOrder))
-              .sort((a, b) => b.tanggalOrder.localeCompare(a.tanggalOrder));
+            const tanggalInv = d.tanggalInv || d.tanggalOrder || '2026-10-01';
 
-            setOrders(filteredByCutoff);
-            setSyncState('live');
-            setLastSyncAt(new Date());
-          } else {
-            setSyncState('fallback');
-          }
+            return {
+              ...d,
+              rawOrder: d,
+              id: docSnap.id,
+              noInv: d.noInv || `INV-${docSnap.id.slice(0, 6)}`,
+              customerName: d.namaCustomer || d.customerName || 'Customer',
+              projectName: d.namaProject || d.projectName || '-',
+              noWaCustomer: d.noWaCustomer || '',
+              tanggalOrder: tanggalInv,
+              grossTotal: totals.grossTotal,
+              totalInvoice: totalInv,
+              totalHpp: totalHpp,
+              targetMargin: totals.profit,
+              totalQty: totals.totalPesanan,
+              biayaOperasional: Number(d.biayaOperasional || 0),
+              biayaTambahanVendor: Number(d.biayaTambahanVendor || d.biayaLainnya || 0),
+              biayaTambahanCustomer: Number(d.biayaTambahanCustomer || d.biayaTambahanCust || 0),
+              diskon: totals.diskon,
+              kategoriOrder: (d.kategoriOrder || '').trim(),
+              hargaVendorPendek: Number(d.hargaVendorPendek || 0),
+              hargaVendorPanjang: Number(d.hargaVendorPanjang || 0),
+              hargaVendorTanpaLengan: Number(d.hargaVendorTanpaLengan || 0),
+              hppAktual: d.hppAktual !== undefined ? Number(d.hppAktual) : totalHpp,
+              profitAktual: d.profitAktual !== undefined && d.profitAktual !== null ? Number(d.profitAktual) : totals.profit,
+              catatanFinance: d.catatanFinance || '',
+              vendorId: d.vendorId || '',
+              vendorName: resolvedVendorName,
+              pembayaranList: payments,
+              dpNominal: lockedDpCustomer,
+              dpNominalPO: dpVendor,
+              totalUangMasukCustomer: totalMasuk,
+              statusPembayaran: totalMasuk >= totalInv && totalInv > 0 ? 'lunas' : totalMasuk > 0 ? 'parsial' : 'belum_bayar',
+              totalDibayarKeVendor: dpVendor,
+              statusPembayaranVendor: dpVendor >= totalHpp && totalHpp > 0 ? 'lunas_vendor' : dpVendor > 0 ? 'dp_vendor' : 'belum_bayar',
+              statusOrder: d.status || d.statusOrder || 'production',
+            };
+          });
+
+          // Saring hanya pesanan mulai 1 Oktober 2026 ke atas sesuai kesepakatan pembukuan klien.
+          const filteredByCutoff = mappedOrders
+            .filter((o) => isFromFinanceStartDate(o.tanggalOrder))
+            .sort((a, b) => b.tanggalOrder.localeCompare(a.tanggalOrder));
+
+          setOrders(filteredByCutoff);
+          setOrdersLoaded(true);
+          markListenerOk('orders');
+          setLastSyncAt(new Date());
         },
         (err) => {
-          console.warn('[Firebase] Listener orders fallback to local seed:', err.message);
-          setError(err.message);
-          setSyncState('fallback');
+          console.warn('[Firebase] Listener orders gagal:', err.message);
+          markListenerError('orders', err.message);
         }
       );
 
@@ -305,35 +340,35 @@ export function useFirebaseFinance(
       unsubscribeKas = onSnapshot(
         kasRef,
         (snapshot) => {
-          if (!snapshot.empty) {
-            const mappedKas: CashTransaction[] = snapshot.docs.map((dSnap) => {
-              const kd = dSnap.data();
-              return {
-                id: dSnap.id,
-                tanggal: kd.tanggal || new Date().toISOString().slice(0, 10),
-                tipe: kd.jenis === 'masuk' ? 'masuk' : 'keluar',
-                nominal: Number(kd.jumlah || kd.nominal || 0),
-                kategori: (kd.kategori || 'Biaya Lain') as CashOutflowCategory,
-                keterangan: kd.keterangan || '-',
-              };
-            });
+          const mappedKas: CashTransaction[] = snapshot.docs.map((dSnap) => {
+            const kd = dSnap.data();
+            return {
+              id: dSnap.id,
+              tanggal: kd.tanggal || todayInJakarta(),
+              tipe: kd.jenis === 'masuk' ? 'masuk' : 'keluar',
+              nominal: Number(kd.jumlah || kd.nominal || 0),
+              kategori: (kd.kategori || 'Biaya Lain') as CashOutflowCategory,
+              keterangan: kd.keterangan || '-',
+            };
+          });
 
-            // Saring hanya transaksi kas mulai 1 Oktober 2026 ke atas.
-            const filteredKasByCutoff = mappedKas
-              .filter((t) => isFromFinanceStartDate(t.tanggal))
-              .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-            setCashTransactions(filteredKasByCutoff);
-          }
+          // Saring hanya transaksi kas mulai 1 Oktober 2026 ke atas.
+          const filteredKasByCutoff = mappedKas
+            .filter((t) => isFromFinanceStartDate(t.tanggal))
+            .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+          setCashTransactions(filteredKasByCutoff);
+          setKasReady(true);
+          markListenerOk('kas');
         },
         (err) => {
-          console.warn('[Firebase] Listener kas fallback:', err.message);
+          console.warn('[Firebase] Listener kas gagal:', err.message);
+          markListenerError('kas', err.message);
         }
       );
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Koneksi Firestore gagal';
       console.warn('[Firebase] Initialization error:', msg);
-      setError(msg);
-      setSyncState('fallback');
+      markListenerError('init', msg);
     }
 
     return () => {
@@ -341,6 +376,13 @@ export function useFirebaseFinance(
       unsubscribeKas?.();
       unsubscribeVendors?.();
     };
+  }, [subscriptionKey, markListenerOk, markListenerError]);
+
+  const retry = useCallback(() => {
+    setListenerErrors({});
+    setOrdersLoaded(false);
+    setKasReady(false);
+    setSubscriptionKey((k) => k + 1);
   }, []);
 
   // Mutasi pembaruan ke Firestore & Local State
@@ -351,7 +393,7 @@ export function useFirebaseFinance(
         pembayaranList?: CustomerPayment[];
         vendorPrices?: { pendek: number; panjang: number; tanpaLengan: number };
       }
-    ): Promise<boolean> => {
+    ): Promise<void> => {
       const firestorePayload: Record<string, unknown> = {
         ...data,
         updatedAt: serverTimestamp(),
@@ -373,7 +415,7 @@ export function useFirebaseFinance(
           nominal: Number(p.nominal),
           jenis: p.jenis || (idx === 0 ? 'dp' : 'termin'),
           terminKe: typeof p.terminKe === 'number' ? p.terminKe : idx + 1,
-          label: p.label || `Termin ${idx + 1}`,
+          label: toPersistedLabel(p.label),
           keterangan: p.keterangan || (p.jenis === 'dp' ? 'DP Pembayaran' : 'Pembayaran Termin'),
           createdAt: p.createdAt || new Date().toISOString(),
         }));
@@ -388,8 +430,19 @@ export function useFirebaseFinance(
           terminKe: p.terminKe,
           label: p.label,
         }));
+        const rawOrder = ordersRef.current.find((o) => o.id === orderId)?.rawOrder;
+        // ID yang pernah atau sedang ada di pembayaranList adalah milik app ini; sisanya entri pinjaman dari luar yang harus dipertahankan.
+        const appPaymentIds = new Set<string>([
+          ...sanitizedCustomerList.map((p) => p.id),
+          ...(Array.isArray(rawOrder?.pembayaranList) ? rawOrder.pembayaranList.map((p: { id?: string }) => p?.id) : []),
+        ].filter(Boolean) as string[]);
+        const preservedPinjaman = Array.isArray(rawOrder?.riwayatPembayaran)
+          ? rawOrder.riwayatPembayaran.filter(
+              (p: { id?: string; catatan?: unknown }) => isPinjamanEntry(p) && !(p.id && appPaymentIds.has(p.id))
+            )
+          : [];
         firestorePayload.pembayaranList = sanitizedCustomerList;
-        firestorePayload.riwayatPembayaran = riwayatPembayaranFirestore;
+        firestorePayload.riwayatPembayaran = [...riwayatPembayaranFirestore, ...preservedPinjaman];
         const totalMasuk = sanitizedCustomerList.reduce((acc, p) => acc + Number(p.nominal), 0);
         firestorePayload.dpNominal = totalMasuk;
         firestorePayload.totalUangMasukCustomer = totalMasuk;
@@ -404,30 +457,32 @@ export function useFirebaseFinance(
           nominal: Number(vp.nominal),
           jenis: vp.jenis || (idx === 0 ? 'dp_vendor' : 'termin_vendor'),
           terminKe: typeof vp.terminKe === 'number' ? vp.terminKe : idx + 1,
-          label: vp.label || `Pembayaran ke-${idx + 1}`,
+          label: toPersistedLabel(vp.label),
           keterangan: vp.keterangan || vp.catatan || 'Transfer BCA',
           catatan: vp.catatan || vp.keterangan || 'Transfer BCA',
           createdAt: vp.createdAt || new Date().toISOString(),
         }));
       }
 
+      const previous = ordersRef.current.find((o) => o.id === orderId);
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, ...data } : o))
       );
 
       try {
-        const orderDocRef = doc(db, 'orders', orderId);
-        await updateDoc(orderDocRef, firestorePayload);
-        return true;
+        await updateDoc(doc(db, 'orders', orderId), firestorePayload);
       } catch (err: unknown) {
-        console.warn('[Firestore] Update failed, keeping local fallback:', err);
-        return true;
+        if (previous) {
+          setOrders((prev) => prev.map((o) => (o.id === orderId ? previous : o)));
+        }
+        throw new FinanceWriteError('updateOrder', err);
       }
     },
     []
   );
 
   const addKas = useCallback(async (data: Omit<CashTransaction, 'id'>): Promise<string> => {
+    let newId: string;
     try {
       const ref = await addDoc(collection(db, 'kas'), {
         tanggal: data.tanggal,
@@ -438,77 +493,74 @@ export function useFirebaseFinance(
         nominal: data.nominal,
         createdAt: serverTimestamp(),
       });
-      if (isFromFinanceStartDate(data.tanggal)) {
-        const newTx: CashTransaction = {
-          id: ref.id,
-          tanggal: data.tanggal,
-          tipe: data.tipe,
-          nominal: data.nominal,
-          kategori: data.kategori,
-          keterangan: data.keterangan,
-        };
-        setCashTransactions((prev) => {
-          if (prev.some((t) => t.id === ref.id)) return prev;
-          return [newTx, ...prev];
-        });
-      }
-      return ref.id;
+      newId = ref.id;
     } catch (err: unknown) {
-      console.warn('[Firestore] addKas failed, keeping local fallback:', err);
-      const localId = `kas-local-${Date.now()}`;
-      if (isFromFinanceStartDate(data.tanggal)) {
-        const newTx: CashTransaction = {
-          id: localId,
-          tanggal: data.tanggal,
-          tipe: data.tipe,
-          nominal: data.nominal,
-          kategori: data.kategori,
-          keterangan: data.keterangan,
-        };
-        setCashTransactions((prev) => [newTx, ...prev]);
-      }
-      return localId;
+      throw new FinanceWriteError('addKas', err);
     }
+
+    if (isFromFinanceStartDate(data.tanggal)) {
+      const newTx: CashTransaction = {
+        id: newId,
+        tanggal: data.tanggal,
+        tipe: data.tipe,
+        nominal: data.nominal,
+        kategori: data.kategori,
+        keterangan: data.keterangan,
+      };
+      setCashTransactions((prev) =>
+        prev.some((t) => t.id === newId) ? prev : sortKasDesc([newTx, ...prev])
+      );
+    }
+    return newId;
   }, []);
 
   const updateKas = useCallback(
-    async (id: string, data: Partial<Omit<CashTransaction, 'id'>>): Promise<boolean> => {
+    async (id: string, data: Partial<Omit<CashTransaction, 'id'>>): Promise<void> => {
+      const previous = cashTransactionsRef.current.find((t) => t.id === id);
       setCashTransactions((prev) =>
-        prev
-          .map((t) => (t.id === id ? { ...t, ...data } : t))
-          .filter((t) => isFromFinanceStartDate(t.tanggal))
-          .sort((a, b) => b.tanggal.localeCompare(a.tanggal))
+        sortKasDesc(
+          prev
+            .map((t) => (t.id === id ? { ...t, ...data } : t))
+            .filter((t) => isFromFinanceStartDate(t.tanggal))
+        )
       );
 
-      try {
-        const payload: Record<string, unknown> = {
-          updatedAt: serverTimestamp(),
-        };
-        if (data.tanggal !== undefined) payload.tanggal = data.tanggal;
-        if (data.tipe !== undefined) payload.jenis = data.tipe;
-        if (data.kategori !== undefined) payload.kategori = data.kategori;
-        if (data.keterangan !== undefined) payload.keterangan = data.keterangan;
-        if (data.nominal !== undefined) {
-          payload.jumlah = Number(data.nominal);
-          payload.nominal = Number(data.nominal);
-        }
+      const payload: Record<string, unknown> = { updatedAt: serverTimestamp() };
+      if (data.tanggal !== undefined) payload.tanggal = data.tanggal;
+      if (data.tipe !== undefined) payload.jenis = data.tipe;
+      if (data.kategori !== undefined) payload.kategori = data.kategori;
+      if (data.keterangan !== undefined) payload.keterangan = data.keterangan;
+      if (data.nominal !== undefined) {
+        payload.jumlah = Number(data.nominal);
+        payload.nominal = Number(data.nominal);
+      }
 
+      try {
         await updateDoc(doc(db, 'kas', id), payload);
-        return true;
       } catch (err: unknown) {
-        console.warn('[Firestore] updateKas failed, keeping local state:', err);
-        return true;
+        if (previous) {
+          setCashTransactions((prev) =>
+            sortKasDesc([...prev.filter((t) => t.id !== id), previous])
+          );
+        }
+        throw new FinanceWriteError('updateKas', err);
       }
     },
     []
   );
 
   const deleteKas = useCallback(async (id: string): Promise<void> => {
+    const previous = cashTransactionsRef.current.find((t) => t.id === id);
     setCashTransactions((prev) => prev.filter((t) => t.id !== id));
     try {
       await deleteDoc(doc(db, 'kas', id));
     } catch (err: unknown) {
-      console.warn('[Firestore] deleteKas failed, removed from local state:', err);
+      if (previous) {
+        setCashTransactions((prev) =>
+          prev.some((t) => t.id === id) ? prev : sortKasDesc([...prev, previous])
+        );
+      }
+      throw new FinanceWriteError('deleteKas', err);
     }
   }, []);
 
@@ -519,6 +571,8 @@ export function useFirebaseFinance(
     syncState,
     lastSyncAt,
     error,
+    retry,
+    kasReady,
     updateOrderFinance,
     addKas,
     updateKas,

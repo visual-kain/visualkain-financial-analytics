@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { collectYearOptions } from '@/lib/cash-ledger';
+import { buildOutflowCategoryOptions } from '@/lib/constants';
 import {
   cn,
   formatRupiah,
@@ -11,14 +13,11 @@ import {
   formatIndonesianDateFull,
   formatDateRangeBadge,
 } from '@/lib/utils';
-import type { Order, CashTransaction, CashOutflowCategory, CashOutflowEntry } from '@/types';
+import type { Order, CashTransaction, CashOutflowEntry } from '@/types';
 import { buildCashOutflowEntries } from '@/lib/financial-calculator';
-import { initialOrdersData, initialCashTransactions } from '@/lib/seed-data';
 import { exportCashOutflowToExcel } from '@/lib/excel-export';
 import { Button } from '@/components/ui/button';
-import { Drawer } from 'vaul';
 import { CustomSelect } from '@/components/ui/custom-select';
-import { CurrencyInput } from '@/components/ui/currency-input';
 import {
   WalletCards,
   TrendingDown,
@@ -59,7 +58,6 @@ interface CashOutflowSectionProps {
   activeTahun?: string;
   onBulanChange?: (bulan: string) => void;
   onTahunChange?: (tahun: string) => void;
-  onAddTransaction?: (data: Omit<CashTransaction, 'id'>) => Promise<string>;
   onDeleteTransaction?: (id: string) => Promise<void>;
   onSelectOrder?: (order: Order) => void;
 }
@@ -106,50 +104,19 @@ const SOURCE_FILTER_OPTIONS = [
   { value: 'manual', label: 'Pengeluaran Kas Non-Order' },
 ];
 
-const CATEGORY_FILTER_OPTIONS = [
-  { value: 'all', label: 'Semua Kategori Beban', badge: 'Semua' },
-  { value: 'Pembayaran Vendor', label: 'Pembayaran Vendor (Order)' },
-  { value: 'Pembayaran Vendor Lainnya', label: 'Pembayaran Vendor Lainnya (Non-Order)' },
-  { value: 'Biaya Operasional Order', label: 'Biaya Operasional Order' },
-  { value: 'Gaji/Upah', label: 'Gaji / Upah' },
-  { value: 'Operasional', label: 'Operasional' },
-  { value: 'Sponsorship/Sosial', label: 'Sponsorship / Sosial' },
-  { value: 'Iklan/Marketing', label: 'Iklan / Marketing' },
-  { value: 'Bahan Baku', label: 'Bahan Baku' },
-  { value: 'Perawatan Web/Sistem', label: 'Perawatan Web / Sistem' },
-  { value: 'Transport/Ongkir', label: 'Transport / Ongkir' },
-  { value: 'Pajak/Retribusi', label: 'Pajak / Retribusi' },
-  { value: 'Biaya Lain', label: 'Biaya Lain' },
-  { value: 'Lainnya', label: 'Lainnya' },
-];
-
-const CATEGORY_FORM_OPTIONS = [
-  { value: 'Gaji/Upah', label: 'Gaji/Upah (Payroll Staff & Tim)' },
-  { value: 'Operasional', label: 'Operasional (Listrik, Sewa, Admin)' },
-  { value: 'Sponsorship/Sosial', label: 'Sponsorship/Sosial' },
-  { value: 'Iklan/Marketing', label: 'Iklan/Marketing' },
-  { value: 'Bahan Baku', label: 'Bahan Baku' },
-  { value: 'Perawatan Web/Sistem', label: 'Perawatan Web/Sistem' },
-  { value: 'Transport/Ongkir', label: 'Transport/Ongkir' },
-  { value: 'Pajak/Retribusi', label: 'Pajak/Retribusi' },
-  { value: 'Biaya Lain', label: 'Biaya Lain' },
-];
-
 export function CashOutflowSection({
-  orders = initialOrdersData,
-  initialEntries = initialCashTransactions,
+  orders = [],
+  initialEntries = [],
   selectedPeriod = 'Mulai Oktober 2026',
   activeBulan,
   activeTahun,
   onBulanChange,
   onTahunChange,
-  onAddTransaction,
   onDeleteTransaction,
   onSelectOrder,
 }: CashOutflowSectionProps) {
   const router = useRouter();
   const [entries, setEntries] = useState<CashTransaction[]>(initialEntries);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'order' | 'manual'>('all');
@@ -187,10 +154,6 @@ export function CashOutflowSection({
     }
   }, [activeTahun]);
 
-  const [tanggal, setTanggal] = useState(new Date().toISOString().slice(0, 10));
-  const [kategori, setKategori] = useState<CashOutflowCategory>('Operasional');
-  const [keterangan, setKeterangan] = useState('');
-  const [nominal, setNominal] = useState<number>(0);
 
   const allOutflowEntries: CashOutflowEntry[] = useMemo(() => {
     return buildCashOutflowEntries(orders, entries).filter(
@@ -198,12 +161,18 @@ export function CashOutflowSection({
     );
   }, [orders, entries]);
 
-  const yearOptions = useMemo(() => {
-    const set = new Set<string>(['2026']);
-    allOutflowEntries.forEach((e) => e.tanggal && e.tanggal >= '2026-10-01' && set.add(e.tanggal.slice(0, 4)));
-    const sorted = [...set].sort().reverse();
-    return [{ value: 'all', label: 'Semua Tahun' }, ...sorted.map((y) => ({ value: y, label: y }))];
-  }, [allOutflowEntries]);
+  const categoryFilterOptions = useMemo(
+    () => buildOutflowCategoryOptions(allOutflowEntries.map((e) => e.kategori)),
+    [allOutflowEntries]
+  );
+
+  const yearOptions = useMemo(
+    () => [
+      { value: 'all', label: 'Semua Tahun' },
+      ...collectYearOptions(orders, entries).map((y) => ({ value: y, label: y })),
+    ],
+    [orders, entries]
+  );
 
   const bulanOptions = BULAN_FILTER_OPTIONS_ALL;
 
@@ -286,6 +255,7 @@ export function CashOutflowSection({
   }, [dailyTrendData]);
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus catatan kas keluar ini?')) return;
     try {
       if (onDeleteTransaction) {
         await onDeleteTransaction(id);
@@ -294,43 +264,6 @@ export function CashOutflowSection({
       toast.success('Pengeluaran berhasil dihapus');
     } catch {
       toast.error('Gagal menghapus pengeluaran');
-    }
-  };
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nominal || nominal <= 0 || !keterangan) {
-      toast.error('Mohon isi nominal dan keterangan dengan benar');
-      return;
-    }
-
-    try {
-      if (onAddTransaction) {
-        const newId = await onAddTransaction({
-          tanggal,
-          tipe: 'keluar',
-          nominal,
-          kategori,
-          keterangan,
-        });
-        setEntries((prev) => [{ id: newId, tanggal, tipe: 'keluar', nominal, kategori, keterangan }, ...prev]);
-      } else {
-        const newTx: CashTransaction = {
-          id: `out-${Date.now()}`,
-          tanggal,
-          tipe: 'keluar',
-          nominal,
-          kategori,
-          keterangan,
-        };
-        setEntries((prev) => [newTx, ...prev]);
-      }
-      setIsDrawerOpen(false);
-      setKeterangan('');
-      setNominal(0);
-      toast.success('Pengeluaran berhasil dicatat');
-    } catch {
-      toast.error('Gagal menyimpan pengeluaran');
     }
   };
 
@@ -651,7 +584,7 @@ export function CashOutflowSection({
                 value={categoryFilter}
                 onValueChange={setCategoryFilter}
                 icon={<Filter className="h-3.5 w-3.5" />}
-                options={CATEGORY_FILTER_OPTIONS}
+                options={categoryFilterOptions}
                 className="h-10 w-full sm:min-w-[185px]"
               />
             </div>
@@ -955,94 +888,6 @@ export function CashOutflowSection({
         })()}
       </div>
 
-      {/* Input Vaul Drawer */}
-      <Drawer.Root open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <Drawer.Portal>
-          <Drawer.Overlay className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm" />
-          <Drawer.Content className="fixed bottom-0 left-0 right-0 z-50 mt-24 flex max-h-[85vh] flex-col rounded-t-[24px] bg-white p-6 shadow-2xl focus:outline-none sm:mx-auto sm:max-w-lg">
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-slate-200" />
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <Drawer.Title className="text-base font-extrabold text-slate-900">
-                  Catat Pengeluaran Baru
-                </Drawer.Title>
-                <Drawer.Description className="text-xs text-slate-400 mt-0.5">
-                  Tambahkan transaksi kas keluar riil ke pembukuan
-                </Drawer.Description>
-              </div>
-              <button
-                onClick={() => setIsDrawerOpen(false)}
-                className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAdd} className="mt-4 space-y-4">
-              <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                  Tanggal Transaksi
-                </label>
-                <input
-                  type="date"
-                  value={tanggal}
-                  onChange={(e) => setTanggal(e.target.value)}
-                  className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1 block">
-                  Kategori Beban
-                </label>
-                <CustomSelect
-                  value={kategori}
-                  onValueChange={(val) => setKategori(val as CashOutflowCategory)}
-                  options={CATEGORY_FORM_OPTIONS}
-                  className="mt-1 h-10 w-full"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                  Keterangan Pembayaran
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Beli jarum jahit & benang seragam"
-                  value={keterangan}
-                  onChange={(e) => setKeterangan(e.target.value)}
-                  className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                  Nominal (Rp)
-                </label>
-                <CurrencyInput
-                  value={nominal}
-                  onValueChange={setNominal}
-                  placeholder="0"
-                  className="mt-1 h-10 w-full text-rose-600 font-bold"
-                  required
-                />
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  className="w-full h-11 rounded-xl bg-teal-600 text-xs font-bold text-white shadow-md hover:bg-teal-700 active:scale-95 transition-all"
-                >
-                  Simpan Transaksi Pengeluaran
-                </Button>
-              </div>
-            </form>
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
     </div>
   );
 }

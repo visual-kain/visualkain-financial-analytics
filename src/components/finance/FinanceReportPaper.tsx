@@ -3,7 +3,7 @@
 import React from 'react';
 import type { Order } from '@/types';
 import { formatDate } from '@/lib/formatters';
-import { calculateTotals, SIZES, CATEGORIES, getSizeExtraPrice } from '@/lib/calculations';
+import { calculateTotals, SIZES, CATEGORIES, getSizeExtraPrice, deriveVendorPaid } from '@/lib/calculations';
 
 const CAT_LABEL: Record<string, string> = { pendek: 'Pendek', panjang: 'Panjang', tanpaLengan: 'Tanpa Lengan' };
 const JUAL_KEY: Record<string, string> = { pendek: 'hargaPendek', panjang: 'hargaPanjang', tanpaLengan: 'hargaTanpaLengan' };
@@ -31,7 +31,10 @@ export default function FinanceReportPaper({ order, getVendorById }: FinanceRepo
     nama: order.vendorName || (order as any).namaVendor || 'Tanpa Vendor',
     pic: (order as any).picVendor || (order as any).pic || '-',
   };
-  const dp = order.dpNominal && order.dpNominal > 0 ? order.dpNominal : t.nominalDP;
+  // DP yang tercetak adalah uang yang benar-benar diterima, bukan rencana dari dpPersen.
+  const dp = Number(order.totalUangMasukCustomer ?? order.dpNominal ?? 0);
+  const dpPersenAktual = t.jumlahSemua > 0 ? (dp / t.jumlahSemua) * 100 : 0;
+  const dibayarKeVendor = deriveVendorPaid(order);
 
   let dateStr = '-';
   if (order.createdAt) {
@@ -128,17 +131,17 @@ export default function FinanceReportPaper({ order, getVendorById }: FinanceRepo
           <div className="tp-row"><span>HPP Vendor (Modal):</span> <strong>{formatIdr(hpp)}</strong></div>
           <div className="tp-row"><span>Biaya Operasional:</span> <strong>{formatIdr(opEx)}</strong></div>
           <div className="tp-row"><span>Total Modal:</span> <strong>{formatIdr(hpp + opEx)}</strong></div>
-          {order.dpNominalPO && order.dpNominalPO > 0 && (
-            <div className="tp-row"><span>DP Vendor:</span> <strong>{formatIdr(order.dpNominalPO)}</strong></div>
-          )}
+          {dibayarKeVendor > 0 ? (
+            <div className="tp-row"><span>Dibayar ke Vendor:</span> <strong>{formatIdr(dibayarKeVendor)}</strong></div>
+          ) : null}
         </div>
         <div className="tp-section">
           <h3>Ringkasan Pendapatan</h3>
           <div className="tp-row"><span>Nilai Tagihan Kotor (Subtotal):</span> <strong>{formatIdr(t.grossTotal)}</strong></div>
           <div className="tp-row"><span>Diskon:</span> <strong>- {formatIdr(t.diskon)}</strong></div>
           <div className="tp-row"><span>Total Tagihan:</span> <strong>{formatIdr(t.jumlahSemua)}</strong></div>
-          <div className="tp-row"><span>DP Konsumen ({order.dpPersen || 0}%):</span> <strong>{formatIdr(dp)}</strong></div>
-          <div className="tp-row"><span>Sisa Pelunasan:</span> <strong>{formatIdr(t.jumlahSemua - dp)}</strong></div>
+          <div className="tp-row"><span>DP Konsumen ({dpPersenAktual.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%):</span> <strong>{formatIdr(dp)}</strong></div>
+          <div className="tp-row"><span>Sisa Pelunasan:</span> <strong>{formatIdr(Math.max(0, t.jumlahSemua - dp))}</strong></div>
         </div>
       </div>
 

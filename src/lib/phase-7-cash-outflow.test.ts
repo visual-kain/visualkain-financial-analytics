@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { FINANCE_START_DATE, isFromFinanceStartDate } from './constants';
-import { initialOrdersData, initialCashTransactions } from './seed-data';
+import { initialOrdersData, initialCashTransactions } from '@/test/fixtures/seed-data';
 import { buildCashOutflowEntries, calculateFinancialSummary } from './financial-calculator';
 
 describe('Phase 7: October 2026 Cutoff, Complete Cash Outflow, & Client Executive Metrics', () => {

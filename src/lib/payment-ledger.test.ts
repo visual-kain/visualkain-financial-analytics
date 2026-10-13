@@ -8,6 +8,11 @@ import {
   normalizeLedger,
   summarizeLedger,
   validateEntryNominal,
+  resolveEditTarget,
+  isAutoLabel,
+  toPersistedLabel,
+  isUnitemizedPaymentId,
+  hasUnitemizedCustomerPayment,
   type LedgerEntry,
 } from './payment-ledger';
 
@@ -83,5 +88,76 @@ describe('payment-ledger (US-9.35 to US-9.39)', () => {
     expect(validateEntryNominal(600, 500, rp)).toMatch(/melebihi sisa/);
     expect(validateEntryNominal(500, 500, rp)).toBeNull();
     expect(validateEntryNominal(10, 0, rp)).toMatch(/sudah lunas/);
+  });
+});
+
+describe('resolveEditTarget (F-10 2.8)', () => {
+  const rows = [entry('pay-a', '2026-10-01', 100), entry('pay-b', '2026-10-02', 100), entry('pay-c', '2026-10-03', 100)];
+
+  it('memilih baris dengan ID yang sama persis', () => {
+    expect(resolveEditTarget(rows, 'pay-b')?.id).toBe('pay-b');
+  });
+
+  it('memetakan alias entri tabel ke baris awal ledger', () => {
+    const custRows = [entry('pay-ord1-init', '2026-10-01', 100)];
+    const vendRows = [entry('vp-ord1-init', '2026-10-01', 100), entry('vp-9', '2026-10-02', 50)];
+    expect(resolveEditTarget(custRows, 'pay-ord1-single')?.id).toBe('pay-ord1-init');
+    expect(resolveEditTarget(vendRows, 'vp-ord1')?.id).toBe('vp-ord1-init');
+    expect(resolveEditTarget(vendRows, 'vp-rem-ord1')?.id).toBe('vp-ord1-init');
+  });
+
+  it('tidak menebak baris lain dari angka di akhir ID', () => {
+    expect(resolveEditTarget(rows, 'ord1-p-2')).toBeNull();
+    expect(resolveEditTarget([entry('pay-a', '2026-10-01', 100)], 'pay-zzz')).toBeNull();
+  });
+});
+
+describe('label termin otomatis (F-10 2.10)', () => {
+  it.each(['', undefined, 'DP 2', 'Termin 3', 'Pembayaran ke-4', 'Pelunasan'])('menganggap "%s" sebagai label otomatis', (label) => {
+    expect(isAutoLabel(label)).toBe(true);
+  });
+
+  it.each(['Booking Awal', 'DP 2 70% Produksi', 'DP Vendor Bahan'])('mempertahankan label kustom "%s"', (label) => {
+    expect(isAutoLabel(label)).toBe(false);
+    expect(toPersistedLabel(label)).toBe(label);
+  });
+
+  it('label otomatis disimpan kosong', () => {
+    expect(toPersistedLabel('DP 2')).toBe('');
+    expect(toPersistedLabel('  Pelunasan ')).toBe('');
+  });
+
+  it('menomori ulang label lama setelah termin pertama dihapus', () => {
+    const remaining = [entry('b', '2026-10-05', 300, { label: 'DP 2' }), entry('c', '2026-10-06', 200, { label: 'DP 3' })];
+    expect(normalizeLedger(remaining, 1000).map((e) => e.label)).toEqual(['DP 1', 'DP 2']);
+  });
+
+  it('melepas label Pelunasan bila baris tidak lagi melunasi', () => {
+    const rows2 = [entry('a', '2026-10-05', 300, { label: 'DP 1' }), entry('b', '2026-10-06', 200, { label: 'Pelunasan' })];
+    expect(normalizeLedger(rows2, 1000).map((e) => e.label)).toEqual(['DP 1', 'DP 2']);
+  });
+});
+
+describe('penanda pembayaran belum dirinci (F-10 2.29)', () => {
+  it.each(['ord1-dp-legacy', 'pay-ord1-init', 'vp-ord1-init'])('menandai %s sebagai belum dirinci', (id) => {
+    expect(isUnitemizedPaymentId(id)).toBe(true);
+  });
+
+  it.each(['ord1-dp1', 'ord1-dp2', 'ord1-pelunasan', 'ord1-p-0', 'pay-1728812345678'])('tidak menandai %s', (id) => {
+    expect(isUnitemizedPaymentId(id)).toBe(false);
+  });
+
+  it('menandai order yang punya uang masuk tanpa daftar termin', () => {
+    expect(hasUnitemizedCustomerPayment({ pembayaranList: [], totalUangMasukCustomer: 500 })).toBe(true);
+    expect(
+      hasUnitemizedCustomerPayment({
+        pembayaranList: [{ id: 'ord1-dp-legacy', nominal: 500 }],
+        totalUangMasukCustomer: 500,
+      })
+    ).toBe(true);
+    expect(
+      hasUnitemizedCustomerPayment({ pembayaranList: [{ id: 'ord1-p-0', nominal: 500 }], totalUangMasukCustomer: 500 })
+    ).toBe(false);
+    expect(hasUnitemizedCustomerPayment({ pembayaranList: [], totalUangMasukCustomer: 0 })).toBe(false);
   });
 });

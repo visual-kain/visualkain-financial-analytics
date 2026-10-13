@@ -9,6 +9,7 @@ import type {
   EscrowLiquidityCalculation,
   MasterFinanceRow,
 } from '@/types';
+import type { CashPeriodSummary } from './cash-ledger';
 
 function isDuplicateOrderVendorTx(tx: CashTransaction, orders: Order[]): boolean {
   if (tx.kategori !== 'Pembayaran Vendor') return false;
@@ -307,7 +308,8 @@ export function calculateFinancialSummary(
     const allocation = calculateEscrowAllocation(order);
     totalMarginTerealisasi += allocation.alokasiMarginVisualKain;
 
-    const isLunas = order.statusOrder === 'completed' || order.statusPembayaran === 'lunas' || sisaPiutangCustomer <= 0;
+    // Lunas murni berbasis pembayaran; status produksi 'completed' tidak berarti tagihan sudah dibayar.
+    const isLunas = sisaPiutangCustomer <= 0;
     if (isLunas) {
       omzetLunasCount++;
     } else {
@@ -354,6 +356,22 @@ export function calculateFinancialSummary(
   };
 }
 
+
+/** Metrik kas memakai cash basis per tanggal entri (F-10 K-1/K-2); metrik omzet, piutang, utang, dan laba tetap berbasis order. */
+export function applyCashPeriod(summary: FinancialSummary, cash: CashPeriodSummary): FinancialSummary {
+  return {
+    ...summary,
+    saldoKasRiil: cash.saldoKas,
+    saldoAwalPeriode: cash.saldoAwalPeriode,
+    totalKasMasuk: cash.masukPeriode,
+    totalKasKeluar: cash.keluarPeriode,
+    totalDibayarKeVendor: cash.keluarVendor,
+    bebanOperasionalNonVendor: cash.keluarOpexOrder + cash.keluarKas,
+    bebanOperasionalOrders: cash.keluarOpexOrder,
+    bebanOperasionalKas: cash.keluarKas,
+    kasKeluarCount: cash.keluarCount,
+  };
+}
 
 /**
  * Mengelompokkan utang vendor per mitra untuk inspeksi drilldown

@@ -95,7 +95,7 @@
 
 ### 2.1. Root Cause & Solution: Firestore DP Synchronization (`US-9.7`)
 * **Root Cause**:
-  Pada [`EditFinanceModal.tsx`](file:///d:/Projects/visualkain-financial-analytics/src/components/finance/EditFinanceModal.tsx), payload yang dikirim saat menyimpan termin adalah `pembayaranList`. Sedangkan listener realtime [`useFirebaseFinance.ts`](file:///d:/Projects/visualkain-financial-analytics/src/hooks/useFirebaseFinance.ts) memetakan pesanan dari field Firestore `d.riwayatPembayaran` (array of objects) atau `d.dp1Nominal`, `d.dp2Nominal`, `d.pelunasanNominal`. Karena field `riwayatPembayaran` tidak dimutasi sesuai format Firestore, listener realtime `onSnapshot` memuat ulang data usang, mengakibatkan perubahan hapus/edit DP tidak tampak di tabel utama.
+  Pada `EditFinanceModal.tsx` (dihapus di F-10), payload yang dikirim saat menyimpan termin adalah `pembayaranList`. Sedangkan listener realtime [`useFirebaseFinance.ts`](../../../src/hooks/useFirebaseFinance.ts) memetakan pesanan dari field Firestore `d.riwayatPembayaran` (array of objects) atau `d.dp1Nominal`, `d.dp2Nominal`, `d.pelunasanNominal`. Karena field `riwayatPembayaran` tidak dimutasi sesuai format Firestore, listener realtime `onSnapshot` memuat ulang data usang, mengakibatkan perubahan hapus/edit DP tidak tampak di tabel utama.
 * **Solusi Arsitektural**:
   Dalam fungsi `updateOrderFinance`:
   ```ts
@@ -193,7 +193,7 @@
 ---
 
 ### 2.6. Pembersihan Badge Navigasi Sidebar (`US-9.12`)
-* **Implementasi di [`Sidebar.tsx`](file:///d:/Projects/visualkain-financial-analytics/src/components/layout/Sidebar.tsx)**:
+* **Implementasi di [`Sidebar.tsx`](../../../src/components/layout/Sidebar.tsx)**:
   - Hapus properti `badge: '...'` pada array definisi `tabs`.
   - Hapus elemen rendering badge:
     ```tsx
@@ -234,7 +234,7 @@
 
 ### 2.8. Audit Tombol Follow-Up WhatsApp & Solid Sticky Header (`US-9.14`)
 * **Root Cause 1: Mengapa Tombol WA "Ilang-ilangan"?**:
-  1. Pada [`MasterFinanceTable.tsx`](file:///d:/Projects/visualkain-financial-analytics/src/components/finance/MasterFinanceTable.tsx) baris 487:
+  1. Pada [`MasterFinanceTable.tsx`](../../../src/components/finance/MasterFinanceTable.tsx) baris 487:
      `{row.dpPersenCustomer < 70 && (`
      Tombol di-hardcode hanya muncul saat DP $< 70\%$. Ketika customer telah membayar DP 70%, tombol WA seketika HILANG dari tabel. Padahal customer tersebut masih berutang sisa pelunasan 30% dan kasir perlu menagih pelunasan sebelum pesanan dikirim! Klien mengira ini bug tombol hilang-timbul.
   2. Tombol WA sama sekali tidak tersedia pada tampilan kartu mobile (`renderMobileCardContent`), sehingga kasir yang mengakses via smartphone tidak bisa menagih.
@@ -254,9 +254,9 @@
 
 ### 2.9. Master Mitra Vendor Dinamis & Pre-Population (`US-9.15`)
 * **Root Cause**:
-  1. [`src/lib/constants.ts`](file:///d:/Projects/visualkain-financial-analytics/src/lib/constants.ts) hanya mendefinisikan 5 vendor hardcoded (`AMRIN`, `CAHAYA BORDIR`, `FJ MERCHANDISE`, `CITITEX`, `VENDOR TOPI PK UCI`).
+  1. [`src/lib/constants.ts`](../../../src/lib/constants.ts) hanya mendefinisikan 5 vendor hardcoded (`AMRIN`, `CAHAYA BORDIR`, `FJ MERCHANDISE`, `CITITEX`, `VENDOR TOPI PK UCI`).
   2. Database Firestore memiliki vendor lain (seperti `Vendor Wisnu`, `LAJUWARNA`) yang tidak muncul di dropdown pilihan.
-  3. State `vendorNama` di [`EditFinanceModal.tsx`](file:///d:/Projects/visualkain-financial-analytics/src/components/finance/EditFinanceModal.tsx) di-default ke `'AMRIN'` dan tidak pernah membaca `order.vendorName`.
+  3. State `vendorNama` di `EditFinanceModal.tsx` (dihapus di F-10) di-default ke `'AMRIN'` dan tidak pernah membaca `order.vendorName`.
   4. Saat menyimpan, field `vendorName` dan `vendorId` tidak dimasukkan ke dalam `updatedPayload`.
 * **Solusi Arsitektur**:
   - Gabungkan seluruh vendor dari koleksi Firestore `vendors` dan nilai unik `vendorName` dari seluruh dokumen `orders`.
@@ -282,7 +282,7 @@
 ### 2.11. Pemulihan Warna Hitam & Header Tabel Cetak (`US-9.17`)
 * **Masalah**:
   Saat mencetak atau menyimpan invoice laporan finansial ke PDF, browser secara default mengaktifkan fitur penghemat tinta yang meniadakan warna latar belakang CSS (`background-color`). Akibatnya, header tabel `.invoice-items th` yang berwarna hitam pekat (`#0f172a`) menjadi putih/transparan, dan teks putih kontras di dalamnya memudar atau menjadi abu-abu tidak terbaca.
-* **Solusi di [`src/app/globals.css`](file:///d:/Projects/visualkain-financial-analytics/src/app/globals.css)**:
+* **Solusi di [`src/app/globals.css`](../../../src/app/globals.css)**:
   ```css
   @media print {
     * {

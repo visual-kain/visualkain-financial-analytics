@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
+import { useInitOnce } from '@/hooks/useInitOnce';
+import { useBeforeUnloadGuard } from '@/hooks/useBeforeUnloadGuard';
+import { EditKasStatusNotice, resolveEditKasStatus } from '@/components/finance/EditKasStatusNotice';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import {
@@ -86,7 +89,7 @@ function buildInitialCustomerRows(order: Order | undefined): LedgerRow[] {
 function CashInNewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { orders, cashTransactions, updateOrderFinance, addKas, updateKas } = useFirebaseFinance();
+  const { orders, cashTransactions, kasReady, updateOrderFinance, addKas, updateKas } = useFirebaseFinance();
 
   const modeParam = searchParams.get('mode');
   const orderIdParam = searchParams.get('orderId') || '';
@@ -105,7 +108,6 @@ function CashInNewContent() {
   const [rekening, setRekening] = useState<string>('Transfer BCA');
   const [kategori, setKategori] = useState<string>('Saldo Awal');
   const [keterangan, setKeterangan] = useState<string>('');
-  const [hasUserEditedDirect, setHasUserEditedDirect] = useState<boolean>(false);
 
   // State khusus mode Termin Pesanan
   const [ledgerRows, setLedgerRows] = useState<LedgerRow[]>([]);
@@ -117,20 +119,15 @@ function CashInNewContent() {
   });
 
   const [isDirty, setIsDirty] = useState<boolean>(false);
+  useBeforeUnloadGuard(isDirty);
   const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (orderIdParam && !selectedOrderId) {
-      setSelectedOrderId(orderIdParam);
-    }
-  }, [orderIdParam, selectedOrderId]);
 
   const selectedOrder = useMemo<Order | undefined>(() => {
     return orders.find((o) => o.id === selectedOrderId || o.noInv === selectedOrderId);
   }, [orders, selectedOrderId]);
 
-  useEffect(() => {
+  useInitOnce(selectedOrder?.id, () => {
     const initial = buildInitialCustomerRows(selectedOrder);
     setLedgerRows(initial);
     setHasLedgerChanged(false);
@@ -139,7 +136,7 @@ function CashInNewContent() {
       error: null,
       previewEntries: initial,
     });
-  }, [selectedOrder]);
+  });
 
   const accountOptions = useMemo(
     () => [
@@ -154,9 +151,11 @@ function CashInNewContent() {
   );
 
   // Pre-fill form jika sedang mengedit transaksi Kas Masuk Non-Order (editKasIdParam)
-  useEffect(() => {
-    if (!editKasIdParam || hasUserEditedDirect) return;
-    const targetTx = cashTransactions.find((t) => t.id === editKasIdParam);
+  const editKasTarget = editKasIdParam ? cashTransactions.find((t) => t.id === editKasIdParam) : undefined;
+  const editKasStatus = resolveEditKasStatus(editKasIdParam, Boolean(editKasTarget), kasReady);
+
+  useInitOnce(editKasTarget ? editKasIdParam : null, () => {
+    const targetTx = editKasTarget;
     if (!targetTx) return;
     setEntryMode('direct');
     setTanggal(targetTx.tanggal || getDefaultFinanceDate());
@@ -174,7 +173,7 @@ function CashInNewContent() {
       setRekening('');
       setKeterangan(rawKet);
     }
-  }, [editKasIdParam, cashTransactions, hasUserEditedDirect]);
+  });
 
   const orderSelectOptions = useMemo(() => {
     return [
@@ -231,6 +230,7 @@ function CashInNewContent() {
 
   const isSaveDisabled =
     isSaving ||
+    (entryMode === 'direct' && editKasStatus !== 'none' && editKasStatus !== 'ready') ||
     (entryMode === 'order' && Boolean(ledgerDraft.error));
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -332,6 +332,7 @@ function CashInNewContent() {
         : keterangan.trim() || 'Kas Masuk Non-Order';
 
       if (editKasIdParam) {
+        if (!editKasTarget) throw new Error('Transaksi kas tidak ditemukan');
         await updateKas(editKasIdParam, {
           tanggal,
           tipe: 'masuk',
@@ -538,6 +539,8 @@ function CashInNewContent() {
               )}
             </section>
 
+            {entryMode === 'direct' && <EditKasStatusNotice status={editKasStatus} />}
+
             {entryMode === 'order' ? (
               selectedOrder ? (
                 <PaymentLedgerPanel
@@ -590,7 +593,6 @@ function CashInNewContent() {
                       value={tanggal}
                       onChange={(e) => {
                         setTanggal(e.target.value);
-                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
@@ -605,7 +607,6 @@ function CashInNewContent() {
                       value={nominal}
                       onValueChange={(val: number) => {
                         setNominal(val);
-                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       placeholder="Rp 0"
@@ -621,7 +622,6 @@ function CashInNewContent() {
                       value={rekening}
                       onValueChange={(val) => {
                         setRekening(val);
-                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       options={accountOptions}
@@ -637,7 +637,6 @@ function CashInNewContent() {
                       value={kategori}
                       onValueChange={(val) => {
                         setKategori(val as CashOutflowCategory);
-                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       options={kategoriKasMasukOptions}
@@ -655,7 +654,6 @@ function CashInNewContent() {
                     value={keterangan}
                     onChange={(e) => {
                       setKeterangan(e.target.value);
-                      setHasUserEditedDirect(true);
                       setIsDirty(true);
                     }}
                     placeholder="Contoh: Setoran modal kas operasional via rekening BCA..."
