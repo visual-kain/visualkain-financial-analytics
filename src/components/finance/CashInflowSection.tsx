@@ -54,20 +54,6 @@ interface CashInflowSectionProps {
   onDeleteTransaction?: (id: string) => Promise<void>;
 }
 
-const INFLOW_CATEGORY_COLORS: Record<InflowCategoryType, string> = {
-  dp: '#0d9488',        // Teal 600 - DP 1 Booking / Uang Muka
-  termin: '#f59e0b',    // Amber 500 - DP 2 Termin 70% Syarat Produksi
-  pelunasan: '#10b981', // Emerald 500 - Pelunasan Akhir 30% Sebelum Kirim
-  kas_masuk: '#6366f1', // Indigo 500 - Kas Masuk Non-Order
-};
-
-const INFLOW_CATEGORY_LABELS: Record<InflowCategoryType, string> = {
-  dp: 'DP 1 Booking (Awal)',
-  termin: 'DP 2 Termin 70% (Mulai Produksi)',
-  pelunasan: 'Pelunasan 30% (Sebelum Kirim)',
-  kas_masuk: 'Kas Masuk Non-Order',
-};
-
 const INFLOW_FILTER_OPTIONS = [
   { value: 'all', label: 'Semua Jenis Pemasukan', badge: 'Semua' },
   { value: 'dp', label: 'DP 1 Booking (Awal)' },
@@ -255,21 +241,79 @@ export function CashInflowSection({
     };
   }, [filteredInflows]);
 
-  // 3. Analytics Charts Data
-  const compositionChartData = useMemo(() => {
-    const map = new Map<InflowCategoryType, number>();
-    filteredInflows.forEach((item) => {
-      map.set(item.jenis, (map.get(item.jenis) || 0) + item.nominal);
+  const receivableStats = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchingOrders = orders.filter((order) => {
+      const tgl = order.tanggalOrder || '';
+      if (tgl && tgl < '2026-10-01') return false;
+      const matchesTahun = tahunFilter === 'all' || tgl.startsWith(tahunFilter);
+      const matchesBulan = bulanFilter === 'all' || tgl.slice(5, 7) === bulanFilter;
+      const cName = (order.customerName || order.namaCustomer || '').toLowerCase();
+      const pName = (order.projectName || order.namaProject || '').toLowerCase();
+      const inv = (order.noInv || '').toLowerCase();
+      const matchesSearch = !q || cName.includes(q) || pName.includes(q) || inv.includes(q);
+      return matchesTahun && matchesBulan && matchesSearch;
     });
 
-    return Array.from(map.entries())
-      .map(([jenis, nominal]) => ({
-        name: INFLOW_CATEGORY_LABELS[jenis] || jenis,
-        value: nominal,
-        color: INFLOW_CATEGORY_COLORS[jenis] || '#0d9488',
-      }))
-      .sort((a, b) => b.value - a.value);
-  }, [filteredInflows]);
+    let totalTagihan = 0;
+    let totalSudahMasuk = 0;
+    let sisaPelunasanProduksi = 0;
+    let sisaKurangDp = 0;
+    let unpaidOrderCount = 0;
+
+    matchingOrders.forEach((order) => {
+      const tagihan = Math.max(0, Number(order.totalInvoice || order.totalJumlah || 0));
+      const masuk = Math.max(0, Number(order.totalUangMasukCustomer || 0));
+      const sisa = Math.max(0, tagihan - masuk);
+
+      totalTagihan += tagihan;
+      totalSudahMasuk += Math.min(tagihan, masuk);
+
+      if (sisa > 0) {
+        unpaidOrderCount++;
+        const dpPct = tagihan > 0 ? (masuk / tagihan) * 100 : (order.dpPersenCustomer || 0);
+        if (dpPct >= 70) {
+          sisaPelunasanProduksi += sisa;
+        } else {
+          sisaKurangDp += sisa;
+        }
+      }
+    });
+
+    const totalSisaPiutang = sisaPelunasanProduksi + sisaKurangDp;
+    const collectionRate = totalTagihan > 0 ? (totalSudahMasuk / totalTagihan) * 100 : 0;
+
+    const slices = [
+      {
+        name: 'Sudah Cair (Uang Masuk)',
+        value: totalSudahMasuk,
+        color: '#0d9488',
+      },
+      {
+        name: 'Sisa Pelunasan (Order ≥70%)',
+        value: sisaPelunasanProduksi,
+        color: '#f59e0b',
+      },
+      {
+        name: 'Kurang DP (<70% Prioritas)',
+        value: sisaKurangDp,
+        color: '#f43f5e',
+      },
+    ];
+
+    const activeSlices = slices.filter((s) => s.value > 0);
+
+    return {
+      totalTagihan,
+      totalSudahMasuk,
+      totalSisaPiutang,
+      orderCount: matchingOrders.length,
+      unpaidOrderCount,
+      collectionRate,
+      slices,
+      activeSlices,
+    };
+  }, [orders, tahunFilter, bulanFilter, searchQuery]);
 
   const dailyTrendData = useMemo(() => {
     const map = new Map<string, number>();
@@ -508,75 +552,108 @@ export function CashInflowSection({
           </div>
         </div>
 
-        {/* Chart B: Inflow Composition Donut Chart */}
+        {/* Chart B: Realisasi Kas Masuk vs Sisa Piutang Customer */}
         <div className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-card-double flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
               <div className="flex items-center gap-2">
-                <PieChartIcon className="h-4 w-4 text-teal-600" />
+                <PieChartIcon className="h-4 w-4 text-teal-600 shrink-0" />
                 <div>
                   <h3 className="text-xs sm:text-sm font-bold text-slate-800">
-                    Komposisi Termin Pembayaran
+                    Realisasi Uang Masuk vs Piutang
                   </h3>
                   <p className="text-[10px] text-slate-400">
-                    Kesiapan pesanan masuk produksi vs pelunasan
+                    Porsi tagihan order yang sudah cair vs belum dibayar customer
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="h-44 w-full">
-              {compositionChartData.length === 0 ? (
+            <div className="relative h-40 w-full">
+              {receivableStats.totalTagihan === 0 ? (
                 <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                  Belum ada komposisi data
+                  Belum ada tagihan order pada periode ini
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={compositionChartData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={42}
-                      outerRadius={68}
-                      paddingAngle={3}
-                    >
-                      {compositionChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(val: any) => [formatRupiah(Number(val) || 0), 'Nominal']}
-                      contentStyle={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        borderRadius: '12px',
-                        border: '1px solid #e2e8f0',
-                        fontSize: '11px',
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                <>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={receivableStats.activeSlices}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={44}
+                        outerRadius={66}
+                        paddingAngle={receivableStats.activeSlices.length > 1 ? 3 : 0}
+                      >
+                        {receivableStats.activeSlices.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(val: any) => [formatRupiah(Number(val) || 0), 'Nilai']}
+                        contentStyle={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.96)',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          fontSize: '11px',
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+
+                  {/* Center Donut Percentage Indicator */}
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="font-mono text-sm font-black tracking-tight text-teal-700 tabular-nums">
+                      {receivableStats.collectionRate.toFixed(1)}%
+                    </span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                      Terkumpul
+                    </span>
+                  </div>
+                </>
               )}
             </div>
           </div>
 
-          {/* Legend Details */}
-          <div className="space-y-1.5 pt-2 border-t border-slate-100 text-[10px]">
-            {compositionChartData.map((item) => {
-              const pct = metrics.totalDanaMasuk > 0 ? ((item.value / metrics.totalDanaMasuk) * 100).toFixed(1) : '0';
-              return (
-                <div key={item.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                    <span className="text-slate-600 font-medium truncate">{item.name}</span>
+          {/* Legend & Total Contract Context */}
+          <div className="space-y-2 pt-2.5 border-t border-slate-100 text-[10.5px]">
+            <div className="space-y-1.5">
+              {receivableStats.slices.map((item) => {
+                if (item.value === 0 && item.name.includes('Kurang DP')) return null;
+                const pct =
+                  receivableStats.totalTagihan > 0
+                    ? ((item.value / receivableStats.totalTagihan) * 100).toFixed(1)
+                    : '0.0';
+                return (
+                  <div key={item.name} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-slate-600 font-medium truncate">{item.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="font-mono font-bold text-slate-800 tabular-nums">
+                        {formatCompactRupiah(item.value)}
+                      </span>
+                      <span className="text-slate-400 font-mono tabular-nums">({pct}%)</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="font-mono font-bold text-slate-800">{formatCompactRupiah(item.value)}</span>
-                    <span className="text-slate-400 font-mono">({pct}%)</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {/* Bottom Summary Pill: Total Nilai Order vs Sisa Piutang */}
+            <div className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200/80 px-2.5 py-1.5 text-[10px]">
+              <span className="text-slate-500 font-semibold">
+                Total Tagihan ({receivableStats.orderCount} Order)
+              </span>
+              <span className="font-mono font-extrabold text-slate-800 tabular-nums">
+                {formatCompactRupiah(receivableStats.totalTagihan)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
