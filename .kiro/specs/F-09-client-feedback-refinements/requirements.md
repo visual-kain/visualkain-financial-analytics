@@ -418,3 +418,46 @@ Berdasarkan tinjauan langsung dan pengujian intensif dari klien (Head of Finance
          - **Status Kecukupan**: Badge jelas **`TERCOVER PENUH`** (jika `saldoKasRiil >= totalUtangVendor`) atau **`BELUM TERCOVER PENUH`** (jika `saldoKasRiil < totalUtangVendor`).
          - **Sisa / Kekurangan Dana**: Menampilkan nominal **`Sisa Dana Setelah Bayar Hutang Vendor (+Rp ...)`** jika tercover, atau **`Kekurangan Dana untuk Hutang Vendor (-Rp ...)`** beserta informasi bahwa masih ada **`Sisa Tagihan Customer (Rp ...)`** yang dapat ditagih untuk menutup kekurangan tersebut.
 
+
+---
+
+## Phase 8: Order-First Payment Ledger (Dana Masuk & Dana Keluar Vendor)
+
+Sumber: feedback klien (13 Okt 2026). Layar `/cash-in/new` dan `/cash-out/new` harus selengkap halaman `/orders/[id]/edit` ketika terkait pesanan, jumlah termin mengikuti kebutuhan tiap proyek (bisa sampai 5x DP atau lebih), dan pembayaran vendor selalu bertumpu pada pesanan.
+
+Prinsip praktik terbaik (subledger piutang/hutang per dokumen): pembayaran selalu dialokasikan ke satu dokumen (pesanan), outstanding terlihat sebelum input, tiap cicilan bernomor urut, dan pembayaran tidak boleh melebihi outstanding.
+
+- **US-9.35 (Panel Ledger Lengkap pada Dana Masuk Mode Pesanan)**:
+  - **WHEN** pengguna memilih mode `Pembayaran DP / Termin Pesanan` pada `/cash-in/new` dan memilih sebuah pesanan,
+  - **THEN** sistem SHALL menampilkan, selain form nominal, tiga blok yang sama lengkapnya dengan bagian edit di tabel master:
+    1. **Ringkasan Tagihan**: Total Invoice, Diskon, Sudah Dibayar, Sisa Pelunasan, dan Target 70% (sebagai indikator SOP, bukan pembatas jumlah termin).
+    2. **Riwayat Termin**: daftar seluruh pembayaran pesanan terurut tanggal (kolom: No Termin, Tanggal, Label, Rekening dan Catatan, Nominal, Aksi) dengan total terkumpul. Tampil sebagai tabel di desktop dan kartu di layar < 640px.
+    3. **Progres Pembayaran**: bar akumulasi dengan marker 70% dan badge `Siap Produksi` / `Menunggu 70%` yang ikut berubah saat nominal baru diketik (simulasi).
+  - **AND** baris riwayat SHALL bisa diedit dan dihapus inline; perubahan hanya tersimpan ke Firestore saat tombol `Simpan Penerimaan` ditekan (indikator `Belum Disimpan` aktif selama ada perubahan).
+
+- **US-9.36 (Termin Dinamis Tanpa Batas Tetap)**:
+  - **WHEN** pengguna menambah pembayaran pada pesanan,
+  - **THEN** sistem SHALL menomori otomatis `Termin ke-N` (N = jumlah pembayaran yang ada + 1) tanpa batas atas.
+  - **AND** kolom `Label` SHALL berupa input teks dengan saran cepat (`DP 1`, `DP 2`, `DP 3`, `Termin 4`, `Pelunasan`) yang dihasilkan dari N, dan boleh diganti bebas oleh pengguna.
+  - **AND** dropdown tetap tiga pilihan (`DP 1`, `DP 2 70%`, `Pelunasan 30%`) SHALL dihapus dari `/cash-in/new` dan dari form tambah termin di `/orders/[id]/edit`.
+  - **AND** bila nominal yang diinput sama dengan sisa pelunasan, label saran SHALL otomatis menjadi `Pelunasan`.
+  - **AND** field lama `jenis` (`dp` | `termin` | `pelunasan`) SHALL tetap diisi untuk kompatibilitas: termin pertama `dp`, termin yang melunasi `pelunasan`, lainnya `termin`.
+
+- **US-9.37 (Guard Kelebihan Bayar dan Isian Cepat)**:
+  - **WHEN** nominal pembayaran customer melebihi sisa pelunasan pesanan (atau nominal pembayaran vendor melebihi sisa HPP),
+  - **THEN** tombol simpan SHALL diblokir dan pesan inline `Nominal melebihi sisa Rp ...` ditampilkan di bawah input.
+  - **AND** tersedia tombol isian cepat: `Sisa penuh` (outstanding) dan, khusus customer yang belum mencapai 70%, `Sisa menuju 70%`.
+  - **AND** pada pesanan yang sudah lunas, form input SHALL dinonaktifkan dengan keterangan `Pesanan sudah lunas`.
+
+- **US-9.38 (Dana Keluar Vendor Berbasis Pesanan)**:
+  - **WHEN** pengguna memilih mode `Pembayaran Mitra Vendor` pada `/cash-out/new`,
+  - **THEN** langkah pertama SHALL berupa pilihan pesanan (wajib), dan `Mitra Vendor` terisi otomatis dari pesanan (read-only, tanpa dropdown vendor lepas).
+  - **AND** sistem SHALL menampilkan ringkasan pesanan (Total HPP, Sudah Dibayar ke Vendor, Sisa Utang), riwayat pembayaran vendor bernomor urut (`Pembayaran ke-N`) dengan aksi edit dan hapus inline, progres pembayaran, serta aturan termin dinamis dan guard kelebihan bayar yang sama dengan US-9.36 dan US-9.37.
+  - **AND** pembayaran vendor di luar pesanan SHALL dicatat lewat mode `Beban Operasional` dengan kategori `Pembayaran Vendor Lainnya`.
+  - **AND** pesanan tanpa vendor (`vendorName` kosong atau `-`) SHALL tampil dengan peringatan dan tautan ke halaman edit order untuk menetapkan vendor sebelum pembayaran dicatat.
+
+- **US-9.39 (Integritas Data dan Kompatibilitas)**:
+  - **THEN** `CustomerPayment` dan `VendorPayment` SHALL memiliki field opsional `terminKe` dan `label`; data lama tanpa field tersebut tetap tampil dengan nomor dan label turunan dari urutan.
+  - **AND** saat simpan, `totalUangMasukCustomer` dan `totalDibayarKeVendor` SHALL dihitung ulang sebagai jumlah daftar, dan `statusPembayaran` / `statusPembayaranVendor` diturunkan dari jumlah tersebut.
+  - **AND** tanggal setiap baris SHALL `>= 2026-10-01` (US-9.30).
+  - **AND** seluruh angka di dashboard (Dana Masuk, Dana Keluar, Sisa Customer, Sisa Hutang Vendor) SHALL berubah konsisten setelah penyimpanan.

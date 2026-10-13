@@ -50,14 +50,20 @@ export function buildCashOutflowEntries(
       vpListValid.forEach((vp, idx) => {
         sumList += vp.nominal;
         const targetVendor = vp.vendorName || order.vendorName || 'Mitra Produksi';
+        const stepLabel = vp.label || (vp.terminKe ? `Pembayaran ke-${vp.terminKe}` : '');
+        const rawNote = vp.keterangan || vp.catatan || '';
+        const formattedKeterangan = rawNote
+          ? stepLabel && !rawNote.toLowerCase().includes(stepLabel.toLowerCase())
+            ? `${stepLabel} (${targetVendor} - ${order.noInv}): ${rawNote}`
+            : rawNote
+          : `${stepLabel || 'Pembayaran'} ke Vendor (${targetVendor}) - ${order.projectName || order.customerName} (${order.noInv})`;
+
         entries.push({
           id: vp.id || `vp-${order.id}-${idx + 1}`,
           tanggal: vp.tanggal || order.tanggalOrder,
           nominal: vp.nominal,
           kategori: 'Pembayaran Vendor',
-          keterangan:
-            vp.catatan ||
-            `Pembayaran ke Vendor (${targetVendor}) - ${order.projectName || order.customerName} (${order.noInv})`,
+          keterangan: formattedKeterangan,
           sumber: 'order',
           noInv: order.noInv,
           vendorOrTargetName: targetVendor,
@@ -125,7 +131,10 @@ export function buildCashOutflowEntries(
       keterangan: tx.keterangan || 'Pengeluaran Kas Operasional',
       sumber: 'manual',
       noInv: tx.refInvoice || 'KAS-KELUAR',
-      vendorOrTargetName: tx.kategori === 'Pembayaran Vendor' ? 'Mitra Vendor (Non-Order)' : 'Kas Operasional',
+      vendorOrTargetName:
+        tx.kategori === 'Pembayaran Vendor' || tx.kategori === 'Pembayaran Vendor Lainnya'
+          ? 'Mitra Vendor (Non-Order)'
+          : 'Kas Operasional',
       rawTransaction: tx,
     });
   }

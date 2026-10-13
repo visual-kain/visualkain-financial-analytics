@@ -1,15 +1,23 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
+import {
+  PaymentLedgerPanel,
+  type LedgerRow,
+  type LedgerDraftState,
+} from '@/components/finance/PaymentLedgerPanel';
+import {
+  normalizeLedger,
+  deriveCustomerJenis,
+} from '@/lib/payment-ledger';
 import { formatRupiah, cn } from '@/lib/utils';
 import {
   DEFAULT_VENDOR_OPTIONS,
   DEFAULT_PAYMENT_CHANNELS,
-  FINANCE_START_DATE,
   isFromFinanceStartDate,
   getDefaultFinanceDate,
 } from '@/lib/constants';
@@ -20,22 +28,12 @@ import {
   Save,
   AlertTriangle,
   CheckCircle2,
-  Plus,
-  Trash2,
-  Pencil,
   Receipt,
   Building2,
-  Wallet,
   Clock,
   Layers,
   Percent,
 } from 'lucide-react';
-
-const JENIS_PEMBAYARAN_OPTIONS = [
-  { value: 'dp', label: 'DP 1 (Booking & Antrian)', badge: 'Awal' },
-  { value: 'termin', label: 'DP 2 (Tambahan menuju 70%)', badge: 'Produksi' },
-  { value: 'pelunasan', label: 'Pelunasan Akhir (30%)', badge: 'Selesai' },
-];
 
 export default function OrderEditFinancePage() {
   const params = useParams();
@@ -57,15 +55,12 @@ export default function OrderEditFinancePage() {
   const [dpVendor, setDpVendor] = useState<number>(0);
   const [catatanFinance, setCatatanFinance] = useState<string>('');
 
-  const [pembayaranList, setPembayaranList] = useState<CustomerPayment[]>([]);
-
-  const [isAddingPayment, setIsAddingPayment] = useState<boolean>(false);
-  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
-  const [payTanggal, setPayTanggal] = useState<string>(getDefaultFinanceDate);
-  const [payJenis, setPayJenis] = useState<'dp' | 'termin' | 'pelunasan'>('termin');
-  const [payNominal, setPayNominal] = useState<number>(0);
-  const [payRekening, setPayRekening] = useState<string>('Transfer BCA');
-  const [payKeterangan, setPayKeterangan] = useState<string>('');
+  const [ledgerRows, setLedgerRows] = useState<LedgerRow[]>([]);
+  const [ledgerDraft, setLedgerDraft] = useState<LedgerDraftState>({
+    nominal: 0,
+    error: null,
+    previewEntries: [],
+  });
 
   const [isDirty, setIsDirty] = useState<boolean>(false);
   const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
@@ -78,6 +73,8 @@ export default function OrderEditFinancePage() {
         currentOrder.grossTotal !== undefined && Number(currentOrder.grossTotal) > 0
           ? Number(currentOrder.grossTotal)
           : (currentOrder.totalInvoice || 0) + currentDiskon;
+      const netTagihan = Math.max(0, grossTagihan - currentDiskon);
+
       setTotalInvoice(grossTagihan);
       setDiskon(currentDiskon);
       setBiayaOperasional(currentOrder.biayaOperasional || 0);
@@ -86,27 +83,63 @@ export default function OrderEditFinancePage() {
       setDpVendor(currentOrder.totalDibayarKeVendor || 0);
       setCatatanFinance(currentOrder.catatanFinance || '');
 
-      if (currentOrder.pembayaranList && currentOrder.pembayaranList.length > 0) {
-        setPembayaranList(currentOrder.pembayaranList);
-      } else if (currentOrder.totalUangMasukCustomer > 0) {
-        setPembayaranList([
-          {
-            id: `pay-${currentOrder.id}-init`,
-            orderId: currentOrder.id,
-            noInv: currentOrder.noInv,
-            tanggal: currentOrder.tanggalInv || currentOrder.tanggalOrder || new Date().toISOString().slice(0, 10),
-            nominal: currentOrder.totalUangMasukCustomer,
-            jenis: 'dp',
-            keterangan: 'DP Awal (Transfer Bank BCA)',
-            createdAt: new Date().toISOString(),
-          },
-        ]);
-      } else {
-        setPembayaranList([]);
-      }
+      const rawPayments: CustomerPayment[] =
+        currentOrder.pembayaranList && currentOrder.pembayaranList.length > 0
+          ? currentOrder.pembayaranList
+          : currentOrder.totalUangMasukCustomer > 0
+          ? [
+              {
+                id: `pay-${currentOrder.id}-init`,
+                orderId: currentOrder.id,
+                noInv: currentOrder.noInv,
+                tanggal:
+                  currentOrder.tanggalInv && isFromFinanceStartDate(currentOrder.tanggalInv)
+                    ? currentOrder.tanggalInv
+                    : currentOrder.tanggalOrder && isFromFinanceStartDate(currentOrder.tanggalOrder)
+                    ? currentOrder.tanggalOrder
+                    : getDefaultFinanceDate(),
+                nominal: currentOrder.totalUangMasukCustomer,
+                jenis: 'dp',
+                keterangan: 'Transfer BCA - DP Awal Konsumen',
+                createdAt: new Date().toISOString(),
+              },
+            ]
+          : [];
+
+      const normalized = normalizeLedger(
+        rawPayments.map((p) => ({
+          id: p.id,
+          tanggal: p.tanggal,
+          nominal: Number(p.nominal) || 0,
+          terminKe: p.terminKe,
+          label: p.label,
+          jenis: p.jenis,
+          keterangan: p.keterangan,
+          createdAt: p.createdAt,
+        })),
+        netTagihan,
+        'customer'
+      ) as LedgerRow[];
+
+      setLedgerRows(normalized);
+      setLedgerDraft({
+        nominal: 0,
+        error: null,
+        previewEntries: normalized,
+      });
       setIsDirty(false);
     }
   }, [currentOrder]);
+
+  const accountOptions = useMemo(
+    () =>
+      DEFAULT_PAYMENT_CHANNELS.map((ch) => ({
+        value: ch.value,
+        label: ch.label,
+        badge: 'badge' in ch ? (ch as { badge: string }).badge : undefined,
+      })),
+    []
+  );
 
   const vendorOptions = useMemo<Array<{ value: string; label: string; badge?: string }>>(() => {
     const list: Array<{ value: string; label: string; badge?: string }> = DEFAULT_VENDOR_OPTIONS.map((v) => ({
@@ -141,10 +174,24 @@ export default function OrderEditFinancePage() {
     return list;
   }, [vendors, orders, currentOrder]);
 
+  const handleDraftChange = useCallback((draft: LedgerDraftState) => {
+    setLedgerDraft(draft);
+    if (draft.nominal > 0) {
+      setIsDirty(true);
+    }
+  }, []);
+
+  const effectiveEntries = useMemo<LedgerRow[]>(() => {
+    if (ledgerDraft.nominal > 0 && !ledgerDraft.error) {
+      return ledgerDraft.previewEntries;
+    }
+    return ledgerRows;
+  }, [ledgerDraft, ledgerRows]);
+
   const netInvoice = Math.max(0, totalInvoice - diskon);
   const nominalDpCustomer = useMemo(() => {
-    return pembayaranList.reduce((acc, p) => acc + Number(p.nominal), 0);
-  }, [pembayaranList]);
+    return effectiveEntries.reduce((acc, p) => acc + (Number(p.nominal) || 0), 0);
+  }, [effectiveEntries]);
 
   const target70 = Math.round(0.7 * netInvoice);
   const sisaMenuju70 = Math.max(0, target70 - nominalDpCustomer);
@@ -156,80 +203,7 @@ export default function OrderEditFinancePage() {
   const netProfit = netInvoice - totalBiayaVendor - biayaOperasional;
   const marginPercent = netInvoice > 0 ? (netProfit / netInvoice) * 100 : 0;
 
-  const handleStartEditPayment = (pay: CustomerPayment) => {
-    setEditingPaymentId(pay.id);
-    setPayTanggal(pay.tanggal);
-    setPayJenis(pay.jenis);
-    setPayNominal(pay.nominal);
-    const parts = (pay.keterangan || '').split(' - ');
-    if (parts.length > 1) {
-      setPayRekening(parts[0]);
-      setPayKeterangan(parts.slice(1).join(' - '));
-    } else {
-      setPayKeterangan(pay.keterangan || '');
-    }
-    setIsAddingPayment(true);
-  };
-
-  const handleSavePaymentEntry = () => {
-    if (payNominal <= 0) {
-      toast.error('Nominal pembayaran termin harus lebih dari Rp 0');
-      return;
-    }
-
-    if (!isFromFinanceStartDate(payTanggal)) {
-      toast.error('Tanggal pembayaran harus mulai 1 Oktober 2026 ke atas');
-      return;
-    }
-
-    const ketText = payKeterangan ? `${payRekening} - ${payKeterangan}` : `${payRekening}`;
-
-    if (editingPaymentId) {
-      setPembayaranList((prev) =>
-        prev.map((p) =>
-          p.id === editingPaymentId
-            ? {
-                ...p,
-                tanggal: payTanggal || getDefaultFinanceDate(),
-                jenis: payJenis,
-                nominal: payNominal,
-                keterangan: ketText,
-              }
-            : p
-        )
-      );
-      setEditingPaymentId(null);
-      toast.success('Baris pembayaran termin berhasil diperbarui!');
-    } else {
-      const newPayment: CustomerPayment = {
-        id: `pay-${Date.now()}`,
-        orderId: currentOrder?.id || orderId,
-        noInv: currentOrder?.noInv || '',
-        tanggal: payTanggal || getDefaultFinanceDate(),
-        nominal: payNominal,
-        jenis: payJenis,
-        keterangan: ketText,
-        createdAt: new Date().toISOString(),
-      };
-      setPembayaranList((prev) => [...prev, newPayment]);
-      toast.success(`Termin ${payJenis.toUpperCase()} sebesar ${formatRupiah(newPayment.nominal)} ditambahkan!`);
-    }
-
-    setPayNominal(0);
-    setPayKeterangan('');
-    setIsAddingPayment(false);
-    setIsDirty(true);
-  };
-
-  const handleRemovePaymentEntry = (paymentId: string) => {
-    if (editingPaymentId === paymentId) {
-      setEditingPaymentId(null);
-      setIsAddingPayment(false);
-    }
-    setPembayaranList((prev) => prev.filter((p) => p.id !== paymentId));
-    setIsDirty(true);
-    toast.info('Baris termin pembayaran dihapus');
-  };
+  const isSaveDisabled = isSaving || Boolean(ledgerDraft.error);
 
   const handleBackToFinance = () => {
     if (isDirty) {
@@ -248,12 +222,49 @@ export default function OrderEditFinancePage() {
       return;
     }
 
+    if (ledgerDraft.error) {
+      toast.error(ledgerDraft.error);
+      return;
+    }
+
+    if (nominalDpCustomer > netInvoice) {
+      toast.error(`Total termin konsumen (${formatRupiah(nominalDpCustomer)}) melebihi tagihan bersih (${formatRupiah(netInvoice)})`);
+      return;
+    }
+
+    for (const row of effectiveEntries) {
+      if (!isFromFinanceStartDate(row.tanggal)) {
+        toast.error('Tanggal setiap termin pembayaran harus mulai 1 Oktober 2026 ke atas');
+        return;
+      }
+    }
+
     try {
       setIsSaving(true);
       const matchedVendor = vendors.find(
         (v) => v.nama.toLowerCase() === vendorNama.toLowerCase() || v.id === vendorNama
       );
       const vendorId = matchedVendor ? matchedVendor.id : (currentOrder.vendorId || vendorNama);
+
+      let running = 0;
+      const updatedPayments: CustomerPayment[] = effectiveEntries.map((row, idx) => {
+        const nominalVal = Number(row.nominal) || 0;
+        running += nominalVal;
+        const terminKe = idx + 1;
+        const settles = netInvoice > 0 && running >= netInvoice;
+        return {
+          id: row.id === 'pay-draft' ? `pay-${Date.now()}-${idx}` : row.id,
+          orderId: currentOrder.id,
+          noInv: currentOrder.noInv,
+          tanggal: row.tanggal,
+          nominal: nominalVal,
+          jenis: deriveCustomerJenis(terminKe, settles),
+          terminKe,
+          label: row.label,
+          keterangan: row.keterangan || 'Transfer BCA',
+          createdAt: row.createdAt || new Date().toISOString(),
+        };
+      });
 
       const updatedPayload: Partial<Order> = {
         grossTotal: totalInvoice,
@@ -262,7 +273,7 @@ export default function OrderEditFinancePage() {
         diskon,
         diskonHarga: diskon,
         biayaOperasional,
-        pembayaranList,
+        pembayaranList: updatedPayments,
         dpNominal: nominalDpCustomer,
         totalUangMasukCustomer: nominalDpCustomer,
         totalHpp: totalBiayaVendor,
@@ -331,6 +342,7 @@ export default function OrderEditFinancePage() {
             <button
               type="button"
               onClick={handleBackToFinance}
+              aria-label="Kembali ke Master Finansial"
               className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
               title="Kembali ke Master Finansial"
             >
@@ -376,8 +388,8 @@ export default function OrderEditFinancePage() {
               <button
                 type="button"
                 onClick={() => handleSubmit()}
-                disabled={isSaving}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 sm:px-5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50"
+                disabled={isSaveDisabled}
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 sm:px-5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-3.5 w-3.5 shrink-0" />
                 <span>{isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
@@ -389,7 +401,7 @@ export default function OrderEditFinancePage() {
 
       <main className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-10 py-6">
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Form Inputs & Termin Table */}
+          {/* Left Column */}
           <div className="xl:col-span-7 2xl:col-span-8 space-y-6">
             <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-card-double space-y-5">
               <div className="flex items-center justify-between gap-2.5 border-b border-slate-100 pb-3.5">
@@ -449,282 +461,20 @@ export default function OrderEditFinancePage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-card-double space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3.5">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 border border-teal-100">
-                    <Wallet className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900">2. Riwayat Mutasi Termin Pembayaran Konsumen</h2>
-                    <p className="text-xs text-slate-500">
-                      Daftar cicilan nyata konsumen yang otomatis tersinkron ke Master Finansial
-                    </p>
-                  </div>
-                </div>
-
-                {!isAddingPayment && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingPaymentId(null);
-                      setPayNominal(0);
-                      setPayKeterangan('');
-                      setIsAddingPayment(true);
-                    }}
-                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>Tambah Termin Pembayaran</span>
-                  </button>
-                )}
-              </div>
-
-              {isAddingPayment && (
-                <div className="rounded-xl border border-teal-200 bg-teal-50/40 p-4 space-y-4">
-                  <div className="flex items-center justify-between border-b border-teal-100 pb-2.5">
-                    <h3 className="text-xs font-bold text-teal-900">
-                      {editingPaymentId ? 'Edit Termin Pembayaran' : 'Tambah Termin Pembayaran Baru'}
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAddingPayment(false);
-                        setEditingPaymentId(null);
-                      }}
-                      className="text-xs font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
-                    >
-                      Tutup Form
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Tanggal Bayar</label>
-                      <input
-                        type="date"
-                        min={FINANCE_START_DATE}
-                        value={payTanggal}
-                        onChange={(e) => setPayTanggal(e.target.value)}
-                        className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-teal-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Jenis Termin</label>
-                      <CustomSelect
-                        value={payJenis}
-                        onValueChange={(val) => setPayJenis(val as typeof payJenis)}
-                        options={JENIS_PEMBAYARAN_OPTIONS}
-                        className="h-10 text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Nominal (Rp)</label>
-                      <CurrencyInput
-                        value={payNominal}
-                        onValueChange={setPayNominal}
-                        className="h-10 text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Rekening Tujuan</label>
-                      <CustomSelect
-                        value={payRekening}
-                        onValueChange={setPayRekening}
-                        options={DEFAULT_PAYMENT_CHANNELS}
-                        className="h-10 text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Catatan / Bukti Referensi</label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Transfer Bank BCA a.n PT Harapan Jaya - Ref #8271"
-                      value={payKeterangan}
-                      onChange={(e) => setPayKeterangan(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-teal-500 focus:outline-none placeholder-slate-400"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAddingPayment(false);
-                        setEditingPaymentId(null);
-                      }}
-                      className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-600 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSavePaymentEntry}
-                      className="inline-flex h-9 items-center rounded-xl bg-teal-600 px-4 text-xs font-bold text-white hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
-                    >
-                      {editingPaymentId ? 'Perbarui Baris' : 'Tambahkan Baris'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Mobile Card List (< 640px) */}
-              <div className="sm:hidden space-y-2.5">
-                {pembayaranList.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-500">
-                    Belum ada termin cicilan yang dicatat. Ketuk &quot;Tambah Termin Pembayaran&quot; di atas.
-                  </div>
-                ) : (
-                  pembayaranList.map((p, idx) => (
-                    <div
-                      key={p.id || idx}
-                      className="rounded-xl border border-slate-200 bg-slate-50/60 p-3.5 space-y-2"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={cn(
-                            'rounded-lg px-2 py-0.5 text-[10px] font-bold border',
-                            p.jenis === 'dp'
-                              ? 'bg-sky-50 text-sky-700 border-sky-200'
-                              : p.jenis === 'termin'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          )}
-                        >
-                          {p.jenis === 'dp'
-                            ? 'DP 1 (Booking)'
-                            : p.jenis === 'termin'
-                            ? 'DP 2 (70% Produksi)'
-                            : 'Pelunasan Penuh'}
-                        </span>
-                        <span className="font-mono text-xs text-slate-500 font-medium">{p.tanggal}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-xs text-slate-600 truncate">{p.keterangan || '-'}</div>
-                        <div className="font-mono text-sm font-extrabold text-slate-900 tabular-nums shrink-0">
-                          {formatRupiah(p.nominal)}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/70">
-                        <button
-                          type="button"
-                          onClick={() => handleStartEditPayment(p)}
-                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150"
-                        >
-                          <Pencil className="h-3 w-3" />
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePaymentEntry(p.id)}
-                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-[11px] font-bold text-rose-600 hover:bg-rose-100 active:scale-[0.96] transition-transform duration-150"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          <span>Hapus</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-
-                <div className="rounded-xl bg-emerald-50/80 border border-emerald-200 px-3.5 py-2.5 flex items-center justify-between text-xs">
-                  <span className="font-bold text-emerald-900">Total Uang Masuk:</span>
-                  <span className="font-mono text-sm font-extrabold text-emerald-700 tabular-nums">
-                    {formatRupiah(nominalDpCustomer)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Desktop / Tablet Table (>= 640px) */}
-              <div className="hidden sm:block overflow-x-auto rounded-xl border border-slate-200">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
-                    <tr>
-                      <th className="px-4 py-3 font-bold">TANGGAL</th>
-                      <th className="px-4 py-3 font-bold">JENIS TERMIN</th>
-                      <th className="px-4 py-3 font-bold">REKENING &amp; CATATAN</th>
-                      <th className="px-4 py-3 font-bold text-right">NOMINAL (RP)</th>
-                      <th className="px-4 py-3 font-bold text-center w-24">AKSI</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
-                    {pembayaranList.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-8 text-center text-slate-500 text-xs">
-                          Belum ada termin cicilan yang dicatat. Klik &quot;+ Tambah Termin Pembayaran&quot; di atas.
-                        </td>
-                      </tr>
-                    ) : (
-                      pembayaranList.map((p, idx) => (
-                        <tr key={p.id || idx} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="px-4 py-3 font-mono font-medium whitespace-nowrap">{p.tanggal}</td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={cn(
-                                'rounded-lg px-2.5 py-0.5 text-[10px] font-bold border inline-block',
-                                p.jenis === 'dp'
-                                  ? 'bg-sky-50 text-sky-700 border-sky-200'
-                                  : p.jenis === 'termin'
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              )}
-                            >
-                              {p.jenis === 'dp'
-                                ? 'DP 1 (Booking)'
-                                : p.jenis === 'termin'
-                                ? 'DP 2 (70% Produksi)'
-                                : 'Pelunasan Penuh'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">{p.keterangan || '-'}</td>
-                          <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 tabular-nums">
-                            {formatRupiah(p.nominal)}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleStartEditPayment(p)}
-                                title="Edit Termin Ini"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemovePaymentEntry(p.id)}
-                                title="Hapus Termin Ini"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                  <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-slate-900">
-                    <tr>
-                      <td colSpan={3} className="px-4 py-3 text-right">
-                        Total Uang Masuk Konsumen Terkumpul:
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-emerald-700 font-extrabold tabular-nums">
-                        {formatRupiah(nominalDpCustomer)}
-                      </td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </section>
+            <PaymentLedgerPanel
+              variant="customer"
+              totalTagihan={netInvoice}
+              diskon={diskon}
+              entries={ledgerRows}
+              onChange={(rows) => {
+                setLedgerRows(rows);
+                setIsDirty(true);
+              }}
+              accountOptions={accountOptions}
+              defaultTanggal={getDefaultFinanceDate()}
+              defaultRekening="Transfer BCA"
+              onDraftChange={handleDraftChange}
+            />
 
             <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-card-double space-y-5">
               <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
@@ -788,7 +538,7 @@ export default function OrderEditFinancePage() {
             </section>
           </div>
 
-          {/* Right Sticky Column: Production 70% Threshold, Margin Summary & Notes */}
+          {/* Right Sticky Column */}
           <div className="xl:col-span-5 2xl:col-span-4 xl:sticky xl:top-24 space-y-6">
             <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-card-double space-y-4">
               <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3.5">
@@ -851,34 +601,6 @@ export default function OrderEditFinancePage() {
                     {formatRupiah(sisaPelunasanCustomer)}
                   </div>
                   <span className="text-[10px] text-purple-700 mt-0.5 block">Dibayar sebelum kirim</span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between text-[11px] text-slate-600">
-                  <span className="font-medium">Progres Akumulasi Pembayaran</span>
-                  <span className="font-mono font-bold text-slate-900">{dpPersenCustomer.toFixed(1)}%</span>
-                </div>
-
-                <div className="relative h-3.5 w-full rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-                  <div
-                    className="absolute top-0 bottom-0 w-0.5 bg-slate-500 z-10"
-                    style={{ left: '70%' }}
-                    title="Batas Minimal 70% Siap Produksi"
-                  />
-                  <div
-                    className={cn(
-                      'h-full transition-all duration-300 rounded-full',
-                      isSiapProduksi ? 'bg-emerald-500' : 'bg-amber-500'
-                    )}
-                    style={{ width: `${Math.min(100, Math.max(0, dpPersenCustomer))}%` }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between text-[10px] text-slate-500">
-                  <span>DP 1 (Booking)</span>
-                  <span className="text-slate-700 font-semibold">&uarr; Batas 70% Produksi</span>
-                  <span>100% Lunas</span>
                 </div>
               </div>
 
@@ -962,8 +684,8 @@ export default function OrderEditFinancePage() {
                 <button
                   type="button"
                   onClick={() => handleSubmit()}
-                  disabled={isSaving}
-                  className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50"
+                  disabled={isSaveDisabled}
+                  className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="h-4 w-4 shrink-0" />
                   <span>{isSaving ? 'Menyimpan...' : 'Simpan Perubahan Finansial'}</span>
@@ -988,7 +710,7 @@ export default function OrderEditFinancePage() {
               <button
                 type="button"
                 onClick={() => setShowExitConfirm(false)}
-                className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
               >
                 Tetap di Halaman
               </button>
@@ -998,7 +720,7 @@ export default function OrderEditFinancePage() {
                   setShowExitConfirm(false);
                   router.push('/');
                 }}
-                className="inline-flex h-9 items-center rounded-xl bg-rose-600 px-3.5 text-xs font-bold text-white hover:bg-rose-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                className="inline-flex h-10 items-center rounded-xl bg-rose-600 px-3.5 text-xs font-bold text-white hover:bg-rose-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
               >
                 Buang &amp; Keluar
               </button>

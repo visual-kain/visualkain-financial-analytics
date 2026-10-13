@@ -601,3 +601,54 @@
 | `src/hooks/useFirebaseFinance.ts` | Data Layer (`US-9.7, 9.15, 9.26, 9.30`) | Filter otomatis `>= '2026-10-01'`, perbaiki resolusi `pembayaranList` vs `riwayatPembayaran` kosong (`VK260041`), dan sinkronisasi penuh ke Firestore. |
 
 
+
+---
+
+## Phase 8 Design: Order-First Payment Ledger
+
+### 8.1 Alur (Best Practice Subledger per Pesanan)
+
+```
+Pilih mode -> Pilih pesanan (wajib) -> Lihat outstanding + riwayat termin
+           -> Tambah/edit/hapus baris termin (nomor urut otomatis, label bebas)
+           -> Guard: nominal <= sisa -> Simpan (satu kali, atomik ke dokumen order)
+```
+
+Dana Masuk mengalokasikan ke `order.pembayaranList`. Dana Keluar vendor mengalokasikan ke `order.vendorPembayaranList`. Keduanya tidak menyentuh koleksi `kas`, sehingga tidak ada duplikasi hitungan (`isDuplicateOrderVendorTx` tetap menjadi pengaman data lama).
+
+### 8.2 Helper Murni: `src/lib/payment-ledger.ts`
+
+| Fungsi | Tujuan |
+|---|---|
+| `nextTerminNumber(list)` | `list.length + 1` |
+| `suggestTerminLabel(n, nominal, sisa)` | `DP 1`, `DP 2`, ..., `Termin N`; `Pelunasan` jika `nominal === sisa` |
+| `deriveJenis(n, nominal, sisa)` | Nilai kompatibel `dp` / `termin` / `pelunasan` |
+| `normalizeLedger(list)` | Isi `terminKe` dan `label` untuk data lama, urut tanggal lalu `createdAt` |
+| `summarizeLedger({ total, list, nominalBaru })` | `dibayar`, `sisa`, `persen`, `target70`, `sisaMenuju70`, `isOverpay`, `isLunas` |
+| `validateEntryNominal(nominal, sisa)` | Pesan error atau `null` |
+
+Helper bebas React agar bisa diuji dengan Vitest.
+
+### 8.3 Komponen Bersama: `src/components/finance/PaymentLedgerPanel.tsx`
+
+Satu komponen untuk dua konteks (`variant: 'customer' | 'vendor'`).
+
+- Props: `variant`, `totalTagihan`, `entries`, `onChange(entries)`, `nominalBaru`, `defaultTanggal`, `accountOptions`, `disabled`.
+- Bagian: (1) kartu ringkasan 4 angka, (2) progres bar dengan marker 70% (hanya `customer`), (3) riwayat termin tabel desktop + kartu mobile, (4) form baris inline (tanggal, label + chip saran, nominal + chip `Sisa penuh` / `Sisa menuju 70%`, rekening, catatan).
+- Aksesibilitas: tombol aksi >= 40px, `aria-label` tiap ikon aksi, pesan error `role="alert"`, fokus dipindah ke input nominal saat form dibuka, tidak ada warna sebagai satu-satunya penanda status.
+- Mobile: tabel diganti kartu satu kolom di bawah 640px, chip saran `flex-wrap`, tanpa overflow horizontal.
+
+### 8.4 Perubahan Halaman
+
+| File | Perubahan |
+|---|---|
+| `src/types/index.ts` | `CustomerPayment` dan `VendorPayment`: tambah `terminKe?: number`, `label?: string`. |
+| `src/app/cash-in/new/page.tsx` | Mode pesanan memakai `PaymentLedgerPanel variant="customer"`. Hapus dropdown 3 jenis tetap. Simpan seluruh daftar hasil edit. Kolom kanan: ringkasan dan simulasi 70%. |
+| `src/app/cash-out/new/page.tsx` | Mode vendor: pesanan wajib, vendor read-only, `PaymentLedgerPanel variant="vendor"`. Hapus dropdown vendor lepas dan opsi pesanan opsional. Tambah kategori `Pembayaran Vendor Lainnya` di mode operasional. |
+| `src/app/orders/[id]/edit/page.tsx` | Form tambah termin memakai label dinamis (tanpa dropdown 3 jenis) dan guard kelebihan bayar. |
+| `src/lib/financial-calculator.ts` | `buildCashOutflowEntries` memakai `label` / `terminKe` pada keterangan bila ada. |
+| `src/lib/payment-ledger.test.ts` | Pengujian helper (termin ke-5, pelunasan otomatis, overpay, data lama). |
+
+### 8.5 Direction Statement (antislop R-37)
+
+Memakai bahasa visual yang sudah ada di halaman edit order (kartu putih, aksen teal untuk customer, rose untuk vendor, tipografi `font-mono tabular-nums` untuk angka). Tidak ada elemen dekoratif baru. Ikon hanya untuk aksi (edit, hapus, tambah). Dial: ENERGY 1 / RHYTHM 1 / MOTION 1 karena ini layar kerja data entry.

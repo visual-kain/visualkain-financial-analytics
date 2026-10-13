@@ -104,14 +104,15 @@ export function useFirebaseFinance(
               // Prioritaskan nilai positif antara totalDibayarKeVendor dan dpNominalPO agar nilai 0 salah satu field tidak menimpa pembayaran vendor yang sah.
               const rawPaidVendor = Number(d.totalDibayarKeVendor || 0);
               const rawDpPo = Number(d.dpNominalPO || 0);
-              const dpVendor =
-                rawPaidVendor > 0
-                  ? rawPaidVendor
-                  : rawDpPo > 0
-                  ? rawDpPo
-                  : d.totalDibayarKeVendor !== undefined
-                  ? rawPaidVendor
-                  : Math.round(totalHpp * (Number(d.dpPersenPO || 0) / 100));
+              const dpVendor = Array.isArray(d.vendorPembayaranList) && d.totalDibayarKeVendor !== undefined
+                ? rawPaidVendor
+                : rawPaidVendor > 0
+                ? rawPaidVendor
+                : rawDpPo > 0
+                ? rawDpPo
+                : d.totalDibayarKeVendor !== undefined
+                ? rawPaidVendor
+                : Math.round(totalHpp * (Number(d.dpPersenPO || 0) / 100));
 
               const payments: CustomerPayment[] = [];
               let hasModernPaymentRecord = false;
@@ -139,6 +140,8 @@ export function useFirebaseFinance(
                     tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
                     nominal,
                     jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
+                    terminKe: typeof p.terminKe === 'number' ? p.terminKe : undefined,
+                    label: typeof p.label === 'string' ? p.label : undefined,
                     keterangan: p.keterangan || p.catatan || 'Pembayaran Termin',
                     createdAt: p.createdAt || new Date().toISOString(),
                   });
@@ -154,6 +157,8 @@ export function useFirebaseFinance(
                     tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
                     nominal,
                     jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
+                    terminKe: typeof p.terminKe === 'number' ? p.terminKe : undefined,
+                    label: typeof p.label === 'string' ? p.label : undefined,
                     keterangan: p.catatan || (idx === 0 ? 'DP Pembayaran' : 'Pembayaran Termin'),
                     createdAt: new Date().toISOString(),
                   });

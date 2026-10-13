@@ -27,7 +27,9 @@ export interface CustomerPayment {
   noInv: string;            // Nomor invoice acuan
   tanggal: string;          // Format YYYY-MM-DD
   nominal: number;          // Nominal rupiah yang dibayarkan
-  jenis: 'dp' | 'termin' | 'pelunasan'; // Tipe pembayaran
+  jenis: 'dp' | 'termin' | 'pelunasan'; // Tipe pembayaran (diturunkan dari urutan, dipertahankan untuk data lama)
+  terminKe?: number;        // Nomor urut termin, tanpa batas atas
+  label?: string;           // Nama termin bebas, contoh: "DP 3", "Termin 5", "Pelunasan"
   keterangan?: string;      // Contoh: "Transfer BCA Termin 1"
   buktiUrl?: string;        // URL bukti transfer (opsional)
   createdAt: string;
@@ -41,6 +43,8 @@ export interface VendorPayment {
   tanggal: string;
   nominal: number;
   jenis: 'dp_vendor' | 'termin_vendor' | 'pelunasan_vendor' | string;
+  terminKe?: number;
+  label?: string;
   keterangan?: string;
   catatan?: string;
   createdAt?: string;
@@ -149,6 +153,7 @@ export interface KasAdjustment {
 
 export type CashOutflowCategory =
   | 'Pembayaran Vendor'
+  | 'Pembayaran Vendor Lainnya'
   | 'Biaya Operasional Order'
   | 'Gaji/Upah'
   | 'Perawatan Web/Sistem'

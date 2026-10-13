@@ -88,6 +88,7 @@ const BULAN_FILTER_OPTIONS_ALL = [
 
 const CATEGORY_COLORS: Record<string, string> = {
   'Pembayaran Vendor': '#d97706',
+  'Pembayaran Vendor Lainnya': '#b45309',
   'Biaya Operasional Order': '#ea580c',
   'Gaji/Upah': '#0d9488',
   'Operasional': '#2563eb',
@@ -114,6 +115,7 @@ const SOURCE_FILTER_OPTIONS = [
 const CATEGORY_FILTER_OPTIONS = [
   { value: 'all', label: 'Semua Kategori Beban', badge: 'Semua' },
   { value: 'Pembayaran Vendor', label: 'Pembayaran Vendor (Order)' },
+  { value: 'Pembayaran Vendor Lainnya', label: 'Pembayaran Vendor Lainnya (Non-Order)' },
   { value: 'Biaya Operasional Order', label: 'Biaya Operasional Order' },
   { value: 'Gaji/Upah', label: 'Gaji / Upah' },
   { value: 'Operasional', label: 'Operasional' },

@@ -310,3 +310,30 @@
   - Jalankan `npm run build` untuk memastikan Next.js production build berhasil.
   - _Requirements: US-9.30, US-9.31, US-9.32, US-9.33, US-9.34_
 
+
+## Phase 8: Order-First Payment Ledger
+
+- [x] **43. Tipe dan Helper Ledger**
+  - Tambah `terminKe?` dan `label?` pada `CustomerPayment` dan `VendorPayment` di `src/types/index.ts`.
+  - Buat `src/lib/payment-ledger.ts` (`nextTerminNumber`, `suggestTerminLabel`, `deriveJenis`, `normalizeLedger`, `summarizeLedger`, `validateEntryNominal`).
+  - _Requirements: US-9.36, US-9.37, US-9.39_
+
+- [x] **44. Unit Test Helper Ledger**
+  - Buat `src/lib/payment-ledger.test.ts`: termin ke-5, pelunasan otomatis saat nominal = sisa, overpay diblokir, data lama tanpa `terminKe`, pesanan lunas.
+  - _Requirements: US-9.36, US-9.37, US-9.39_
+
+- [x] **45. Komponen `PaymentLedgerPanel`**
+  - Buat `src/components/finance/PaymentLedgerPanel.tsx` (varian customer dan vendor): ringkasan, progres, riwayat (tabel desktop, kartu mobile), form inline edit/hapus/tambah, chip isian cepat, guard overpay.
+  - _Requirements: US-9.35, US-9.36, US-9.37, US-9.38_
+
+- [x] **46. Integrasi `/cash-in/new`**
+  - Mode pesanan memakai `PaymentLedgerPanel`, hapus dropdown 3 jenis, simpan seluruh daftar, hitung ulang total dan status.
+  - _Requirements: US-9.35, US-9.36, US-9.37, US-9.39_
+
+- [x] **47. Integrasi `/cash-out/new` dan `/orders/[id]/edit`**
+  - Mode vendor: pesanan wajib, vendor read-only, ledger vendor, kategori `Pembayaran Vendor Lainnya`. Samakan form tambah termin di halaman edit dengan label dinamis.
+  - _Requirements: US-9.36, US-9.37, US-9.38, US-9.39_
+
+- [x] **48. Quality Verification Gate Phase 8**
+  - `npx tsc --noEmit`, `npm test -- --run`, `npm run build` lulus. Audit mobile 375px, keyboard, dan kontras.
+  - _Requirements: US-9.35 sampai US-9.39_
