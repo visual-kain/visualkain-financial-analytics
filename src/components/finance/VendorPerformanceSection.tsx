@@ -177,15 +177,29 @@ export function VendorPerformanceSection({
   const [sortField, setSortField] = useState<keyof VendorPerformanceItem>('orderCount');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Chart data: HPP Quotation vs HPP Aktual
   const chartData = useMemo(() => {
     return vendors.map((v) => ({
       name: v.vendorNama,
-      quotation: v.hppQuotation,
-      aktual: v.hppAktual,
-      selisih: v.selisihQuotation,
+      hpp: v.hppAktual > 0 ? v.hppAktual : v.hppQuotation,
+      profit: v.profit,
       margin: v.marginPercent,
+      orderCount: v.orderCount,
+      pcsTotal: v.pcsTotal,
     }));
+  }, [vendors]);
+
+  const topProfitVendor = useMemo(() => {
+    if (!vendors.length) return null;
+    return [...vendors].sort((a, b) => b.profit - a.profit)[0];
+  }, [vendors]);
+
+  const vendorSummaryStats = useMemo(() => {
+    if (!vendors.length) return { avgMargin: 0, totalProfit: 0, totalHpp: 0 };
+    const totalProfit = vendors.reduce((sum, v) => sum + v.profit, 0);
+    const totalHpp = vendors.reduce((sum, v) => sum + (v.hppAktual > 0 ? v.hppAktual : v.hppQuotation), 0);
+    const totalValue = totalHpp + totalProfit;
+    const avgMargin = totalValue > 0 ? (totalProfit / totalValue) * 100 : 0;
+    return { avgMargin, totalProfit, totalHpp };
   }, [vendors]);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -210,7 +224,6 @@ export function VendorPerformanceSection({
     });
   }, [vendors, sortField, sortOrder]);
 
-  // US-9.21: Live search filter mitra vendor
   const filteredVendors = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return sortedVendors;
@@ -219,9 +232,7 @@ export function VendorPerformanceSection({
 
   return (
     <div className="space-y-6">
-      {/* Top Highlights: Unified White Cards (2-Grid Mobile, 3-Col Desktop) */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-4">
-        {/* Card 1: Mitra Terbanyak */}
         <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300">
           <div className="flex items-center justify-between">
             <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate pr-1">
@@ -239,25 +250,25 @@ export function VendorPerformanceSection({
           </p>
         </div>
 
-        {/* Card 2: Efisiensi Belanja */}
         <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300">
           <div className="flex items-center justify-between">
             <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate pr-1">
-              Efisiensi Belanja
+              Mitra Profit Tertinggi
             </span>
             <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl bg-teal-50 text-teal-600 border border-teal-100 shrink-0">
               <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </span>
           </div>
           <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">
-            CAHAYA BORDIR
+            {topProfitVendor ? topProfitVendor.vendorNama : '-'}
           </div>
           <p className="mt-1 text-[10px] sm:text-xs text-emerald-600 font-semibold font-mono truncate">
-            Hemat Rp 170k dari estimasi
+            {topProfitVendor
+              ? `Profit ${formatRupiah(topProfitVendor.profit)} (${topProfitVendor.marginPercent.toFixed(1)}%)`
+              : '-'}
           </p>
         </div>
 
-        {/* Card 3: Rata-rata Margin Mitra */}
         <div className="col-span-2 md:col-span-1 rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300">
           <div className="flex items-center justify-between">
             <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate pr-1">
@@ -268,36 +279,35 @@ export function VendorPerformanceSection({
             </span>
           </div>
           <div className="mt-2 sm:mt-3 text-sm sm:text-xl font-extrabold text-slate-900 tracking-tight font-mono truncate">
-            32.8%
+            {vendorSummaryStats.avgMargin.toFixed(1)}%
           </div>
-          <p className="mt-1 text-[10px] sm:text-xs text-slate-400 font-medium truncate">
-            Standar margin di atas target 30%
+          <p className="mt-1 text-[10px] sm:text-xs text-slate-400 font-medium font-mono truncate">
+            Total Profit {formatRupiah(vendorSummaryStats.totalProfit)}
           </p>
         </div>
       </div>
 
-      {/* 🆕 DUAL HYBRID VIEW: GROUPED BAR CHART (HPP QUOTATION VS AKTUAL) */}
       <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-card-double">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 gap-2">
           <div>
             <div className="flex items-center gap-2">
               <BarChart2 className="h-4 w-4 text-teal-600" />
               <h3 className="text-sm font-bold text-slate-800">
-                Komparasi HPP Quotation vs Realisasi Belanja Aktual
+                Komparasi Modal Vendor (HPP) vs Profit Bersih per Mitra
               </h3>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Mendeteksi mitra vendor yang overbudget (membengkak) vs hemat biaya belanja
+              Perbandingan modal produksi yang dibayarkan ke vendor terhadap profit bersih yang diperoleh VisualKain
             </p>
           </div>
           <div className="flex items-center gap-3 text-xs">
             <span className="flex items-center gap-1.5 text-slate-600 font-medium">
               <span className="h-3 w-3 rounded bg-slate-400" />
-              Quotation Awal
+              Modal Vendor (HPP)
             </span>
             <span className="flex items-center gap-1.5 text-teal-700 font-bold">
               <span className="h-3 w-3 rounded bg-teal-600" />
-              HPP Realisasi
+              Profit Bersih
             </span>
           </div>
         </div>
@@ -313,17 +323,42 @@ export function VendorPerformanceSection({
                 tickFormatter={formatCompactRupiah}
               />
               <Tooltip
-                formatter={(val: unknown) => [formatRupiah(Number(val)), 'Total Biaya']}
-                contentStyle={{
-                  backgroundColor: '#0f172a',
-                  border: 'none',
-                  borderRadius: '0.75rem',
-                  color: '#fff',
-                  fontSize: '11px',
+                content={({ active, payload }) => {
+                  if (!active || !payload || !payload.length) return null;
+                  const item = payload[0].payload as {
+                    name: string;
+                    hpp: number;
+                    profit: number;
+                    margin: number;
+                    orderCount: number;
+                    pcsTotal: number;
+                  };
+                  return (
+                    <div className="rounded-xl bg-slate-900 px-3.5 py-2.5 text-[11px] text-white shadow-lg space-y-1.5">
+                      <div className="border-b border-slate-700/80 pb-1">
+                        <div className="font-bold text-white">{item.name}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {item.orderCount} Order • {item.pcsTotal} Pcs
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-slate-300">Modal Vendor (HPP):</span>
+                        <span className="font-mono font-bold text-slate-100">{formatRupiah(item.hpp)}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-teal-300">Profit Bersih:</span>
+                        <span className="font-mono font-bold text-teal-400">{formatRupiah(item.profit)}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4 pt-0.5 border-t border-slate-800">
+                        <span className="text-slate-400">Margin Keuntungan:</span>
+                        <span className="font-mono font-bold text-amber-400">{item.margin.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  );
                 }}
               />
-              <Bar dataKey="quotation" name="Quotation Awal" fill="#94a3b8" radius={[4, 4, 0, 0]} maxBarSize={32} />
-              <Bar dataKey="aktual" name="Realisasi Aktual" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="hpp" name="Modal Vendor (HPP)" fill="#94a3b8" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              <Bar dataKey="profit" name="Profit Bersih" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={32} />
             </BarChart>
           </ResponsiveContainer>
         </div>
