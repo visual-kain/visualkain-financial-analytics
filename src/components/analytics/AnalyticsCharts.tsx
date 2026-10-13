@@ -14,6 +14,7 @@ import { formatRupiah, formatCompactRupiah, formatDateRangeBadge, formatIndonesi
 import { ChartSkeleton } from '@/components/ui/shimmer';
 import type { FinancialSummary } from '@/types';
 import { TrendingUp, Wallet, ArrowDownLeft, ArrowUpRight, Info, Calendar } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export interface TrendDataPoint {
   periode: string;
@@ -22,15 +23,8 @@ export interface TrendDataPoint {
   netCash: number;
 }
 
-export interface DonutDataPoint {
-  name: string;
-  value: number;
-  color: string;
-}
-
 interface AnalyticsChartsProps {
   trendData?: TrendDataPoint[];
-  donutData?: DonutDataPoint[];
   summary?: FinancialSummary;
   totalKasMasuk?: number;
   totalKasKeluar?: number;
@@ -38,23 +32,8 @@ interface AnalyticsChartsProps {
   isLoading?: boolean;
 }
 
-const defaultTrendData: TrendDataPoint[] = [
-  { periode: '1 Okt', kasMasuk: 1200000, kasKeluar: 600000, netCash: 600000 },
-  { periode: '2 Okt', kasMasuk: 850000, kasKeluar: 400000, netCash: 450000 },
-  { periode: '3 Okt', kasMasuk: 2100000, kasKeluar: 950000, netCash: 1150000 },
-  { periode: '4 Okt', kasMasuk: 1420000, kasKeluar: 986000, netCash: 434000 },
-  { periode: '5 Okt', kasMasuk: 950000, kasKeluar: 300000, netCash: 650000 },
-  { periode: '6 Okt', kasMasuk: 1800000, kasKeluar: 800000, netCash: 1000000 },
-  { periode: '7 Okt', kasMasuk: 2400000, kasKeluar: 1200000, netCash: 1200000 },
-];
-
-const defaultDonutData: DonutDataPoint[] = [
-  { name: 'Hak Pokok Vendor (HPP)', value: 686000, color: '#f59e0b' },
-  { name: 'Saldo Margin VisualKain', value: 434000, color: '#10b981' },
-];
-
 export function AnalyticsCharts({
-  trendData = defaultTrendData,
+  trendData = [],
   summary,
   totalKasMasuk,
   totalKasKeluar,
@@ -122,87 +101,94 @@ export function AnalyticsCharts({
         </div>
 
         <div className="mt-4 h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trendData} margin={{ top: 12, right: 15, left: 10, bottom: 4 }}>
-              <defs>
-                <linearGradient id="gradientMasuk" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.28} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
-                </linearGradient>
-                <linearGradient id="gradientKeluar" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.24} />
-                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis
-                dataKey="periode"
-                tickLine={false}
-                axisLine={{ stroke: '#e2e8f0' }}
-                tick={{ fill: '#64748b', fontSize: 11, fontWeight: 500 }}
-                dy={4}
-              />
-              <YAxis
-                width={72}
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: '#64748b', fontSize: 11, fontWeight: 500 }}
-                tickFormatter={formatCompactRupiah}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload as TrendDataPoint;
-                    const fullDateStr = (data as any).fullDate
-                      ? formatIndonesianDateFull((data as any).fullDate)
-                      : data.periode;
-                    return (
-                      <div className="rounded-2xl border border-slate-700/60 bg-slate-900/95 p-3 text-xs text-white shadow-xl backdrop-blur-md">
-                        <div className="font-semibold text-slate-300">{fullDateStr}</div>
-                        <div className="mt-2 space-y-1">
-                          <div className="flex items-center justify-between gap-4 text-emerald-400">
-                            <span>Kas Masuk:</span>
-                            <span className="tabular-nums font-semibold">
-                              {formatRupiah(data.kasMasuk)}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between gap-4 text-rose-400">
-                            <span>Kas Keluar:</span>
-                            <span className="tabular-nums font-semibold">
-                              {formatRupiah(data.kasKeluar)}
-                            </span>
-                          </div>
-                          <div className="border-t border-slate-700 pt-1 text-slate-200 flex items-center justify-between gap-4">
-                            <span>Net Kas:</span>
-                            <span className="tabular-nums font-semibold">
-                              {formatRupiah(data.netCash)}
-                            </span>
+          {trendData.length === 0 ? (
+            <EmptyState
+              title="Belum ada arus kas di periode ini"
+              description="Pilih periode lain atau catat dana masuk/keluar untuk melihat tren harian."
+            />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trendData} margin={{ top: 12, right: 15, left: 10, bottom: 4 }}>
+                <defs>
+                  <linearGradient id="gradientMasuk" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                  </linearGradient>
+                  <linearGradient id="gradientKeluar" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.24} />
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis
+                  dataKey="periode"
+                  tickLine={false}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                  tick={{ fill: '#64748b', fontSize: 11, fontWeight: 500 }}
+                  dy={4}
+                />
+                <YAxis
+                  width={72}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: '#64748b', fontSize: 11, fontWeight: 500 }}
+                  tickFormatter={formatCompactRupiah}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload as TrendDataPoint;
+                      const fullDateStr = (data as any).fullDate
+                        ? formatIndonesianDateFull((data as any).fullDate)
+                        : data.periode;
+                      return (
+                        <div className="rounded-2xl border border-slate-700/60 bg-slate-900/95 p-3 text-xs text-white shadow-xl backdrop-blur-md">
+                          <div className="font-semibold text-slate-300">{fullDateStr}</div>
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-center justify-between gap-4 text-emerald-400">
+                              <span>Kas Masuk:</span>
+                              <span className="tabular-nums font-semibold">
+                                {formatRupiah(data.kasMasuk)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-4 text-rose-400">
+                              <span>Kas Keluar:</span>
+                              <span className="tabular-nums font-semibold">
+                                {formatRupiah(data.kasKeluar)}
+                              </span>
+                            </div>
+                            <div className="border-t border-slate-700 pt-1 text-slate-200 flex items-center justify-between gap-4">
+                              <span>Net Kas:</span>
+                              <span className="tabular-nums font-semibold">
+                                {formatRupiah(data.netCash)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="kasMasuk"
-                stroke="#10b981"
-                strokeWidth={2.5}
-                fillOpacity={1}
-                fill="url(#gradientMasuk)"
-              />
-              <Area
-                type="monotone"
-                dataKey="kasKeluar"
-                stroke="#f43f5e"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#gradientKeluar)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="kasMasuk"
+                  stroke="#10b981"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#gradientMasuk)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="kasKeluar"
+                  stroke="#f43f5e"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#gradientKeluar)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 

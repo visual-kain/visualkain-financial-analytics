@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatRupiah } from '@/lib/utils';
+import { formatRupiah, normalizeWaNumber } from '@/lib/utils';
 import type { MasterFinanceRow } from '@/types';
 import {
   X,
@@ -40,7 +40,7 @@ export function OrderInspectionDrawer({
   // Sinkronisasi nomor WhatsApp saat order terpilih berubah
   useEffect(() => {
     if (order) {
-      setPhoneNumber(order.noWaCustomer || '08123456789');
+      setPhoneNumber(order.noWaCustomer || '');
     }
   }, [order]);
 
@@ -57,16 +57,7 @@ export function OrderInspectionDrawer({
 
   if (!order) return null;
 
-  // Format nomor WhatsApp internasional (62...)
-  const getCleanWaNumber = (phone: string) => {
-    let clean = phone.replace(/[^0-9]/g, '');
-    if (clean.startsWith('0')) {
-      clean = '62' + clean.slice(1);
-    }
-    return clean;
-  };
-
-  const cleanPhone = getCleanWaNumber(phoneNumber);
+  const cleanPhone = normalizeWaNumber(phoneNumber);
 
   // Template Pesan WhatsApp Penagihan (Dokumen Konfirmasi Fitur Update Bagian 3.D)
   const waTemplate = (() => {
@@ -91,8 +82,8 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
   })();
 
   const handleSendWa = () => {
-    if (!phoneNumber.trim()) {
-      toast.error('Mohon masukkan nomor WhatsApp customer');
+    if (!cleanPhone) {
+      toast.error('Nomor WA belum diisi atau tidak valid');
       return;
     }
     const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waTemplate)}`;
@@ -394,10 +385,11 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
 
                 <button
                   onClick={handleSendWa}
-                  className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-700 active:scale-[0.98] transition-all cursor-pointer"
+                  disabled={!cleanPhone}
+                  className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-700 active:scale-[0.98] transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
-                  Kirim Pesan Penagihan via WhatsApp
+                  {cleanPhone ? 'Kirim Pesan Penagihan via WhatsApp' : 'Nomor WA belum diisi'}
                 </button>
               </div>
             </div>

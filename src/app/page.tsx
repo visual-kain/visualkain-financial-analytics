@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryState } from 'nuqs';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { FinanceStatsGrid } from '@/components/analytics/FinanceStatsGrid';
-import { AnalyticsCharts, type DonutDataPoint, type TrendDataPoint } from '@/components/analytics/AnalyticsCharts';
+import { AnalyticsCharts, type TrendDataPoint } from '@/components/analytics/AnalyticsCharts';
 import { MasterFinanceTable } from '@/components/finance/MasterFinanceTable';
 import { OrderInspectionDrawer } from '@/components/finance/OrderInspectionDrawer';
 import { MetricDetailDrawer } from '@/components/analytics/MetricDetailDrawer';
@@ -18,12 +18,11 @@ import { ProfitAktualSection } from '@/components/finance/ProfitAktualSection';
 import { CustomSelect } from '@/components/ui/custom-select';
 import {
   calculateFinancialSummary,
-  calculateEscrowAllocation,
   transformToMasterRows,
-  buildCashOutflowEntries,
+  applyCashPeriod,
 } from '@/lib/financial-calculator';
+import { buildCashEntries, summarizeCashPeriod, collectYearOptions, matchPeriod } from '@/lib/cash-ledger';
 import { computeVendorPerformance, computeCheapestByKategori } from '@/lib/calculations';
-import { initialOrdersData, initialCashTransactions } from '@/lib/seed-data';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { useAuth } from '@/context/AuthContext';
 import type {
@@ -44,6 +43,7 @@ import {
   AlertCircle,
   Table2,
   ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
 import { formatDateTick, formatRupiah } from '@/lib/utils';
 import { exportMasterFinanceToExcel } from '@/lib/excel-export';
@@ -74,20 +74,20 @@ function FinancialDashboardContent() {
   const [selectedOrder, setSelectedOrder] = useState<MasterFinanceRow | null>(null);
   const [previewInvoiceOrder, setPreviewInvoiceOrder] = useState<MasterFinanceRow | null>(null);
   const [activeMetricDrawer, setActiveMetricDrawer] = useState<MetricDrawerType | null>(null);
-  const [drawerVendorFilter] = useState<string | null>(null);
   const [bulan, setBulan] = useState<string>('all');
   const [tahun, setTahun] = useState<string>('all');
-  const [saldoAwal] = useState<number>(0);
 
   const {
     orders: rawOrders,
     cashTransactions: rawCashTxs,
     vendors: rawVendors,
     syncState,
+    error: syncError,
+    retry: retrySync,
     updateOrderFinance,
     addKas,
     deleteKas,
-  } = useFirebaseFinance(initialOrdersData, initialCashTransactions);
+  } = useFirebaseFinance();
 
   const BULAN_LABEL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const selectedPeriod =
@@ -95,19 +95,7 @@ function FinancialDashboardContent() {
       ? 'Semua Periode'
       : `${bulan === 'all' ? 'Semua Bulan' : BULAN_LABEL[Number(bulan) - 1]} ${tahun === 'all' ? 'Semua Tahun' : tahun}`;
 
-  const matchPeriod = (tanggal: string, b: string, y: string) => {
-    if (!tanggal || tanggal < '2026-10-01') return false;
-    if (y !== 'all' && !tanggal.startsWith(y)) return false;
-    if (b !== 'all' && tanggal.slice(5, 7) !== b) return false;
-    return true;
-  };
-
-  const yearOptions = useMemo(() => {
-    const set = new Set<string>(['2026']);
-    rawOrders.forEach((o) => o.tanggalOrder && o.tanggalOrder >= '2026-10-01' && set.add(o.tanggalOrder.slice(0, 4)));
-    rawCashTxs.forEach((t) => t.tanggal && t.tanggal >= '2026-10-01' && set.add(t.tanggal.slice(0, 4)));
-    return [...set].sort().reverse();
-  }, [rawOrders, rawCashTxs]);
+  const yearOptions = useMemo(() => collectYearOptions(rawOrders, rawCashTxs), [rawOrders, rawCashTxs]);
 
   const monthOptions = useMemo(() => {
     return [
@@ -143,72 +131,28 @@ function FinancialDashboardContent() {
     [filteredOrders, rawVendors]
   );
 
-  const summary = calculateFinancialSummary(saldoAwal, filteredCashTxs, filteredOrders);
-  const masterRows = transformToMasterRows(filteredOrders);
-
-  const dynamicDonutData: DonutDataPoint[] = useMemo(() => {
-    let hakVendor = 0;
-    let marginVisualKain = 0;
-
-    filteredOrders.forEach((o) => {
-      const alloc = calculateEscrowAllocation(o);
-      hakVendor += alloc.alokasiHakVendor;
-      marginVisualKain += alloc.alokasiMarginVisualKain;
-    });
-
-    const total = hakVendor + marginVisualKain;
-    if (total === 0) {
-      return [
-        { name: 'Hak Pokok Vendor (HPP)', value: 0, color: '#f59e0b' },
-        { name: 'Saldo Margin VisualKain', value: 0, color: '#10b981' },
-      ];
-    }
-
-    return [
-      { name: 'Hak Pokok Vendor (HPP)', value: Math.round(hakVendor), color: '#f59e0b' },
-      { name: 'Saldo Margin VisualKain', value: Math.round(marginVisualKain), color: '#10b981' },
-    ];
-  }, [filteredOrders]);
+  const cashEntries = useMemo(() => buildCashEntries(rawOrders, rawCashTxs), [rawOrders, rawCashTxs]);
+  const cashPeriod = useMemo(() => summarizeCashPeriod(cashEntries, { bulan, tahun }), [cashEntries, bulan, tahun]);
+  const summary = useMemo(
+    () => applyCashPeriod(calculateFinancialSummary(0, filteredCashTxs, filteredOrders), cashPeriod),
+    [filteredCashTxs, filteredOrders, cashPeriod]
+  );
+  const masterRows = useMemo(() => transformToMasterRows(filteredOrders), [filteredOrders]);
+  const [tableExport, setTableExport] = useState<{ rows: MasterFinanceRow[]; filterLabel: string } | null>(null);
+  const handleTableFilteredRows = useCallback((rows: MasterFinanceRow[], filterLabel: string) => {
+    setTableExport({ rows, filterLabel });
+  }, []);
 
   const dynamicTrendData: TrendDataPoint[] = useMemo(() => {
     const map = new Map<string, { kasMasuk: number; kasKeluar: number }>();
 
-    filteredOrders.forEach((o) => {
-      if (Array.isArray(o.pembayaranList) && o.pembayaranList.length > 0) {
-        o.pembayaranList.forEach((p) => {
-          if (p.nominal > 0 && p.tanggal && matchPeriod(p.tanggal, bulan, tahun)) {
-            const cur = map.get(p.tanggal) || { kasMasuk: 0, kasKeluar: 0 };
-            cur.kasMasuk += p.nominal;
-            map.set(p.tanggal, cur);
-          }
-        });
-      } else if (o.totalUangMasukCustomer > 0 && o.tanggalOrder && matchPeriod(o.tanggalOrder, bulan, tahun)) {
-        const cur = map.get(o.tanggalOrder) || { kasMasuk: 0, kasKeluar: 0 };
-        cur.kasMasuk += o.totalUangMasukCustomer;
-        map.set(o.tanggalOrder, cur);
-      }
+    cashEntries.forEach((entry) => {
+      if (!matchPeriod(entry.tanggal, bulan, tahun)) return;
+      const cur = map.get(entry.tanggal) || { kasMasuk: 0, kasKeluar: 0 };
+      if (entry.arah === 'masuk') cur.kasMasuk += entry.nominal;
+      else cur.kasKeluar += entry.nominal;
+      map.set(entry.tanggal, cur);
     });
-
-    filteredCashTxs.forEach((t) => {
-      if (t.tanggal && t.tipe === 'masuk' && t.kategori !== 'Penerimaan Konsumen') {
-        const cur = map.get(t.tanggal) || { kasMasuk: 0, kasKeluar: 0 };
-        cur.kasMasuk += t.nominal;
-        map.set(t.tanggal, cur);
-      }
-    });
-
-    const unifiedOutflows = buildCashOutflowEntries(filteredOrders, filteredCashTxs);
-    unifiedOutflows.forEach((entry) => {
-      if (entry.tanggal && matchPeriod(entry.tanggal, bulan, tahun)) {
-        const cur = map.get(entry.tanggal) || { kasMasuk: 0, kasKeluar: 0 };
-        cur.kasKeluar += entry.nominal;
-        map.set(entry.tanggal, cur);
-      }
-    });
-
-    if (map.size === 0) {
-      return [];
-    }
 
     return Array.from(map.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
@@ -220,7 +164,7 @@ function FinancialDashboardContent() {
         kasKeluar: val.kasKeluar,
         netCash: val.kasMasuk - val.kasKeluar,
       }));
-  }, [filteredOrders, filteredCashTxs]);
+  }, [cashEntries, bulan, tahun]);
 
   const viewTitles: Record<FinanceSubTab, { title: string; subtitle: string }> = {
     dashboard: {
@@ -251,7 +195,10 @@ function FinancialDashboardContent() {
 
   const handleExportExcel = async () => {
     try {
-      await exportMasterFinanceToExcel(masterRows, selectedPeriod);
+      const useTableFilter = tab === 'datatable' && tableExport !== null;
+      const rows = useTableFilter ? tableExport.rows : masterRows;
+      const label = useTableFilter && tableExport.filterLabel ? `${selectedPeriod} (${tableExport.filterLabel})` : selectedPeriod;
+      await exportMasterFinanceToExcel(rows, label);
       toast.success('Laporan Master Finansial berhasil diekspor ke Excel!');
     } catch (err) {
       console.error('Gagal mengekspor Excel:', err);
@@ -305,8 +252,10 @@ function FinancialDashboardContent() {
         summary={summary}
         orders={filteredOrders}
         transactions={filteredCashTxs}
-        saldoAwal={saldoAwal}
-        initialVendorFilter={drawerVendorFilter}
+        cashOrders={rawOrders}
+        cashTransactions={rawCashTxs}
+        cashPeriod={{ bulan, tahun }}
+        saldoAwal={cashPeriod.saldoAwalPeriode}
         onOpenAddIncome={() => {
           setActiveMetricDrawer(null);
           router.push('/cash-in/new');
@@ -418,10 +367,19 @@ function FinancialDashboardContent() {
                         {rawOrders.length} Order
                       </span>
                     </div>
+                  ) : syncState === 'error' ? (
+                    <button
+                      type="button"
+                      onClick={retrySync}
+                      className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-2.5 sm:px-3.5 text-xs font-bold text-rose-800 shadow-2xs hover:bg-rose-100 active:scale-[0.98] transition-transform duration-150 cursor-pointer min-w-0"
+                    >
+                      <RefreshCw className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Gagal sinkron, coba lagi</span>
+                    </button>
                   ) : (
-                    <div className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 sm:px-3.5 text-xs font-semibold text-emerald-700 shadow-2xs min-w-0">
+                    <div className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 sm:px-3.5 text-xs font-semibold text-slate-600 shadow-2xs min-w-0">
                       <ShieldCheck className="h-4 w-4 shrink-0" />
-                      <span className="truncate">Sinkron</span>
+                      <span className="truncate">Menghubungkan...</span>
                     </div>
                   )}
 
@@ -447,6 +405,28 @@ function FinancialDashboardContent() {
               </div>
             </div>
           </div>
+
+          {syncState === 'error' && (
+            <div
+              role="alert"
+              className="mb-4 flex flex-col gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-900 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <span className="flex items-start gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Gagal memuat data dari Firestore{syncError ? ` (${syncError})` : ''}. Angka di layar bisa tidak lengkap.
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={retrySync}
+                className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-rose-300 bg-white px-3 font-bold text-rose-800 hover:bg-rose-100 cursor-pointer"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Coba lagi
+              </button>
+            </div>
+          )}
 
           {tab === 'dashboard' && (
             <div className="space-y-4 sm:space-y-6 animate-fadeIn">
@@ -480,8 +460,8 @@ function FinancialDashboardContent() {
 
               <AnalyticsCharts
                 summary={summary}
-                donutData={dynamicDonutData}
-                trendData={dynamicTrendData.length > 0 ? dynamicTrendData : undefined}
+                trendData={dynamicTrendData}
+                isLoading={syncState === 'connecting'}
               />
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-teal-200/90 bg-white p-4 sm:p-5 shadow-card-double">
@@ -518,6 +498,7 @@ function FinancialDashboardContent() {
                 onSelectRow={(row) => setSelectedOrder(row)}
                 onEditFinance={(row) => router.push(`/orders/${row.id}/edit`)}
                 onPreviewInvoice={(row) => setPreviewInvoiceOrder(row)}
+                onFilteredRowsChange={handleTableFilteredRows}
               />
             </div>
           )}
@@ -552,7 +533,6 @@ function FinancialDashboardContent() {
                 activeTahun={tahun}
                 onBulanChange={setBulan}
                 onTahunChange={setTahun}
-                onAddTransaction={addKas}
                 onDeleteTransaction={deleteKas}
                 onSelectOrder={(order) => {
                   const row = masterRows.find((r) => r.id === order.id) || transformToMasterRows([order])[0];

@@ -1,0 +1,9 @@
+{
+  "id": "F-10",
+  "slug": "F-10-audit-bugfix-integritas-data",
+  "title": "Audit Codebase & Perbaikan Integritas Data Finansial",
+  "status": "completed",
+  "category": "bugfix",
+  "createdAt": "2026-10-13T15:00:00+07:00",
+  "auditedCommit": "8893911"
+}

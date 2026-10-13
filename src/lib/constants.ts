@@ -1,3 +1,5 @@
+import type { CashOutflowCategory } from '@/types';
+
 /**
  * Konstanta Standar Akuntansi & Finansial VisualKain 2026
  * Sumber Acuan: Dokumen Konfirmasi Fitur & Arsitektur Finansial VisualKain (Oktober 2026)
@@ -11,8 +13,13 @@ export function isFromFinanceStartDate(dateStr?: string | null): boolean {
   return dateStr.slice(0, 10) >= FINANCE_START_DATE;
 }
 
+/** Tanggal hari ini (YYYY-MM-DD) di zona Asia/Jakarta; toISOString() memakai UTC sehingga 00.00–07.00 WIB terbaca kemarin. */
+export function todayInJakarta(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+}
+
 export function getDefaultFinanceDate(): string {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInJakarta();
   return today >= FINANCE_START_DATE ? today : FINANCE_START_DATE;
 }
 
@@ -72,3 +79,35 @@ export const DEFAULT_PAYMENT_CHANNELS = [
   { value: 'Tokopedia', label: 'Marketplace Tokopedia' },
   { value: 'Tunai / Cash', label: 'Kasir / Tunai Operasional' },
 ] as const;
+
+/** Kategori yang bisa dipilih di form Dana Keluar non-order; juga sumber opsi filter tab Kas Keluar. */
+export const KATEGORI_KAS_KELUAR_OPTIONS: ReadonlyArray<{ value: CashOutflowCategory; label: string }> = [
+  { value: 'Operasional', label: 'Biaya Operasional Umum (Listrik, Sewa, Admin)' },
+  { value: 'Gaji/Upah', label: 'Gaji, Upah Jahit & Tim' },
+  { value: 'Pembayaran Vendor Lainnya', label: 'Pembayaran Vendor Lainnya (Di Luar Pesanan)' },
+  { value: 'Sponsorship/Sosial', label: 'Sponsorship & Kegiatan Sosial' },
+  { value: 'Iklan/Marketing', label: 'Iklan & Marketing (Ads, Promosi)' },
+  { value: 'Bahan Baku', label: 'Belanja Bahan Baku & Aksesoris' },
+  { value: 'Perawatan Web/Sistem', label: 'Perawatan Web & Sistem IT' },
+  { value: 'Transport/Ongkir', label: 'Transportasi, Kurir & Ongkir' },
+  { value: 'Pajak/Retribusi', label: 'Pajak & Retribusi Usaha' },
+  { value: 'Keuangan', label: 'Biaya Keuangan & Administrasi Bank' },
+  { value: 'Biaya Lain', label: 'Beban Pengeluaran Lainnya' },
+];
+
+export function buildOutflowCategoryOptions(dataCategories: ReadonlyArray<string>): Array<{ value: string; label: string; badge?: string }> {
+  const options: Array<{ value: string; label: string; badge?: string }> = [
+    { value: 'all', label: 'Semua Kategori Beban', badge: 'Semua' },
+    { value: 'Pembayaran Vendor', label: 'Pembayaran Vendor (Order)' },
+    { value: 'Biaya Operasional Order', label: 'Biaya Operasional Order' },
+    ...KATEGORI_KAS_KELUAR_OPTIONS,
+  ];
+  const known = new Set(options.map((o) => o.value));
+  for (const kategori of dataCategories) {
+    if (kategori && !known.has(kategori)) {
+      known.add(kategori);
+      options.push({ value: kategori, label: kategori });
+    }
+  }
+  return options;
+}

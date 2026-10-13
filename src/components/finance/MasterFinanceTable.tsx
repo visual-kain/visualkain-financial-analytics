@@ -22,6 +22,7 @@ import {
 import { CustomSelect } from '@/components/ui/custom-select';
 import { toast } from 'sonner';
 import { exportMasterFinanceToExcel } from '@/lib/excel-export';
+import { hasUnitemizedCustomerPayment } from '@/lib/payment-ledger';
 
 interface MasterFinanceTableProps {
   rows: MasterFinanceRow[];
@@ -30,7 +31,31 @@ interface MasterFinanceTableProps {
   onEditFinance?: (row: MasterFinanceRow) => void;
   onPreviewInvoice?: (row: MasterFinanceRow) => void;
   onQuickWaFollowUp?: (row: MasterFinanceRow) => void;
+  /** Dipakai tombol Ekspor di header agar isi file sama dengan baris yang terlihat. */
+  onFilteredRowsChange?: (rows: MasterFinanceRow[], filterLabel: string) => void;
 }
+
+function UnitemizedBadge({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      title="Nominal berasal dari data DP lama VisualKainDB. Rinci per termin di halaman Dana Masuk."
+      className="mt-1 inline-flex max-w-full rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9.5px] font-bold text-amber-800 truncate"
+    >
+      {compact ? 'Belum dirinci' : 'Belum dirinci per termin'}
+    </span>
+  );
+}
+
+const STATUS_FILTER_LABEL: Record<string, string> = {
+  dp1_parsial: 'DP < 70%',
+  dp2_siap_produksi: 'DP >= 70%',
+  lunas_total: 'Lunas',
+};
+
+const VENDOR_FILTER_LABEL: Record<string, string> = {
+  has_debt: 'Utang Vendor',
+  settled: 'Vendor Lunas',
+};
 
 export function MasterFinanceTable({
   rows,
@@ -39,6 +64,7 @@ export function MasterFinanceTable({
   onEditFinance,
   onPreviewInvoice,
   onQuickWaFollowUp,
+  onFilteredRowsChange,
 }: MasterFinanceTableProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,13 +112,26 @@ export function MasterFinanceTable({
     });
   }, [rows, searchQuery, statusFilter, vendorDebtFilter]);
 
+  const filterLabel = [
+    searchQuery.trim() ? `Cari ${searchQuery.trim()}` : '',
+    STATUS_FILTER_LABEL[statusFilter] || '',
+    VENDOR_FILTER_LABEL[vendorDebtFilter] || '',
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+  useEffect(() => {
+    onFilteredRowsChange?.(filteredRows, filterLabel);
+  }, [filteredRows, filterLabel, onFilteredRowsChange]);
+
   // Client-side Pagination (10 order per halaman - Feedback Client #6)
   const [currentPage, setCurrentPage] = useState<number>(1);
   const pageSize = 10;
 
+  // Snapshot Firestore mengganti identitas `rows`; reset hanya saat filter berubah, sisanya cukup di-clamp oleh safeCurrentPage.
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, vendorDebtFilter, rows]);
+  }, [searchQuery, statusFilter, vendorDebtFilter, selectedPeriod]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -312,6 +351,7 @@ export function MasterFinanceTable({
                   <span className="font-mono font-extrabold text-teal-900 tabular-nums truncate block text-[11px]">
                     {formatCompactRupiah(row.nominalDpCustomer)}
                   </span>
+                  {hasUnitemizedCustomerPayment(row) && <UnitemizedBadge compact />}
                 </div>
 
                 <div
@@ -506,6 +546,7 @@ export function MasterFinanceTable({
                 </td>
                 <td className="px-4 py-3.5 tabular-nums">
                   {formatRupiah(row.nominalDpCustomer)}
+                  {hasUnitemizedCustomerPayment(row) && <UnitemizedBadge />}
                 </td>
                 <td className="px-4 py-3.5 tabular-nums font-bold text-amber-600">
                   {row.sisaPelunasanCustomer > 0

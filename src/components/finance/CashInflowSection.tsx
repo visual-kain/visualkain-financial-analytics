@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { buildCashInflowEntries, collectYearOptions } from '@/lib/cash-ledger';
 import {
   cn,
   formatRupiah,
@@ -123,85 +124,18 @@ export function CashInflowSection({
     }
   }, [activeTahun]);
 
-  const rawInflows: CashInflowEntry[] = useMemo(() => {
-    const list: CashInflowEntry[] = [];
+  const rawInflows: CashInflowEntry[] = useMemo(
+    () => buildCashInflowEntries(orders, cashTransactions),
+    [orders, cashTransactions]
+  );
 
-    orders.forEach((order) => {
-      if (order.tanggalOrder && order.tanggalOrder < '2026-10-01') return;
-
-      if (Array.isArray(order.pembayaranList) && order.pembayaranList.length > 0) {
-        order.pembayaranList.forEach((p, idx) => {
-          const tgl = p.tanggal || order.tanggalOrder || '2026-10-01';
-          if (p.nominal > 0 && tgl >= '2026-10-01') {
-            let catType: InflowCategoryType = 'termin';
-            if (p.jenis === 'dp' || idx === 0) catType = 'dp';
-            if (p.jenis === 'pelunasan') catType = 'pelunasan';
-
-            list.push({
-              id: p.id || `pay-${order.id}-${idx}`,
-              tanggal: tgl,
-              sumber: 'order',
-              jenis: catType,
-              noInv: order.noInv,
-              orderId: order.id,
-              customerName: order.customerName || order.namaCustomer || 'Customer',
-              projectName: order.projectName || order.namaProject || '-',
-              keterangan: p.keterangan || (catType === 'dp' ? 'Pembayaran DP 1' : catType === 'pelunasan' ? 'Pelunasan Order' : 'Pembayaran Termin'),
-              nominal: p.nominal,
-              rawOrder: order,
-            });
-          }
-        });
-      } else if (order.totalUangMasukCustomer > 0) {
-        const totalTagihan = order.totalInvoice || order.totalJumlah || 0;
-        const isLunas = order.statusPembayaran === 'lunas' || (totalTagihan > 0 && order.totalUangMasukCustomer >= totalTagihan);
-        const dpPersen = totalTagihan > 0 ? (order.totalUangMasukCustomer / totalTagihan) * 100 : (order.dpPersenCustomer || 0);
-        const isTermin70 = dpPersen >= 70;
-        const catType: InflowCategoryType = isLunas ? 'pelunasan' : isTermin70 ? 'termin' : 'dp';
-
-        list.push({
-          id: `pay-${order.id}-single`,
-          tanggal: order.tanggalOrder || '2026-10-01',
-          sumber: 'order',
-          jenis: catType,
-          noInv: order.noInv,
-          orderId: order.id,
-          customerName: order.customerName || order.namaCustomer || 'Customer',
-          projectName: order.projectName || order.namaProject || '-',
-          keterangan: `Pembayaran ${catType === 'pelunasan' ? 'Pelunasan 30%' : catType === 'termin' ? 'Termin 70% Produksi' : 'DP 1 Booking'} Konsumen`,
-          nominal: order.totalUangMasukCustomer,
-          rawOrder: order,
-        });
-      }
-    });
-
-    cashTransactions.forEach((tx) => {
-      if (tx.tipe === 'masuk' && tx.kategori !== 'Penerimaan Konsumen' && (!tx.tanggal || tx.tanggal >= '2026-10-01')) {
-        list.push({
-          id: tx.id,
-          tanggal: tx.tanggal,
-          sumber: 'manual',
-          jenis: 'kas_masuk',
-          noInv: tx.refInvoice || '-',
-          orderId: tx.orderId,
-          customerName: tx.kategori || 'Penerimaan Kas',
-          projectName: '-',
-          keterangan: tx.keterangan || 'Kas Masuk Non-Order',
-          nominal: tx.nominal,
-        });
-      }
-    });
-
-    list.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-    return list;
-  }, [orders, cashTransactions]);
-
-  const yearOptions = useMemo(() => {
-    const set = new Set<string>(['2026']);
-    rawInflows.forEach((e) => e.tanggal && e.tanggal >= '2026-10-01' && set.add(e.tanggal.slice(0, 4)));
-    const sorted = [...set].sort().reverse();
-    return [{ value: 'all', label: 'Semua Tahun' }, ...sorted.map((y) => ({ value: y, label: y }))];
-  }, [rawInflows]);
+  const yearOptions = useMemo(
+    () => [
+      { value: 'all', label: 'Semua Tahun' },
+      ...collectYearOptions(orders, cashTransactions).map((y) => ({ value: y, label: y })),
+    ],
+    [orders, cashTransactions]
+  );
 
   const bulanOptions = BULAN_FILTER_OPTIONS_ALL;
 

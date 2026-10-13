@@ -242,6 +242,7 @@ export interface FinancialSummary {
   bebanOperasionalNonVendor: number;
   bebanOperasionalOrders?: number;
   bebanOperasionalKas?: number;
+  saldoAwalPeriode?: number;    // Akumulasi arus kas sejak 1 Okt 2026 sampai sebelum periode terpilih
 }
 
 export interface VendorPerformanceItem {

@@ -8,6 +8,7 @@ import type {
   VendorPerformanceItem,
   CheapestByCategory,
   VendorPerformanceResult,
+  VendorPayment,
 } from '@/types';
 
 export const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'] as const;
@@ -409,4 +410,39 @@ export function computeCheapestByKategori(
       pcs: b.pcs,
     }))
     .sort((a, b) => a.kategori.localeCompare(b.kategori));
+}
+
+export interface EditableInvoice {
+  gross: number;
+  diskon: number;
+  biayaTambahanCustomer: number;
+}
+
+/** Nilai awal form edit order; net dihitung ulang dengan rumus yang sama seperti `calculateOrderTotals`. */
+export function deriveEditableInvoice(order: {
+  grossTotal?: number;
+  totalInvoice?: number;
+  diskon?: number;
+  biayaTambahanCustomer?: number;
+}): EditableInvoice {
+  const diskon = Number(order.diskon || 0);
+  const biayaTambahanCustomer = Number(order.biayaTambahanCustomer || 0);
+  const gross =
+    order.grossTotal !== undefined && Number(order.grossTotal) > 0
+      ? Number(order.grossTotal)
+      : Math.max(0, Number(order.totalInvoice || 0) + diskon - biayaTambahanCustomer);
+  return { gross, diskon, biayaTambahanCustomer };
+}
+
+export function computeEditableNet(gross: number, diskon: number, biayaTambahanCustomer: number): number {
+  return Math.max(0, gross - diskon + biayaTambahanCustomer);
+}
+
+/** Total yang sudah dibayar ke vendor, konsisten dengan tabel Dana Keluar (daftar pembayaran + sisa data lama). */
+export function deriveVendorPaid(order: {
+  totalDibayarKeVendor?: number;
+  vendorPembayaranList?: ReadonlyArray<VendorPayment>;
+}): number {
+  const sumList = (order.vendorPembayaranList || []).reduce((acc, vp) => acc + (Number(vp.nominal) || 0), 0);
+  return Math.max(sumList, Number(order.totalDibayarKeVendor || 0));
 }

@@ -316,7 +316,7 @@ Untuk menjamin likuiditas kas dan melindungi modal kerja dari risiko pembatalan 
 
 ## 6. MEKANISME PENCATATAN MULTI-TERMIN CICILAN PEMBAYARAN
 
-Modal Edit Finansial ([`EditFinanceModal.tsx`](/src/components/finance/EditFinanceModal.tsx)) menyediakan sub-tabel pencatatan termin cicilan secara kronologis.
+Modal Edit Finansial (`EditFinanceModal.tsx`, kini digantikan halaman `/orders/[id]/edit`) menyediakan sub-tabel pencatatan termin cicilan secara kronologis.
 
 ### Atribut Setiap Baris Pembayaran:
 * **Tanggal**: Tanggal diterimanya dana di rekening perusahaan (`YYYY-MM-DD`).

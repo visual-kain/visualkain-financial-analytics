@@ -32,78 +32,7 @@ interface ProfitAktualSectionProps {
   onSave?: (orderId: string, draft: ManualFinanceDraft) => Promise<void> | void;
 }
 
-const defaultOrdersData: Order[] = [
-  {
-    id: 'ord-41',
-    noInv: 'VK260041',
-    customerName: 'XBI SUKABUMI',
-    tanggalOrder: '2026-10-07',
-    totalInvoice: 1420000,
-    totalHpp: 1020000,
-    targetMargin: 400000,
-    hppAktual: 1020000,
-    profitAktual: 434000,
-    catatanFinance: 'Revisi sablon aman',
-    pembayaranList: [],
-    totalUangMasukCustomer: 810000,
-    statusPembayaran: 'parsial',
-    totalDibayarKeVendor: 700000,
-    statusPembayaranVendor: 'dp_vendor',
-  },
-  {
-    id: 'ord-40',
-    noInv: 'VK260040',
-    customerName: 'VISUALKAIN',
-    tanggalOrder: '2026-10-07',
-    totalInvoice: 3000000,
-    totalHpp: 2400000,
-    targetMargin: 600000,
-    hppAktual: 2400000,
-    profitAktual: 600000,
-    catatanFinance: '',
-    pembayaranList: [],
-    totalUangMasukCustomer: 700000,
-    statusPembayaran: 'parsial',
-    totalDibayarKeVendor: 1000000,
-    statusPembayaranVendor: 'dp_vendor',
-  },
-  {
-    id: 'ord-39',
-    noInv: 'VK260039',
-    customerName: 'ADAM',
-    tanggalOrder: '2026-10-06',
-    totalInvoice: 8835000,
-    totalHpp: 5735000,
-    targetMargin: 3100000,
-    hppAktual: 5735000,
-    profitAktual: 3100000,
-    catatanFinance: 'Bordir emblem rapi',
-    pembayaranList: [],
-    totalUangMasukCustomer: 5554500,
-    statusPembayaran: 'parsial',
-    totalDibayarKeVendor: 4000000,
-    statusPembayaranVendor: 'dp_vendor',
-  },
-  {
-    id: 'ord-38',
-    noInv: 'VK260038',
-    customerName: 'OM SEDORF',
-    tanggalOrder: '2026-09-02',
-    totalInvoice: 3785000,
-    totalHpp: 2805000,
-    targetMargin: 980000,
-    hppAktual: 2805000,
-    profitAktual: 880000,
-    catatanFinance: 'Ongkir tambahan Rp 100k',
-    pembayaranList: [],
-    totalUangMasukCustomer: 3785000,
-    statusPembayaran: 'lunas',
-    totalDibayarKeVendor: 2805000,
-    statusPembayaranVendor: 'lunas_vendor',
-  },
-];
-
-export function ProfitAktualSection({ orders = defaultOrdersData, onSave }: ProfitAktualSectionProps) {
+export function ProfitAktualSection({ orders = [], onSave }: ProfitAktualSectionProps) {
   const [search, setSearch] = useState('');
   const [drafts, setDrafts] = useState<Record<string, ManualFinanceDraft>>(() => {
     const map: Record<string, ManualFinanceDraft> = {};

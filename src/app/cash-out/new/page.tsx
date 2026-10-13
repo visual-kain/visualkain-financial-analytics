@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
+import { useInitOnce } from '@/hooks/useInitOnce';
+import { useBeforeUnloadGuard } from '@/hooks/useBeforeUnloadGuard';
+import { EditKasStatusNotice, resolveEditKasStatus } from '@/components/finance/EditKasStatusNotice';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import {
@@ -22,6 +25,7 @@ import {
   FINANCE_START_DATE,
   isFromFinanceStartDate,
   getDefaultFinanceDate,
+  KATEGORI_KAS_KELUAR_OPTIONS,
 } from '@/lib/constants';
 import type { Order, VendorPayment, CashOutflowCategory } from '@/types';
 import { toast, Toaster } from 'sonner';
@@ -36,20 +40,6 @@ import {
   AlertTriangle,
   ExternalLink,
 } from 'lucide-react';
-
-const KATEGORI_BEBAN_OPTIONS: Array<{ value: CashOutflowCategory; label: string }> = [
-  { value: 'Operasional', label: 'Biaya Operasional Umum (Listrik, Sewa, Admin)' },
-  { value: 'Gaji/Upah', label: 'Gaji, Upah Jahit & Tim' },
-  { value: 'Pembayaran Vendor Lainnya', label: 'Pembayaran Vendor Lainnya (Di Luar Pesanan)' },
-  { value: 'Sponsorship/Sosial', label: 'Sponsorship & Kegiatan Sosial' },
-  { value: 'Iklan/Marketing', label: 'Iklan & Marketing (Ads, Promosi)' },
-  { value: 'Bahan Baku', label: 'Belanja Bahan Baku & Aksesoris' },
-  { value: 'Perawatan Web/Sistem', label: 'Perawatan Web & Sistem IT' },
-  { value: 'Transport/Ongkir', label: 'Transportasi, Kurir & Ongkir' },
-  { value: 'Pajak/Retribusi', label: 'Pajak & Retribusi Usaha' },
-  { value: 'Keuangan', label: 'Biaya Keuangan & Administrasi Bank' },
-  { value: 'Biaya Lain', label: 'Beban Pengeluaran Lainnya' },
-];
 
 function buildInitialVendorRows(order: Order | undefined): LedgerRow[] {
   if (!order) return [];
@@ -120,7 +110,7 @@ function buildInitialVendorRows(order: Order | undefined): LedgerRow[] {
 function CashOutNewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { orders, cashTransactions, updateOrderFinance, addKas, updateKas } = useFirebaseFinance();
+  const { orders, cashTransactions, kasReady, updateOrderFinance, addKas, updateKas } = useFirebaseFinance();
 
   const modeParam = searchParams.get('mode');
   const orderIdParam = searchParams.get('orderId') || '';
@@ -140,7 +130,6 @@ function CashOutNewContent() {
   const [sumberRekening, setSumberRekening] = useState<string>('Transfer BCA');
   const [noVoucher, setNoVoucher] = useState<string>('');
   const [keterangan, setKeterangan] = useState<string>('');
-  const [hasUserEditedDirect, setHasUserEditedDirect] = useState<boolean>(false);
 
   // State khusus mode Pembayaran Mitra Vendor (berbasis pesanan)
   const [vendorLedgerRows, setVendorLedgerRows] = useState<LedgerRow[]>([]);
@@ -152,14 +141,9 @@ function CashOutNewContent() {
   });
 
   const [isDirty, setIsDirty] = useState<boolean>(false);
+  useBeforeUnloadGuard(isDirty);
   const [showExitConfirm, setShowExitConfirm] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (orderIdParam && !selectedOrderId) {
-      setSelectedOrderId(orderIdParam);
-    }
-  }, [orderIdParam, selectedOrderId]);
 
   const selectedOrder = useMemo<Order | undefined>(() => {
     if (!selectedOrderId) return undefined;
@@ -172,7 +156,7 @@ function CashOutNewContent() {
     return Boolean(v && v !== '-' && v.toLowerCase() !== 'tanpa vendor');
   }, [selectedOrder]);
 
-  useEffect(() => {
+  useInitOnce(selectedOrder?.id, () => {
     const initial = buildInitialVendorRows(selectedOrder);
     setVendorLedgerRows(initial);
     setHasLedgerChanged(false);
@@ -181,7 +165,7 @@ function CashOutNewContent() {
       error: null,
       previewEntries: initial,
     });
-  }, [selectedOrder]);
+  });
 
   const accountOptions = useMemo(
     () => [
@@ -196,9 +180,11 @@ function CashOutNewContent() {
   );
 
   // Pre-fill form jika sedang mengedit transaksi Kas Keluar Non-Order (editKasIdParam)
-  useEffect(() => {
-    if (!editKasIdParam || hasUserEditedDirect) return;
-    const targetTx = cashTransactions.find((t) => t.id === editKasIdParam);
+  const editKasTarget = editKasIdParam ? cashTransactions.find((t) => t.id === editKasIdParam) : undefined;
+  const editKasStatus = resolveEditKasStatus(editKasIdParam, Boolean(editKasTarget), kasReady);
+
+  useInitOnce(editKasTarget ? editKasIdParam : null, () => {
+    const targetTx = editKasTarget;
     if (!targetTx) return;
     setEntryMode('operasional');
     setTanggal(targetTx.tanggal || getDefaultFinanceDate());
@@ -226,7 +212,7 @@ function CashOutNewContent() {
       setSumberRekening('');
       setKeterangan(restText);
     }
-  }, [editKasIdParam, cashTransactions, hasUserEditedDirect]);
+  });
 
   const orderSelectOptions = useMemo(() => {
     return [
@@ -280,6 +266,7 @@ function CashOutNewContent() {
 
   const isSaveDisabled =
     isSaving ||
+    (entryMode === 'operasional' && editKasStatus !== 'none' && editKasStatus !== 'ready') ||
     (entryMode === 'vendor' &&
       (!selectedOrder || !hasValidVendor || Boolean(ledgerDraft.error)));
 
@@ -393,6 +380,7 @@ function CashOutNewContent() {
       const ketFull = `${voucherText}${accountPrefix}${keterangan.trim()}`;
 
       if (editKasIdParam) {
+        if (!editKasTarget) throw new Error('Transaksi kas tidak ditemukan');
         await updateKas(editKasIdParam, {
           tanggal,
           tipe: 'keluar',
@@ -422,10 +410,10 @@ function CashOutNewContent() {
   };
 
   const kategoriBebanOptions = useMemo(() => {
-    if (KATEGORI_BEBAN_OPTIONS.some((o) => o.value === kategori)) {
-      return KATEGORI_BEBAN_OPTIONS;
+    if (KATEGORI_KAS_KELUAR_OPTIONS.some((o) => o.value === kategori)) {
+      return KATEGORI_KAS_KELUAR_OPTIONS;
     }
-    return [...KATEGORI_BEBAN_OPTIONS, { value: kategori, label: kategori }];
+    return [...KATEGORI_KAS_KELUAR_OPTIONS, { value: kategori, label: kategori }];
   }, [kategori]);
 
   return (
@@ -562,6 +550,8 @@ function CashOutNewContent() {
                 </button>
               </div>
 
+              {entryMode === 'operasional' && <EditKasStatusNotice status={editKasStatus} />}
+
               {entryMode === 'operasional' ? (
                 <div className="pt-3 border-t border-slate-100">
                   <label className="text-xs font-bold text-slate-700 block mb-1.5">
@@ -571,7 +561,6 @@ function CashOutNewContent() {
                     value={kategori}
                     onValueChange={(val) => {
                       setKategori(val as CashOutflowCategory);
-                      setHasUserEditedDirect(true);
                       setIsDirty(true);
                     }}
                     options={kategoriBebanOptions}
@@ -696,7 +685,6 @@ function CashOutNewContent() {
                       value={tanggal}
                       onChange={(e) => {
                         setTanggal(e.target.value);
-                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
@@ -711,7 +699,6 @@ function CashOutNewContent() {
                       value={nominal}
                       onValueChange={(val: number) => {
                         setNominal(val);
-                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       placeholder="Rp 0"
@@ -727,7 +714,6 @@ function CashOutNewContent() {
                       value={sumberRekening}
                       onValueChange={(val) => {
                         setSumberRekening(val);
-                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       options={accountOptions}
@@ -744,7 +730,6 @@ function CashOutNewContent() {
                       value={noVoucher}
                       onChange={(e) => {
                         setNoVoucher(e.target.value);
-                        setHasUserEditedDirect(true);
                         setIsDirty(true);
                       }}
                       placeholder="Contoh: VCR-2026-10-092"
@@ -762,7 +747,6 @@ function CashOutNewContent() {
                     value={keterangan}
                     onChange={(e) => {
                       setKeterangan(e.target.value);
-                      setHasUserEditedDirect(true);
                       setIsDirty(true);
                     }}
                     placeholder="Contoh: Pembayaran listrik dan internet kantor bulan Oktober 2026..."

@@ -18,24 +18,33 @@ export function formatPercent(value: number, total: number): string {
   return `${pct.toFixed(1)}%`;
 }
 
+const COMPACT_UNITS = [
+  { value: 1_000_000_000, suffix: 'M', digits: 1 },
+  { value: 1_000_000, suffix: 'jt', digits: 1 },
+  { value: 1_000, suffix: 'rb', digits: 0 },
+] as const;
+
 export function formatCompactRupiah(amount: number): string {
-  if (!amount || amount === 0) return 'Rp 0';
+  if (!amount) return 'Rp 0';
   const abs = Math.abs(amount);
   const sign = amount < 0 ? '-' : '';
 
-  if (abs >= 1_000_000_000) {
-    const m = abs / 1_000_000_000;
-    return `${sign}Rp ${m % 1 === 0 ? m : m.toFixed(1)} M`;
+  let idx = COMPACT_UNITS.findIndex((u) => abs >= u.value);
+  if (idx === -1) return `${sign}Rp ${abs.toLocaleString('id-ID')}`;
+
+  const round = (i: number) => {
+    const factor = 10 ** COMPACT_UNITS[i].digits;
+    return Math.round((abs / COMPACT_UNITS[i].value) * factor) / factor;
+  };
+  // 999.999 dibulatkan menjadi "1000 rb"; naik ke satuan berikutnya supaya tampil "1 jt".
+  let scaled = round(idx);
+  while (scaled >= 1000 && idx > 0) {
+    idx -= 1;
+    scaled = round(idx);
   }
-  if (abs >= 1_000_000) {
-    const jt = abs / 1_000_000;
-    return `${sign}Rp ${jt % 1 === 0 ? jt : jt.toFixed(1)} jt`;
-  }
-  if (abs >= 1_000) {
-    const rb = abs / 1_000;
-    return `${sign}Rp ${rb % 1 === 0 ? rb : rb.toFixed(0)} rb`;
-  }
-  return `${sign}Rp ${abs.toLocaleString('id-ID')}`;
+
+  const unit = COMPACT_UNITS[idx];
+  return `${sign}Rp ${scaled.toLocaleString('id-ID', { maximumFractionDigits: unit.digits })} ${unit.suffix}`;
 }
 
 const MONTH_ABBR_ID: Record<string, string> = {
@@ -141,3 +150,12 @@ export function getPeriodFilenameSuffix(period?: string): string {
   return period.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
+
+/** Nomor WhatsApp format internasional Indonesia (62…), atau `null` bila kosong/tidak valid sehingga tombol kirim harus dinonaktifkan. */
+export function normalizeWaNumber(raw: string | null | undefined): string | null {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (digits.length < 8) return null;
+  if (digits.startsWith('62')) return digits;
+  if (digits.startsWith('0')) return `62${digits.slice(1)}`;
+  return `62${digits}`;
+}

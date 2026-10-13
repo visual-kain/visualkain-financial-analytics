@@ -56,3 +56,21 @@ features:
     spec_path: .kiro/specs/F-07-metric-cards-detail-drawers
     active_phase: completed
 
+  - id: F-08
+    name: Cash Inflow Management & Payment Tracking (Dana Masuk)
+    track: engineering
+    status: completed
+    spec_path: .kiro/specs/F-08-cash-inflow-management
+    active_phase: completed
+  - id: F-09
+    name: Client Feedback Refinements, Cutoff Oktober 2026 & Order-First Payment Ledger
+    track: engineering
+    status: completed
+    spec_path: .kiro/specs/F-09-client-feedback-refinements
+    active_phase: completed
+  - id: F-10
+    name: Audit Codebase & Perbaikan Integritas Data Finansial
+    track: engineering
+    status: completed
+    spec_path: .kiro/specs/F-10-audit-bugfix-integritas-data
+    active_phase: completed
