@@ -35,14 +35,15 @@ export interface CustomerPayment {
 
 export interface VendorPayment {
   id: string;
-  orderId: string;
+  orderId?: string;
   vendorId?: string;
   vendorName: string;
   tanggal: string;
   nominal: number;
-  jenis: 'dp_vendor' | 'termin_vendor' | 'pelunasan_vendor';
+  jenis: 'dp_vendor' | 'termin_vendor' | 'pelunasan_vendor' | string;
   keterangan?: string;
-  createdAt: string;
+  catatan?: string;
+  createdAt?: string;
 }
 
 export interface Order {
@@ -147,14 +148,37 @@ export interface KasAdjustment {
 }
 
 export type CashOutflowCategory =
+  | 'Pembayaran Vendor'
+  | 'Biaya Operasional Order'
   | 'Gaji/Upah'
+  | 'Perawatan Web/Sistem'
   | 'Operasional'
+  | 'Transport/Ongkir'
+  | 'Pajak/Retribusi'
+  | 'Pajak'
   | 'Marketing dan Penjualan'
+  | 'Iklan/Marketing'
+  | 'Sponsorship/Sosial'
+  | 'Bahan Baku'
   | 'Logistik'
   | 'Keuangan'
-  | 'Pajak'
-  | 'Pembayaran Vendor'
+  | 'Lainnya'
   | 'Biaya Lain';
+
+export interface CashOutflowEntry {
+  id: string;
+  tanggal: string;
+  sumber: 'order' | 'manual';
+  kategori: CashOutflowCategory | string;
+  noInv?: string;
+  orderId?: string;
+  vendorOrTargetName?: string;
+  projectName?: string;
+  keterangan: string;
+  nominal: number;
+  rawOrder?: Order;
+  rawTransaction?: CashTransaction;
+}
 
 export interface CashTransaction {
   id: string;
