@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
+  cn,
   formatRupiah,
   formatCompactRupiah,
   formatDateTick,
@@ -28,6 +29,8 @@ import {
   Eye,
   Receipt,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -216,6 +219,21 @@ export function CashInflowSection({
       return matchesCategory && matchesTahun && matchesBulan && matchesSearch;
     });
   }, [rawInflows, categoryFilter, tahunFilter, bulanFilter, searchQuery]);
+
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 10;
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, bulanFilter, tahunFilter, rawInflows.length]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredInflows.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedInflows = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredInflows.slice(start, start + pageSize);
+  }, [filteredInflows, safeCurrentPage]);
 
   // 2. KPI Metrics Calculation
   const metrics = useMemo(() => {
@@ -773,12 +791,12 @@ export function CashInflowSection({
 
         {/* Mobile View: 2-Grid Adaptive Ergonomic Cards (< 768px) */}
         <div className="md:hidden grid grid-cols-2 gap-2 sm:gap-2.5 p-2 sm:p-3 bg-slate-50/40">
-          {filteredInflows.length === 0 ? (
+          {paginatedInflows.length === 0 ? (
             <div className="col-span-2 py-12 text-center text-slate-400 text-xs">
               Tidak ada riwayat pemasukan yang cocok dengan kriteria filter.
             </div>
           ) : (
-            filteredInflows.map((item) => (
+            paginatedInflows.map((item) => (
               <div
                 key={item.id}
                 className="rounded-xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-2xs flex flex-col justify-between gap-1.5 overflow-hidden hover:border-emerald-300 transition-all"
@@ -816,20 +834,22 @@ export function CashInflowSection({
 
                   {item.rawOrder ? (
                     <button
+                      type="button"
                       onClick={() => onSelectOrder?.(item.rawOrder!)}
                       title="Inspeksi Detail Order"
-                      className="h-6 sm:h-6.5 px-1.5 flex items-center justify-center gap-1 rounded-md bg-teal-50 border border-teal-200 text-teal-700 text-[9.5px] font-bold active:scale-95 transition-all cursor-pointer shrink-0"
+                      className="h-7 px-2 flex items-center justify-center gap-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 text-[10px] font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
                     >
                       <Eye className="h-3 w-3" />
                       <span>Detail</span>
                     </button>
                   ) : item.sumber === 'manual' ? (
                     <button
+                      type="button"
                       onClick={() => handleDelete(item.id)}
                       title="Hapus Transaksi Kas Masuk"
-                      className="h-6 w-6 flex items-center justify-center rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer shrink-0"
+                      className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   ) : null}
                 </div>
@@ -853,14 +873,14 @@ export function CashInflowSection({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {filteredInflows.length === 0 ? (
+              {paginatedInflows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
                     Tidak ada transaksi pemasukan yang cocok dengan kriteria filter.
                   </td>
                 </tr>
               ) : (
-                filteredInflows.map((item) => (
+                paginatedInflows.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-4 py-3 font-mono text-slate-500 text-[11px]">
                       {item.tanggal}
@@ -892,18 +912,20 @@ export function CashInflowSection({
                     <td className="px-4 py-3 text-center">
                       {item.rawOrder ? (
                         <button
+                          type="button"
                           onClick={() => onSelectOrder?.(item.rawOrder!)}
                           title="Inspeksi Detail Order"
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 shadow-2xs cursor-pointer"
                         >
                           <Eye className="h-3.5 w-3.5 text-slate-400" />
                           <span>Detail</span>
                         </button>
                       ) : item.sumber === 'manual' ? (
                         <button
+                          type="button"
                           onClick={() => handleDelete(item.id)}
                           title="Hapus Transaksi Kas Masuk"
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -917,6 +939,96 @@ export function CashInflowSection({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        {filteredInflows.length > 0 && (() => {
+          const startIdx = (safeCurrentPage - 1) * pageSize + 1;
+          const endIdx = Math.min(safeCurrentPage * pageSize, filteredInflows.length);
+          const pageNumbers: number[] = [];
+          const maxVisiblePages = 5;
+          let startPage = Math.max(1, safeCurrentPage - Math.floor(maxVisiblePages / 2));
+          const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+          if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+          }
+          for (let i = startPage; i <= endPage; i++) {
+            pageNumbers.push(i);
+          }
+
+          return (
+            <div className="border-t border-slate-100 bg-white px-3.5 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 select-none">
+              <div className="text-xs text-slate-500 font-medium text-center sm:text-left">
+                Menampilkan <strong className="text-slate-800 font-mono tabular-nums">{startIdx}</strong>–
+                <strong className="text-slate-800 font-mono tabular-nums">{endIdx}</strong> dari{' '}
+                <strong className="text-slate-800 font-mono tabular-nums">{filteredInflows.length}</strong> transaksi pemasukan
+              </div>
+
+              <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safeCurrentPage === 1}
+                  className="inline-flex h-9 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-35 disabled:cursor-not-allowed active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Prev</span>
+                </button>
+
+                {startPage > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(1)}
+                      className="h-9 w-9 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                    >
+                      1
+                    </button>
+                    {startPage > 2 && <span className="text-slate-400 px-1 text-xs">&hellip;</span>}
+                  </>
+                )}
+
+                {pageNumbers.map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setCurrentPage(num)}
+                    className={cn(
+                      'h-9 min-w-[36px] px-2.5 rounded-xl text-xs font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer',
+                      num === safeCurrentPage
+                        ? 'bg-teal-600 text-white shadow-sm font-extrabold'
+                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs'
+                    )}
+                  >
+                    {num}
+                  </button>
+                ))}
+
+                {endPage < totalPages && (
+                  <>
+                    {endPage < totalPages - 1 && <span className="text-slate-400 px-1 text-xs">&hellip;</span>}
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(totalPages)}
+                      className="h-9 w-9 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safeCurrentPage === totalPages}
+                  className="inline-flex h-9 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-35 disabled:cursor-not-allowed active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
