@@ -455,7 +455,7 @@ export function CashInflowSection({
       {/* 2. Visual Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart A: Daily Trend Bar Chart */}
-        <div className="lg:col-span-2 rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-card-double">
+        <div className="lg:col-span-2 flex flex-col rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-card-double">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-4">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-emerald-600" />
@@ -471,16 +471,18 @@ export function CashInflowSection({
             )}
           </div>
 
-          <div className="h-56 w-full">
+          {/* Grafik mengisi sisa tinggi kartu agar sejajar dengan kartu piutang di sebelahnya. */}
+          <div className="min-h-56 w-full flex-1">
             {dailyTrendData.length === 0 ? (
               <div className="h-full flex items-center justify-center text-xs text-slate-400">
                 Belum ada data transaksi pemasukan pada periode ini
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={dailyTrendData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                   <XAxis dataKey="tanggal" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
                   <YAxis
+                    width={68}
                     tickLine={false}
                     axisLine={false}
                     tick={{ fontSize: 10, fill: '#64748b' }}
