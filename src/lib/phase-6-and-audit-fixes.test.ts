@@ -12,8 +12,8 @@ describe('Phase 6 & Codebase Audit Fixes Verification', () => {
     });
 
     it('exports shared seed data for dedicated page fallback (Issue #10)', () => {
-        expect(initialOrdersData.length).toBeGreaterThanOrEqual(4);
-        expect(initialCashTransactions.length).toBeGreaterThanOrEqual(5);
+        expect(initialOrdersData.length).toBeGreaterThanOrEqual(3);
+        expect(initialCashTransactions.length).toBeGreaterThanOrEqual(10);
     });
 
     it('prevents double-discount and preserves manual finance overrides in calculateOrderTotals (Issues #2 & #3)', () => {

@@ -212,7 +212,7 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
                   )}
                   <span>
                     {order.dpPersenCustomer >= 100
-                      ? 'Lunas 100% — Siap Kirim'
+                      ? 'Lunas 100% (Siap Kirim)'
                       : order.dpPersenCustomer >= 70
                       ? 'Ambang Batas 70% Terpenuhi (Siap Jahit)'
                       : `Belum Memenuhi Ambang 70% (Sisa ${formatRupiah(order.sisaMenujuDp70)})`}

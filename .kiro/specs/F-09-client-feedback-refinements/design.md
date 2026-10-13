@@ -546,28 +546,58 @@
 
 ---
 
+### 2.24. Arsitektur Cutoff Oktober 2026 (`>= '2026-10-01'`), Dual-Source Cash Outflow Aggregator & Dashboard Berorientasi Klien (`US-9.30 s/d US-9.34`)
+* **Akar Masalah (Analisis Tangkapan Layar & Permintaan Langsung Klien)**:
+  1. Klien meminta agar sistem keuangan **fokus mulai bulan Oktober 2026 dan bulan-bulan selanjutnya (`>= '2026-10-01'`)** karena data bulan-bulan sebelumnya membingungkan pelacakan arus kas (termasuk adanya potongan penyesuaian saldo awal di September 2026).
+  2. Pada koleksi `orders` Firebase, dokumen `VK260041` (`2026-10-07`) memiliki `riwayatPembayaran: []` (array kosong) tetapi menyimpan 4 termin pembayaran senilai `Rp 982.000` di field `pembayaranList`. Kondisi `if (Array.isArray(d.riwayatPembayaran))` sebelumnya tidak memeriksa `.length > 0`, sehingga pembayaran `VK260041` tidak terbaca.
+  3. Tabel **Riwayat Mutasi Dana Keluar** (`CashOutflowSection.tsx`) dan kartu KPI **Dana Keluar** sebelumnya hanya membaca koleksi `kas` tanpa menyertakan pengeluaran HPP ke vendor (`totalDibayarKeVendor`) dan biaya operasional order (`biayaOperasional`) dari koleksi `orders`.
+  4. Klien merangkum kebutuhan utamanya menjadi 2 hal:
+     - *(1) Bisa input dana masuk & dana keluar dengan mudah.*
+     - *(2) Bisa melihat dana masuk berapa, dana keluar berapa, sisa customer berapa, sisa hutang ke vendor berapa, dan dana yang ada bisa tercover ke hutang vendor atau tidak beserta sisanya berapa.*
+
+* **Solusi Arsitektural**:
+  1. **Konstanta `FINANCE_START_DATE = '2026-10-01'` (`src/lib/constants.ts` & `src/hooks/useFirebaseFinance.ts`)**:
+     - Menyaring seluruh dokumen `orders` (`tanggalOrder >= '2026-10-01'`) dan `kas` (`tanggal >= '2026-10-01'`) di layer hook dan seed data tanpa menghapus dokumen historis di Firestore `appkonveksi`.
+     - Memperbaiki ekstraksi pembayaran di `useFirebaseFinance.ts`: memprioritaskan `d.pembayaranList` jika memiliki item bernominal `> 0`, lalu `d.riwayatPembayaran` jika memiliki item bernominal `> 0`.
+  2. **Kontrak Tipe `CashOutflowEntry` & Fungsi `buildCashOutflowEntries(orders, cashTransactions)` (`src/types/index.ts` & `src/lib/financial-calculator.ts`)**:
+     - Menggabungkan 3 sumber pengeluaran:
+       * Pembayaran HPP Vendor (`orders.totalDibayarKeVendor > 0` atau `vendorPembayaranList`).
+       * Biaya Operasional Order (`orders.biayaOperasional > 0`).
+       * Pengeluaran Kas Umum (`kas` dengan `tipe === 'keluar'`).
+     - Menyelaraskan `totalKasKeluar` pada `calculateFinancialSummary` menjadi `totalDibayarKeVendor + totalBiayaOperasionalOrders + bebanOperasional`, sehingga `totalKasMasuk - totalKasKeluar === saldoKasRiil` (ketika `saldoAwal = 0`).
+  3. **Susunan 6 Kartu KPI (`FinanceStatsGrid.tsx`) & Panel "Status Kecukupan Dana Terhadap Hutang Vendor"**:
+     - Mengurutkan 6 Kartu KPI menjadi:
+       1. **Dana Masuk** (`summary.totalKasMasuk` -> buka drawer `'cashin'`)
+       2. **Dana Keluar** (`summary.totalKasKeluar` -> buka drawer `'cashout'`)
+       3. **Dana Tersedia (Saldo Kas)** (`summary.saldoKasRiil` -> buka drawer `'saldo'`)
+       4. **Sisa Customer (Piutang)** (`summary.totalPiutangCustomer` -> buka drawer `'outstanding'`)
+       5. **Sisa Hutang ke Vendor** (`summary.totalUtangVendor` -> buka drawer `'vendor_debt'`)
+       6. **Profit & Omzet (Realtime)** (`summary.totalProfitRealtime` & `summary.omzetTotal` -> buka drawer `'profit'`)
+     - Menampilkan panel **"Status Cover Hutang Vendor & Sisa Dana"** di bawah 6 kartu KPI yang menampilkan:
+       * **Dana yang Ada (Saldo Kas)** vs **Sisa Hutang ke Vendor**
+       * Status **`TERCOVER PENUH`** (`saldoKasRiil >= totalUtangVendor`) atau **`BELUM TERCOVER PENUH`** (`saldoKasRiil < totalUtangVendor`)
+       * **Sisa Dana Setelah Bayar Hutang Vendor** (`saldoKasRiil - totalUtangVendor`) atau nominal **Kekurangan Dana** beserta informasi **Sisa Tagihan Customer** yang dapat menutupnya.
+  4. **Tombol Aksi Cepat Header Dashboard (`src/app/page.tsx`)**:
+     - Menyediakan tombol **`+ Dana Masuk`** (`/cash-in/new`) dan **`+ Dana Keluar`** (`/cash-out/new`) berdampingan di Header Dashboard.
+
+---
+
 ## 3. Component Modification Inventory
 
 | File | Tipe Perubahan | Deskripsi |
 |---|---|---|
-| `src/types/index.ts` | Type Definition (`US-9.29`) | Tambahkan `'datatable'` ke dalam union type `FinanceSubTab`. |
+| `src/lib/constants.ts` | Cutoff Constant (`US-9.30`) | Tambahkan `FINANCE_START_DATE = '2026-10-01'` dan helper filter bulan mulai Oktober 2026. |
+| `src/types/index.ts` | Type Definition (`US-9.29, 9.31, 9.32`) | Tambahkan `'datatable'` ke `FinanceSubTab`, perluas `CashOutflowCategory`, dan tambahkan interface `CashOutflowEntry`. |
+| `src/lib/seed-data.ts` | Seed & Firebase Sync (`US-9.30`) | Saring `initialOrdersData` (3 order Oktober 2026 termasuk 4 termin `VK260041`) dan `initialCashTransactions` (10 transaksi kas keluar Oktober 2026) mulai `2026-10-01`. |
+| `src/lib/financial-calculator.ts` | Core Calculator (`US-9.31`) | Tambahkan fungsi `buildCashOutflowEntries(orders, transactions)` dan selaraskan `totalKasKeluar` serta `kasKeluarCount` pada `calculateFinancialSummary`. |
+| `src/components/analytics/FinanceStatsGrid.tsx` | 6 KPI & Coverage Panel (`US-9.34`) | Susun 6 kartu KPI sesuai permintaan klien (Dana Masuk, Dana Keluar, Dana Tersedia, Sisa Customer, Sisa Hutang Vendor, Profit & Omzet) + Panel Status Cover Hutang Vendor & Sisa Dana. |
+| `src/components/finance/CashOutflowSection.tsx` | UI, Filter & Aggregator (`US-9.31, 9.32, 9.33`) | Integrasikan `buildCashOutflowEntries` (`orders` + `kas`), filter sumber & kategori lengkap, kolom Referensi Invoice/Vendor, dan tombol `Detail Order` vs `Hapus`. |
+| `src/components/analytics/MetricDetailDrawer.tsx` | Drilldown Drawer (`US-9.31, 9.33`) | Gunakan `buildCashOutflowEntries` pada drawer `cashout` dan sub-view `outflow` di drawer `saldo` agar rincian dan total 100% identik dengan tab Dana Keluar. |
+| `src/lib/excel-export.ts` | Export Engine (`US-9.28, 9.33`) | Perbarui `exportCashOutflowToExcel` untuk menerima `CashOutflowEntry[]` dan menambahkan kolom `No. Invoice / Ref` serta `Mitra Vendor / Tujuan`. |
+| `src/app/cash-out/new/page.tsx` | Dedicated Page (`US-9.32`) | Lengkapi pilihan kategori pengeluaran (`Perawatan Web/Sistem`, `Transport/Ongkir`, `Pajak/Retribusi`, dll.) agar sesuai dengan Firebase `appkonveksi`. |
 | `src/components/layout/MobileBottomNav.tsx` | UI & Navigation (`US-9.29`) | Tambahkan tab ke-5 `"Data Table"` di navigasi bawah mobile (5 tab layout). |
 | `src/components/layout/Sidebar.tsx` | UI & Navigation (`US-9.12, 9.27, 9.29`) | Hapus seluruh badge navigasi, ubah nama tab ke Bahasa Indonesia Baku, tambahkan tab `"Data Table"`. |
-| `src/app/page.tsx` | Layout & UI (`US-9.23, 9.25, 9.27, 9.28, 9.29`) | Pindahkan `MasterFinanceTable` ke `tab === 'datatable'`, hapus `EscrowLiquidityBar`, fluid full-width desktop `max-w-[1920px]`, integrasi `ExcelJS`. |
-| `src/components/finance/MasterFinanceTable.tsx` | Filter & UI (`US-9.14, 9.24, 9.27`) | Simplifikasi 3 filter vendor, copywriting bahasa Indonesia formal, WA adaptif, solid sticky header. |
-| `src/app/orders/[id]/edit/page.tsx` | Dedicated Page (`US-9.8, 9.16, 9.26`) | Dedicated Page edit finansial order mandiri lengkap dengan riwayat termin DP, threshold 70%, vendor pre-population. |
-| `src/components/finance/EscrowLiquidityBar.tsx` | Deprecated / Dihapus (`US-9.23`) | Komponen dieliminasi total dari tampilan dashboard. |
-| `src/components/analytics/AnalyticsCharts.tsx` | Chart & Copy (`US-9.13, 9.22, 9.27`) | Ganti Donut Escrow dengan Komparasi Kas Masuk vs Keluar, format tanggal `15 Sep`, copywriting formal. |
-| `src/components/finance/CashInflowSection.tsx` | Chart & Copy (`US-9.20, 9.21, 9.27`) | Komposisi termin pembayaran (DP 1, 70% Produksi, 30% Pelunasan), sinkronisasi filter, copywriting formal. |
-| `src/components/finance/CashOutflowSection.tsx` | Filter & Copy (`US-9.21, 9.22, 9.27`) | Filter `tipe === 'keluar'`, format `15 Sep`, copywriting formal. |
-| `src/components/analytics/MetricDetailDrawer.tsx` | UI & Search (`US-9.11, 9.21, 9.27`) | Hubungkan live search saldo kas, metadata 2-kolom mobile, eksklusi profit aktual, copywriting formal. |
-| `src/lib/excel-export.ts` (Baru) | Export Engine (`US-9.28`) | Modul generator ekspor spreadsheet profesional berbasis `ExcelJS` standar Inzta. |
-| `src/app/globals.css` | Print Engine (`US-9.17, 9.19`) | `print-color-adjust: exact`, border hitam tabel cetak, `display: none` background, single-page fit. |
-| `src/components/finance/InvoicePreviewModal.tsx` | Print & Export (`US-9.18, 9.19`) | Dinamisasi `document.title` untuk nama PDF kontekstual dan integrasi print single-page container. |
-| `src/hooks/useFirebaseFinance.ts` | Data Layer (`US-9.7, 9.15, 9.26`) | Sinkronisasi dua arah `riwayatPembayaran`, recalculate total uang masuk, dan agregasi vendor lengkap. |
-| `src/lib/utils.ts` | Helper Date & Format (`US-9.22, 9.27`) | Helper `formatDateTick` (`15 Sep`) dan format penamaan bahasa Indonesia formal. |
-
-
-
+| `src/app/page.tsx` | Layout & UI (`US-9.23, 9.25, 9.27, 9.28, 9.29, 9.31, 9.34`) | Tombol `+ Dana Masuk` & `+ Dana Keluar` di Header, filter bulan mulai Oktober 2026, teruskan `orders={rawOrders}` ke `<CashOutflowSection />`, dan sertakan pengeluaran order pada `dynamicTrendData`. |
+| `src/hooks/useFirebaseFinance.ts` | Data Layer (`US-9.7, 9.15, 9.26, 9.30`) | Filter otomatis `>= '2026-10-01'`, perbaiki resolusi `pembayaranList` vs `riwayatPembayaran` kosong (`VK260041`), dan sinkronisasi penuh ke Firestore. |
 
 

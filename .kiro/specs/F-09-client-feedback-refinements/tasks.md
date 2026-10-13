@@ -255,7 +255,58 @@
   - Jalankan `npm run build` untuk memvalidasi Next.js production build.
   - _Requirements: US-9.29_
 
+---
 
+## Phase 7: Batch 7 Feedback (Cutoff Oktober 2026 `>= 2026-10-01`, Dual-Source Cash Outflow Aggregator & Dashboard Berorientasi Klien)
 
+- [x] **37. Penerapan Cutoff Oktober 2026 (`>= '2026-10-01'`), Perbaikan Pembacaan `pembayaranList` & Sinkronisasi `seed-data.ts`**
+  - Tambahkan konstanta `FINANCE_START_DATE = '2026-10-01'` di `src/lib/constants.ts`.
+  - Di `src/hooks/useFirebaseFinance.ts`, terapkan filter otomatis `tanggalOrder >= FINANCE_START_DATE` pada koleksi `orders` dan `tanggal >= FINANCE_START_DATE` pada koleksi `kas` (tanpa menghapus dokumen historis di Firestore `appkonveksi`).
+  - Di `src/hooks/useFirebaseFinance.ts`, perbaiki pembacaan `pembayaranList` vs `riwayatPembayaran` agar ketika `riwayatPembayaran` bernilai `[]` (kosong) seperti pada `VK260041`, sistem tetap mengekstrak `pembayaranList` (4 termin = `Rp 982.000`).
+  - Perbarui `initialOrdersData` (3 order Oktober 2026: `VK260041`, `VK260040`, `VK260039` dengan nilai autentik Firebase) dan `initialCashTransactions` (10 transaksi `kas` keluar Oktober 2026 senilai `Rp 1.779.000`) di `src/lib/seed-data.ts` serta `defaultOutflow` di `src/components/finance/CashOutflowSection.tsx`.
+  - _Requirements: US-9.30_
 
+- [x] **38. Ekspansi Kontrak Tipe `CashOutflowCategory` & `CashOutflowEntry` serta Kalkulator `buildCashOutflowEntries`**
+  - Di `src/types/index.ts`, perluas `CashOutflowCategory` dengan menyertakan `'Pembayaran Vendor'`, `'Biaya Operasional Order'`, `'Perawatan Web/Sistem'`, `'Transport/Ongkir'`, dan `'Pajak/Retribusi'`.
+  - Di `src/types/index.ts`, tambahkan interface `CashOutflowEntry` yang mendukung field `sumber: 'order' | 'manual'`, `noInv?: string`, `orderId?: string`, `vendorOrTargetName?: string`, `projectName?: string`, dan `rawOrder?: Order`.
+  - Di `src/lib/financial-calculator.ts`, implementasikan fungsi `buildCashOutflowEntries(orders: Order[], transactions: CashTransaction[]): CashOutflowEntry[]` yang menggabungkan:
+    1. Pembayaran HPP/DP/Pelunasan ke Vendor dari setiap order (`totalDibayarKeVendor > 0` atau `vendorPembayaranList`).
+    2. Biaya Operasional Pesanan dari setiap order (`biayaOperasional > 0`).
+    3. Pengeluaran Kas Langsung dari koleksi `kas` (`tipe === 'keluar'`).
+  - Di `src/lib/financial-calculator.ts`, selaraskan `totalKasKeluar` pada `calculateFinancialSummary` agar mencakup total pengeluaran menyeluruh (`totalDibayarKeVendor + totalBiayaOperasionalOrders + bebanOperasionalKas`), sehingga kartu KPI `Dana Tersedia (Saldo Kas)` dan `Dana Keluar` 100% konsisten (`Dana Masuk - Dana Keluar = Saldo Kas`).
+  - _Requirements: US-9.31, US-9.32_
+
+- [x] **39. Pembaruan `FinanceStatsGrid.tsx` & `src/app/page.tsx` (6 Kartu Berorientasi Klien, Status Cover Hutang Vendor & Tombol Cepat Input)**
+  - Di `src/components/analytics/FinanceStatsGrid.tsx`, susun ulang 6 Kartu KPI menjadi:
+    1. **Dana Masuk** (`summary.totalKasMasuk` -> buka drawer `'cashin'`)
+    2. **Dana Keluar** (`summary.totalKasKeluar` -> buka drawer `'cashout'`)
+    3. **Dana Tersedia (Saldo Kas)** (`summary.saldoKasRiil` -> buka drawer `'saldo'`)
+    4. **Sisa Customer (Piutang)** (`summary.totalPiutangCustomer` -> buka drawer `'outstanding'`)
+    5. **Sisa Hutang ke Vendor** (`summary.totalUtangVendor` -> buka drawer `'vendor_debt'`)
+    6. **Profit & Omzet (Realtime)** (`summary.totalProfitRealtime` & `summary.omzetTotal` -> buka drawer `'profit'`)
+  - Di `src/components/analytics/FinanceStatsGrid.tsx`, tambahkan panel **"Status Cover Hutang Vendor & Sisa Dana"** yang menampilkan perbandingan langsung antara **Dana yang Ada (`saldoKasRiil`)** dan **Sisa Hutang ke Vendor (`totalUtangVendor`)**, status **`TERCOVER PENUH`** / **`BELUM TERCOVER PENUH`**, serta **Sisa Dana Bersih** (atau **Kekurangan Dana** beserta info **Sisa Tagihan Customer**).
+  - Di `src/app/page.tsx`, tambahkan tombol cepat **`+ Dana Masuk`** (`/cash-in/new`) dan **`+ Dana Keluar`** (`/cash-out/new`) berdampingan di Header Dashboard, serta batasi opsi dropdown Bulan untuk tahun 2026 menjadi Oktober–Desember.
+  - _Requirements: US-9.30, US-9.34_
+
+- [x] **40. Pembaruan Komponen `CashOutflowSection.tsx`, `CashInflowSection.tsx`, `MetricDetailDrawer.tsx`, `/cash-out/new` & `excel-export.ts`**
+  - Di `src/components/finance/CashOutflowSection.tsx`, tambahkan props `orders?: Order[]` dan `onSelectOrder?: (order: Order) => void`, lalu gunakan `buildCashOutflowEntries(orders, entries)` sebagai sumber data utama.
+  - Tambahkan filter **Sumber Pengeluaran** (`Semua Sumber`, `Pengeluaran Order & Vendor`, `Kas Umum Non-Order`) dan lengkapi dropdown **Kategori Beban** serta warna donut chart (`Pembayaran Vendor`, `Biaya Operasional Order`, `Gaji/Upah`, `Perawatan Web/Sistem`, `Operasional`, `Transport/Ongkir`, `Pajak/Retribusi`, `Biaya Lain`).
+  - Tambahkan kolom **`REFERENSI / VENDOR`** pada tabel desktop dan informasi badge `noInv` + `vendorOrTargetName` pada kartu mobile 2-grid, serta tombol **`Detail Order`** (`Eye`) untuk entri `order` dan **`Hapus`** (`Trash2`) untuk entri `manual`.
+  - Di `src/components/analytics/MetricDetailDrawer.tsx`, gunakan `buildCashOutflowEntries(orders, transactions)` pada drawer `cashout` dan sub-view `outflow` pada drawer `saldo` serta bersihkan dekorasi emoji sesuai standar `antislop-ui`.
+  - Di `src/lib/excel-export.ts`, perbarui `exportCashOutflowToExcel` agar mengekspor kolom `No. Invoice / Ref` dan `Mitra Vendor / Tujuan`.
+  - _Requirements: US-9.31, US-9.32, US-9.33_
+
+- [x] **41. Unit Testing Phase 7 (October 2026 Cutoff, Dual-Source Cash Outflow & Client Coverage Invariants)**
+  - Buat unit test `src/lib/phase-7-cash-outflow.test.ts` menggunakan Vitest untuk menguji:
+    * Cutoff Oktober 2026 (`>= '2026-10-01'`) pada `initialOrdersData` dan `initialCashTransactions`.
+    * `buildCashOutflowEntries` menggabungkan pembayaran vendor (`orders`), biaya operasional (`orders`), dan kas keluar (`kas`) secara akurat tanpa duplikasi.
+    * Konsistensi `calculateFinancialSummary`: `saldoAwal + totalKasMasuk - totalKasKeluar === saldoKasRiil`.
+    * Kalkulasi kecukupan dana terhadap hutang vendor (`saldoKasRiil - totalUtangVendor`).
+  - _Requirements: US-9.30, US-9.31, US-9.32, US-9.33, US-9.34_
+
+- [x] **42. Quality Verification Gate Phase 7**
+  - Jalankan `npx tsc --noEmit` untuk memvalidasi tipe TypeScript (`0 errors`).
+  - Jalankan `npm test` untuk memastikan seluruh unit test Vitest lulus 100%.
+  - Jalankan `npm run build` untuk memastikan Next.js production build berhasil.
+  - _Requirements: US-9.30, US-9.31, US-9.32, US-9.33, US-9.34_
 

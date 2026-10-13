@@ -6,7 +6,13 @@ import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
-import { DEFAULT_VENDOR_OPTIONS, DEFAULT_PAYMENT_CHANNELS } from '@/lib/constants';
+import {
+  DEFAULT_VENDOR_OPTIONS,
+  DEFAULT_PAYMENT_CHANNELS,
+  FINANCE_START_DATE,
+  isFromFinanceStartDate,
+  getDefaultFinanceDate,
+} from '@/lib/constants';
 import type { Order, VendorPayment, CashOutflowCategory } from '@/types';
 import { toast, Toaster } from 'sonner';
 import {
@@ -50,7 +56,7 @@ export default function CashOutNewPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<string>('');
   const [jenisBayarVendor, setJenisBayarVendor] = useState<'dp_vendor' | 'termin_vendor' | 'pelunasan_vendor'>('dp_vendor');
 
-  const [tanggal, setTanggal] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [tanggal, setTanggal] = useState<string>(getDefaultFinanceDate);
   const [nominal, setNominal] = useState<number>(0);
   const [sumberRekening, setSumberRekening] = useState<string>('Transfer BCA');
   const [noVoucher, setNoVoucher] = useState<string>('');
@@ -123,6 +129,11 @@ export default function CashOutNewPage() {
 
     if (nominal <= 0) {
       toast.error('Nominal pengeluaran kas harus lebih dari Rp 0');
+      return;
+    }
+
+    if (!isFromFinanceStartDate(tanggal)) {
+      toast.error('Tanggal pengeluaran kas harus mulai 1 Oktober 2026 ke atas');
       return;
     }
 
@@ -429,6 +440,7 @@ export default function CashOutNewPage() {
                   </label>
                   <input
                     type="date"
+                    min={FINANCE_START_DATE}
                     value={tanggal}
                     onChange={(e) => {
                       setTanggal(e.target.value);

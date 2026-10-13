@@ -6,7 +6,12 @@ import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
-import { DEFAULT_PAYMENT_CHANNELS } from '@/lib/constants';
+import {
+  DEFAULT_PAYMENT_CHANNELS,
+  FINANCE_START_DATE,
+  isFromFinanceStartDate,
+  getDefaultFinanceDate,
+} from '@/lib/constants';
 import type { CustomerPayment, Order } from '@/types';
 import { toast, Toaster } from 'sonner';
 import {
@@ -39,7 +44,7 @@ export default function CashInNewPage() {
   const [entryMode, setEntryMode] = useState<'order' | 'direct'>('order');
   const [selectedOrderId, setSelectedOrderId] = useState<string>('');
 
-  const [tanggal, setTanggal] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [tanggal, setTanggal] = useState<string>(getDefaultFinanceDate);
   const [nominal, setNominal] = useState<number>(0);
   const [rekening, setRekening] = useState<string>('Transfer BCA');
   const [kategori, setKategori] = useState<'Saldo Awal' | 'Biaya Lain'>('Saldo Awal');
@@ -100,6 +105,11 @@ export default function CashInNewPage() {
 
     if (nominal <= 0) {
       toast.error('Nominal penerimaan kas harus lebih dari Rp 0');
+      return;
+    }
+
+    if (!isFromFinanceStartDate(tanggal)) {
+      toast.error('Tanggal transaksi kas harus mulai 1 Oktober 2026 ke atas');
       return;
     }
 
@@ -351,6 +361,7 @@ export default function CashInNewPage() {
                   </label>
                   <input
                     type="date"
+                    min={FINANCE_START_DATE}
                     value={tanggal}
                     onChange={(e) => {
                       setTanggal(e.target.value);

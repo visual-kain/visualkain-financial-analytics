@@ -4,7 +4,7 @@
  */
 
 import ExcelJS from 'exceljs';
-import type { MasterFinanceRow, CashInflowEntry, CashTransaction } from '@/types';
+import type { MasterFinanceRow, CashInflowEntry, CashTransaction, CashOutflowEntry } from '@/types';
 import { getPeriodFilenameSuffix } from '@/lib/utils';
 
 // Helper Format Tanggal Formal Indonesia untuk Metadata
@@ -437,11 +437,11 @@ export async function exportCashInflowToExcel(
 }
 
 /**
- * 3. Ekspor Arus Kas Keluar (Pengeluaran Kas) ke Excel Eksekutif
+ * 3. Ekspor Arus Kas Keluar (Pengeluaran Kas & Vendor) ke Excel Eksekutif
  */
 export async function exportCashOutflowToExcel(
-  transactions: CashTransaction[],
-  selectedPeriod: string = 'Semua Periode'
+  transactions: Array<CashTransaction | CashOutflowEntry>,
+  selectedPeriod: string = 'Mulai Oktober 2026'
 ): Promise<void> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'VisualKain Financial Analytics';
@@ -453,8 +453,7 @@ export async function exportCashOutflowToExcel(
 
   const totalKeluar = transactions.reduce((acc, t) => acc + (t.nominal || 0), 0);
 
-  // Metadata
-  sheet.getCell('A1').value = 'LAPORAN ARUS KAS KELUAR (PENGELUARAN KAS)';
+  sheet.getCell('A1').value = 'LAPORAN ARUS DANA KELUAR (PEMBAYARAN VENDOR & OPERASIONAL KAS)';
   sheet.getCell('A1').font = { name: THEME.fontFamily, size: 14, bold: true, color: { argb: '0F172A' } };
 
   sheet.getCell('A2').value = 'Entitas: VisualKain Konveksi & Sablon Berkualitas';
@@ -466,16 +465,18 @@ export async function exportCashOutflowToExcel(
   sheet.getCell('A4').value = `Tanggal Unduh: ${getFormattedTimestamp()}`;
   sheet.getCell('A4').font = { name: THEME.fontFamily, size: 9, color: { argb: '64748B' } };
 
-  sheet.getCell('A5').value = `Total Kas Keluar: ${transactions.length} Mutasi | Rp ${totalKeluar.toLocaleString('id-ID')}`;
+  sheet.getCell('A5').value = `Total Dana Keluar: ${transactions.length} Mutasi | Rp ${totalKeluar.toLocaleString('id-ID')}`;
   sheet.getCell('A5').font = { name: THEME.fontFamily, size: 10, bold: true, color: { argb: 'B91C1C' } };
 
   const columns = [
     { header: 'NO', width: 6, align: 'center' },
     { header: 'TANGGAL', width: 14, align: 'center' },
-    { header: 'KATEGORI BEBAN', width: 22, align: 'left' },
-    { header: 'KETERANGAN BIAYA / VENDOR', width: 36, align: 'left' },
-    { header: 'METODE / AKUN SUMBER', width: 22, align: 'center' },
-    { header: 'NOMINAL BEBAN KELUAR (RP)', width: 24, align: 'right', numFmt: '"Rp" #,##0' },
+    { header: 'NO. INVOICE / REF', width: 18, align: 'center' },
+    { header: 'MITRA VENDOR / TUJUAN', width: 24, align: 'left' },
+    { header: 'KATEGORI BEBAN', width: 24, align: 'left' },
+    { header: 'KETERANGAN BIAYA', width: 40, align: 'left' },
+    { header: 'SUMBER PENGELUARAN', width: 20, align: 'center' },
+    { header: 'NOMINAL DANA KELUAR (RP)', width: 24, align: 'right', numFmt: '"Rp" #,##0' },
   ];
 
   const headerRow = sheet.getRow(7);
@@ -500,12 +501,23 @@ export async function exportCashOutflowToExcel(
     const row = sheet.getRow(rowIdx);
     row.height = 20;
 
+    const isUnified = 'sumber' in t;
+    const noInv = isUnified ? (t.noInv || 'KAS-KELUAR') : (t.refInvoice || 'KAS-KELUAR');
+    const vendorTarget = isUnified ? (t.vendorOrTargetName || 'Kas Operasional') : 'Kas Operasional';
+    const sumberLabel = isUnified
+      ? t.sumber === 'order'
+        ? 'Order / Vendor'
+        : 'Kas Operasional'
+      : t.akun || 'Kas Operasional';
+
     const values = [
       idx + 1,
       t.tanggal || '-',
+      noInv,
+      vendorTarget,
       t.kategori || 'Operasional',
       t.keterangan || '-',
-      t.akun || 'Bank BCA',
+      sumberLabel,
       t.nominal || 0,
     ];
 
@@ -530,22 +542,21 @@ export async function exportCashOutflowToExcel(
     rowIdx++;
   });
 
-  // Summary Row
   const summaryRow = sheet.getRow(rowIdx);
   summaryRow.height = 24;
-  sheet.mergeCells(`A${rowIdx}:E${rowIdx}`);
+  sheet.mergeCells(`A${rowIdx}:G${rowIdx}`);
   const labelCell = summaryRow.getCell(1);
-  labelCell.value = 'TOTAL BEBAN PENGELUARAN KAS KELUAR';
+  labelCell.value = 'TOTAL DANA KELUAR (VENDOR & KAS OPERASIONAL)';
   labelCell.alignment = { horizontal: 'center', vertical: 'middle' };
   labelCell.font = { name: THEME.fontFamily, size: 10, bold: true, color: { argb: '0F172A' } };
 
-  const valCell = summaryRow.getCell(6);
+  const valCell = summaryRow.getCell(8);
   valCell.value = totalKeluar;
   valCell.numFmt = '"Rp" #,##0';
   valCell.alignment = { horizontal: 'right', vertical: 'middle' };
   valCell.font = { name: THEME.fontFamily, size: 10, bold: true, color: { argb: 'B91C1C' } };
 
-  for (let c = 1; c <= 6; c++) {
+  for (let c = 1; c <= 8; c++) {
     const cell = summaryRow.getCell(c);
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2E8F0' } };
     cell.border = {
@@ -560,6 +571,6 @@ export async function exportCashOutflowToExcel(
     sheet.getColumn(idx + 1).width = col.width;
   });
 
-  const filename = `VisualKain_Arus_Kas_Keluar_${getPeriodFilenameSuffix(selectedPeriod)}.xlsx`;
+  const filename = `VisualKain_Arus_Dana_Keluar_${getPeriodFilenameSuffix(selectedPeriod)}.xlsx`;
   await downloadWorkbook(workbook, filename);
 }

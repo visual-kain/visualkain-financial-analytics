@@ -76,7 +76,14 @@ const INFLOW_FILTER_OPTIONS = [
   { value: 'kas_masuk', label: 'Kas Masuk Non-Order' },
 ];
 
-const BULAN_FILTER_OPTIONS = [
+const BULAN_FILTER_OPTIONS_2026 = [
+  { value: 'all', label: 'Mulai Oktober (Semua)' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' },
+];
+
+const BULAN_FILTER_OPTIONS_ALL = [
   { value: 'all', label: 'Semua Bulan' },
   { value: '01', label: 'Januari' },
   { value: '02', label: 'Februari' },
@@ -95,7 +102,7 @@ const BULAN_FILTER_OPTIONS = [
 export function CashInflowSection({
   orders,
   cashTransactions,
-  selectedPeriod = '2026-10',
+  selectedPeriod = 'Mulai Oktober 2026',
   activeBulan,
   activeTahun,
   onBulanChange,
@@ -104,7 +111,6 @@ export function CashInflowSection({
   onSelectOrder,
   onDeleteTransaction,
 }: CashInflowSectionProps) {
-  // Filter Toolbar States (tersinkronisasi dengan filter global periode di top header)
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [bulanFilter, setBulanFilter] = useState(activeBulan || 'all');
@@ -122,22 +128,23 @@ export function CashInflowSection({
     }
   }, [activeTahun]);
 
-  // 1. Dual-Source Data Aggregator: Order Payments + Direct Cash Inflows
   const rawInflows: CashInflowEntry[] = useMemo(() => {
     const list: CashInflowEntry[] = [];
 
-    // Sumber A: Seluruh riwayat pembayaran konsumen per order
     orders.forEach((order) => {
+      if (order.tanggalOrder && order.tanggalOrder < '2026-10-01') return;
+
       if (Array.isArray(order.pembayaranList) && order.pembayaranList.length > 0) {
         order.pembayaranList.forEach((p, idx) => {
-          if (p.nominal > 0) {
+          const tgl = p.tanggal || order.tanggalOrder || '2026-10-01';
+          if (p.nominal > 0 && tgl >= '2026-10-01') {
             let catType: InflowCategoryType = 'termin';
             if (p.jenis === 'dp' || idx === 0) catType = 'dp';
             if (p.jenis === 'pelunasan') catType = 'pelunasan';
 
             list.push({
               id: p.id || `pay-${order.id}-${idx}`,
-              tanggal: p.tanggal || order.tanggalOrder || '2026-10-01',
+              tanggal: tgl,
               sumber: 'order',
               jenis: catType,
               noInv: order.noInv,
@@ -151,7 +158,6 @@ export function CashInflowSection({
           }
         });
       } else if (order.totalUangMasukCustomer > 0) {
-        // Fallback jika pembayaranList tidak terurai tapi total uang masuk tercatat
         const totalTagihan = order.totalInvoice || order.totalJumlah || 0;
         const isLunas = order.statusPembayaran === 'lunas' || (totalTagihan > 0 && order.totalUangMasukCustomer >= totalTagihan);
         const dpPersen = totalTagihan > 0 ? (order.totalUangMasukCustomer / totalTagihan) * 100 : (order.dpPersenCustomer || 0);
@@ -174,9 +180,8 @@ export function CashInflowSection({
       }
     });
 
-    // Sumber B: Transaksi kas masuk langsung non-order (koleksi kas Firestore)
     cashTransactions.forEach((tx) => {
-      if (tx.tipe === 'masuk' && tx.kategori !== 'Penerimaan Konsumen') {
+      if (tx.tipe === 'masuk' && tx.kategori !== 'Penerimaan Konsumen' && (!tx.tanggal || tx.tanggal >= '2026-10-01')) {
         list.push({
           id: tx.id,
           tanggal: tx.tanggal,
@@ -192,18 +197,21 @@ export function CashInflowSection({
       }
     });
 
-    // Urutkan kronologis terbaru ke terlama
     list.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
     return list;
   }, [orders, cashTransactions]);
 
-  // Year options dynamically computed from entries
   const yearOptions = useMemo(() => {
-    const set = new Set<string>();
-    rawInflows.forEach((e) => e.tanggal && set.add(e.tanggal.slice(0, 4)));
+    const set = new Set<string>(['2026']);
+    rawInflows.forEach((e) => e.tanggal && e.tanggal >= '2026-10-01' && set.add(e.tanggal.slice(0, 4)));
     const sorted = [...set].sort().reverse();
-    return [{ value: 'all', label: 'Semua Tahun' }, ...sorted.map((y) => ({ value: y, label: y }))];
+    return [{ value: 'all', label: 'Tahun 2026+' }, ...sorted.map((y) => ({ value: y, label: y }))];
   }, [rawInflows]);
+
+  const bulanOptions = useMemo(() => {
+    const isOnly2026 = tahunFilter === '2026' || tahunFilter === 'all';
+    return isOnly2026 ? BULAN_FILTER_OPTIONS_2026 : BULAN_FILTER_OPTIONS_ALL;
+  }, [tahunFilter]);
 
   // Filtered dataset
   const filteredInflows = useMemo(() => {
@@ -614,7 +622,7 @@ export function CashInflowSection({
                 setBulanFilter(val);
                 onBulanChange?.(val);
               }}
-              options={BULAN_FILTER_OPTIONS}
+              options={bulanOptions}
               className="w-32 h-9"
             />
 

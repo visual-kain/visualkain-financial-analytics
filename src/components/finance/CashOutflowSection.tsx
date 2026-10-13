@@ -10,7 +10,9 @@ import {
   formatIndonesianDateFull,
   formatDateRangeBadge,
 } from '@/lib/utils';
-import type { CashTransaction, CashOutflowCategory } from '@/types';
+import type { Order, CashTransaction, CashOutflowCategory, CashOutflowEntry } from '@/types';
+import { buildCashOutflowEntries } from '@/lib/financial-calculator';
+import { initialOrdersData, initialCashTransactions } from '@/lib/seed-data';
 import { exportCashOutflowToExcel } from '@/lib/excel-export';
 import { Button } from '@/components/ui/button';
 import { Drawer } from 'vaul';
@@ -24,6 +26,7 @@ import {
   Plus,
   Download,
   Trash2,
+  Eye,
   X,
   PieChart as PieChartIcon,
   BarChart3,
@@ -45,6 +48,7 @@ import {
 } from 'recharts';
 
 interface CashOutflowSectionProps {
+  orders?: Order[];
   initialEntries?: CashTransaction[];
   selectedPeriod?: string;
   activeBulan?: string;
@@ -53,22 +57,17 @@ interface CashOutflowSectionProps {
   onTahunChange?: (tahun: string) => void;
   onAddTransaction?: (data: Omit<CashTransaction, 'id'>) => Promise<string>;
   onDeleteTransaction?: (id: string) => Promise<void>;
+  onSelectOrder?: (order: Order) => void;
 }
 
-const defaultOutflow: CashTransaction[] = [
-  { id: 'wen92gulvQUW9yE3ktnm', tanggal: '2026-10-10', tipe: 'keluar', nominal: 300000, kategori: 'Gaji/Upah', keterangan: 'Biaya finance' },
-  { id: 'Wi3wSI3nMTDqUQi1tRUL', tanggal: '2026-10-10', tipe: 'keluar', nominal: 484000, kategori: 'Biaya Lain', keterangan: 'Biaya Handphone raja' },
-  { id: '2gKnX7DhgSk5P379qW3t', tanggal: '2026-10-09', tipe: 'keluar', nominal: 201000, kategori: 'Biaya Lain', keterangan: 'Biaya pinjaman wawa' },
-  { id: 'izvwZCDBWMtx01ev9UH7', tanggal: '2026-10-09', tipe: 'keluar', nominal: 177500, kategori: 'Biaya Lain', keterangan: 'Biaya Illustrator' },
-  { id: 'n2ONMpgwR49uAan8XcVu', tanggal: '2026-10-08', tipe: 'keluar', nominal: 100000, kategori: 'Biaya Lain', keterangan: 'Operasional RAJA PURNAMA' },
-  { id: 'TTL7nqMl60SjX0n4ZU1X', tanggal: '2026-10-06', tipe: 'keluar', nominal: 102500, kategori: 'Biaya Lain', keterangan: 'biaya illustrator' },
-  { id: '7oIJTgUlHTWaAWFhY0jN', tanggal: '2026-10-02', tipe: 'keluar', nominal: 14000, kategori: 'Biaya Lain', keterangan: 'Biaya Admin atm' },
-  { id: '02LAWvzNesKiHte49l39', tanggal: '2026-09-23', tipe: 'keluar', nominal: 3973000, kategori: 'Operasional', keterangan: 'Penyesuaiann saldo awal' },
-  { id: 'rbYnkw81slTzuzHllmz1', tanggal: '2026-09-15', tipe: 'keluar', nominal: 500000, kategori: 'Gaji/Upah', keterangan: 'Pengambilan dana pemilik untuk kebutuhan pribadi' },
-  { id: 'kh7G6XjebbSssoJWukvI', tanggal: '2025-10-10', tipe: 'keluar', nominal: 23778500, kategori: 'Gaji/Upah', keterangan: 'penyesuasiaan web system' },
+const BULAN_FILTER_OPTIONS_2026 = [
+  { value: 'all', label: 'Mulai Oktober (Semua)' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' },
 ];
 
-const BULAN_FILTER_OPTIONS = [
+const BULAN_FILTER_OPTIONS_ALL = [
   { value: 'all', label: 'Semua Bulan' },
   { value: '01', label: 'Januari' },
   { value: '02', label: 'Februari' },
@@ -85,56 +84,80 @@ const BULAN_FILTER_OPTIONS = [
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
+  'Pembayaran Vendor': '#d97706',
+  'Biaya Operasional Order': '#ea580c',
   'Gaji/Upah': '#0d9488',
   'Operasional': '#2563eb',
+  'Sponsorship/Sosial': '#ec4899',
+  'Iklan/Marketing': '#7c3aed',
   'Marketing dan Penjualan': '#7c3aed',
+  'Bahan Baku': '#059669',
+  'Perawatan Web/Sistem': '#4f46e5',
+  'Transport/Ongkir': '#ea580c',
   'Logistik': '#ea580c',
-  'Keuangan': '#0891b2',
+  'Pajak/Retribusi': '#dc2626',
   'Pajak': '#dc2626',
-  'Pembayaran Vendor': '#d97706',
+  'Keuangan': '#0891b2',
   'Biaya Lain': '#64748b',
+  'Lainnya': '#64748b',
 };
+
+const SOURCE_FILTER_OPTIONS = [
+  { value: 'all', label: 'Semua Sumber Pengeluaran' },
+  { value: 'order', label: 'Pembayaran Vendor & Order' },
+  { value: 'manual', label: 'Pengeluaran Kas Non-Order' },
+];
 
 const CATEGORY_FILTER_OPTIONS = [
   { value: 'all', label: 'Semua Kategori Beban', badge: 'Semua' },
+  { value: 'Pembayaran Vendor', label: 'Pembayaran Vendor (Order)' },
+  { value: 'Biaya Operasional Order', label: 'Biaya Operasional Order' },
   { value: 'Gaji/Upah', label: 'Gaji / Upah' },
   { value: 'Operasional', label: 'Operasional' },
-  { value: 'Marketing dan Penjualan', label: 'Marketing' },
-  { value: 'Logistik', label: 'Logistik' },
-  { value: 'Keuangan', label: 'Keuangan' },
+  { value: 'Sponsorship/Sosial', label: 'Sponsorship / Sosial' },
+  { value: 'Iklan/Marketing', label: 'Iklan / Marketing' },
+  { value: 'Bahan Baku', label: 'Bahan Baku' },
+  { value: 'Perawatan Web/Sistem', label: 'Perawatan Web / Sistem' },
+  { value: 'Transport/Ongkir', label: 'Transport / Ongkir' },
+  { value: 'Pajak/Retribusi', label: 'Pajak / Retribusi' },
   { value: 'Biaya Lain', label: 'Biaya Lain' },
+  { value: 'Lainnya', label: 'Lainnya' },
 ];
 
 const CATEGORY_FORM_OPTIONS = [
-  { value: 'Gaji/Upah', label: 'Gaji/Upah (Payroll Staff & Penjahit)' },
-  { value: 'Operasional', label: 'Operasional (Listrik, Sewa, Server)' },
-  { value: 'Marketing dan Penjualan', label: 'Marketing dan Penjualan (Iklan, Ads)' },
-  { value: 'Logistik', label: 'Logistik (Pengiriman, Kurir)' },
-  { value: 'Keuangan', label: 'Keuangan (Admin Bank, Pajak)' },
+  { value: 'Gaji/Upah', label: 'Gaji/Upah (Payroll Staff & Tim)' },
+  { value: 'Operasional', label: 'Operasional (Listrik, Sewa, Admin)' },
+  { value: 'Sponsorship/Sosial', label: 'Sponsorship/Sosial' },
+  { value: 'Iklan/Marketing', label: 'Iklan/Marketing' },
+  { value: 'Bahan Baku', label: 'Bahan Baku' },
+  { value: 'Perawatan Web/Sistem', label: 'Perawatan Web/Sistem' },
+  { value: 'Transport/Ongkir', label: 'Transport/Ongkir' },
+  { value: 'Pajak/Retribusi', label: 'Pajak/Retribusi' },
   { value: 'Biaya Lain', label: 'Biaya Lain' },
 ];
 
 export function CashOutflowSection({
-  initialEntries = defaultOutflow,
-  selectedPeriod = '2026-10',
+  orders = initialOrdersData,
+  initialEntries = initialCashTransactions,
+  selectedPeriod = 'Mulai Oktober 2026',
   activeBulan,
   activeTahun,
   onBulanChange,
   onTahunChange,
   onAddTransaction,
   onDeleteTransaction,
+  onSelectOrder,
 }: CashOutflowSectionProps) {
   const router = useRouter();
   const [entries, setEntries] = useState<CashTransaction[]>(initialEntries);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Filter Toolbar State (tersinkronisasi dengan filter global periode di top header)
   const [searchQuery, setSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'order' | 'manual'>('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [bulanFilter, setBulanFilter] = useState(activeBulan || 'all');
   const [tahunFilter, setTahunFilter] = useState(activeTahun || 'all');
 
-  // Synchronize with parent period updates
   React.useEffect(() => {
     setEntries(initialEntries);
   }, [initialEntries]);
@@ -151,24 +174,32 @@ export function CashOutflowSection({
     }
   }, [activeTahun]);
 
-  // Form State
   const [tanggal, setTanggal] = useState(new Date().toISOString().slice(0, 10));
   const [kategori, setKategori] = useState<CashOutflowCategory>('Operasional');
   const [keterangan, setKeterangan] = useState('');
   const [nominal, setNominal] = useState<number>(0);
 
-  const yearOptions = useMemo(() => {
-    const set = new Set<string>();
-    entries.forEach((e) => e.tanggal && set.add(e.tanggal.slice(0, 4)));
-    const sorted = [...set].sort().reverse();
-    return [{ value: 'all', label: 'Semua Tahun' }, ...sorted.map((y) => ({ value: y, label: y }))];
-  }, [entries]);
+  const allOutflowEntries: CashOutflowEntry[] = useMemo(() => {
+    return buildCashOutflowEntries(orders, entries).filter(
+      (item) => !item.tanggal || item.tanggal >= '2026-10-01'
+    );
+  }, [orders, entries]);
 
-  // Filtered dataset for table and charts
+  const yearOptions = useMemo(() => {
+    const set = new Set<string>(['2026']);
+    allOutflowEntries.forEach((e) => e.tanggal && e.tanggal >= '2026-10-01' && set.add(e.tanggal.slice(0, 4)));
+    const sorted = [...set].sort().reverse();
+    return [{ value: 'all', label: 'Tahun 2026+' }, ...sorted.map((y) => ({ value: y, label: y }))];
+  }, [allOutflowEntries]);
+
+  const bulanOptions = useMemo(() => {
+    const isOnly2026 = tahunFilter === '2026' || tahunFilter === 'all';
+    return isOnly2026 ? BULAN_FILTER_OPTIONS_2026 : BULAN_FILTER_OPTIONS_ALL;
+  }, [tahunFilter]);
+
   const filteredEntries = useMemo(() => {
-    return entries.filter((item) => {
-      // US-9.21: Pastikan hanya transaksi kas keluar riil yang diproses
-      if (item.tipe && item.tipe !== 'keluar') return false;
+    return allOutflowEntries.filter((item) => {
+      const matchesSource = sourceFilter === 'all' || item.sumber === sourceFilter;
       const matchesCategory = categoryFilter === 'all' || item.kategori === categoryFilter;
       const matchesTahun = tahunFilter === 'all' || (item.tanggal || '').startsWith(tahunFilter);
       const matchesBulan = bulanFilter === 'all' || (item.tanggal || '').slice(5, 7) === bulanFilter;
@@ -176,18 +207,19 @@ export function CashOutflowSection({
       const matchesSearch =
         !q ||
         item.keterangan.toLowerCase().includes(q) ||
+        item.kategori.toLowerCase().includes(q) ||
+        (item.noInv || '').toLowerCase().includes(q) ||
+        (item.vendorOrTargetName || '').toLowerCase().includes(q) ||
         item.tanggal.includes(q) ||
         item.id.toLowerCase().includes(q);
-      return matchesCategory && matchesTahun && matchesBulan && matchesSearch;
+      return matchesSource && matchesCategory && matchesTahun && matchesBulan && matchesSearch;
     });
-  }, [entries, categoryFilter, tahunFilter, bulanFilter, searchQuery]);
+  }, [allOutflowEntries, sourceFilter, categoryFilter, tahunFilter, bulanFilter, searchQuery]);
 
-  // Metric calculations based on active filter
   const totalDanaKeluar = filteredEntries.reduce((acc, curr) => acc + curr.nominal, 0);
   const totalTransaksi = filteredEntries.length;
   const rataRataTransaksi = totalTransaksi > 0 ? totalDanaKeluar / totalTransaksi : 0;
 
-  // Breakdown per Kategori
   const categoryMap = useMemo(() => {
     return filteredEntries.reduce((acc, curr) => {
       acc[curr.kategori] = (acc[curr.kategori] || 0) + curr.nominal;
@@ -200,9 +232,7 @@ export function CashOutflowSection({
   }, [categoryMap]);
 
   const kategoriTerbesar = categoryEntries[0] || ['Belum ada', 0];
-  const jumlahKategori = categoryEntries.length;
 
-  // Category Donut Chart
   const pieChartData = useMemo(() => {
     return categoryEntries.map(([kat, total]) => ({
       name: kat,
@@ -211,7 +241,6 @@ export function CashOutflowSection({
     }));
   }, [categoryEntries]);
 
-  // Daily Outflow Trend
   const dailyTrendData = useMemo(() => {
     const map: Record<string, number> = {};
     filteredEntries.forEach((e) => {
@@ -230,15 +259,6 @@ export function CashOutflowSection({
     if (!dailyTrendData.length) return null;
     return [...dailyTrendData].sort((a, b) => b.nominal - a.nominal)[0];
   }, [dailyTrendData]);
-
-  const periodLabel =
-    selectedPeriod === 'all'
-      ? 'Semua Periode'
-      : selectedPeriod === '2026-10'
-      ? 'Oktober 2026'
-      : selectedPeriod === '2026-09'
-      ? 'September 2026'
-      : selectedPeriod;
 
   const handleDelete = async (id: string) => {
     try {
@@ -367,9 +387,8 @@ export function CashOutflowSection({
         </div>
       </div>
 
-      {/* 🆕 2 VISUAL CHARTS (DONUT BREAKDOWN & DAILY SPIKE BAR) */}
+      {/* 2 Visual Charts: Donut Breakdown & Daily Spike Bar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Chart 1: Donut Komposisi Beban */}
         <div className="lg:col-span-5 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card-double flex flex-col justify-between">
           <div className="border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
@@ -377,7 +396,7 @@ export function CashOutflowSection({
               <h3 className="text-sm font-bold text-slate-800">Komposisi Beban per Pos</h3>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Proporsi alokasi dana keluar terbesar (Payroll vs Operasional)
+              Proporsi alokasi dana keluar terbesar (Vendor, Gaji, Operasional)
             </p>
           </div>
 
@@ -426,9 +445,8 @@ export function CashOutflowSection({
                 />
               </PieChart>
             </ResponsiveContainer>
-            {/* Center Donut Label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Kas</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Keluar</span>
               <span className="text-sm font-extrabold text-slate-800 font-mono tabular-num">
                 {formatCompactRupiah(totalDanaKeluar)}
               </span>
@@ -450,7 +468,6 @@ export function CashOutflowSection({
           </div>
         </div>
 
-        {/* Chart 2: Daily Outflow Trend Bar */}
         <div className="lg:col-span-7 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card-double flex flex-col justify-between">
           <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
             <div>
@@ -459,7 +476,7 @@ export function CashOutflowSection({
                 <h3 className="text-sm font-bold text-slate-800">Tren Pengeluaran Harian</h3>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Mendeteksi lonjakan kas keluar pada tanggal pencairan/belanja
+                Mendeteksi lonjakan dana keluar pada tanggal pembayaran vendor & operasional
               </p>
             </div>
             {dailyTrendData.length > 0 && (
@@ -491,7 +508,7 @@ export function CashOutflowSection({
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null;
                     const val = Number(payload[0].value) || 0;
-                    const fullDate = (payload[0]?.payload as any)?.fullDate;
+                    const fullDate = (payload[0]?.payload as { fullDate?: string })?.fullDate;
                     const displayDate = fullDate ? formatIndonesianDateFull(fullDate) : label;
                     return (
                       <div className="rounded-xl border border-slate-700 bg-slate-900/95 p-2.5 shadow-xl backdrop-blur-sm text-xs min-w-[150px]">
@@ -518,7 +535,7 @@ export function CashOutflowSection({
                 {peakDay ? `${peakDay.fullDate} (${formatCompactRupiah(peakDay.nominal)})` : '-'}
               </strong>
             </span>
-            <span className="text-blue-700 font-semibold">Terkontrol Sesuai Budget</span>
+            <span className="text-blue-700 font-semibold">Mulai Oktober 2026</span>
           </div>
         </div>
       </div>
@@ -527,8 +544,10 @@ export function CashOutflowSection({
       <div className="rounded-2xl border border-slate-200/90 bg-white shadow-card-double overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 p-4 sm:p-5 gap-3">
           <div>
-            <h3 className="text-sm font-bold text-slate-800">Riwayat Mutasi Dana Keluar</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Daftar transaksi kas keluar yang diverifikasi finance</p>
+            <h3 className="text-sm font-bold text-slate-800">Riwayat Lengkap Dana Keluar (Vendor, Order & Kas)</h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Gabungan pembayaran ke vendor produksi, biaya operasional order, dan pengeluaran kas mulai Oktober 2026
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
             <Button
@@ -536,7 +555,7 @@ export function CashOutflowSection({
               className="h-10 min-h-[40px] flex-1 sm:flex-none gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer justify-center"
             >
               <Plus className="h-4 w-4 shrink-0" />
-              <span>Catat Pengeluaran</span>
+              <span>Catat Dana Keluar</span>
             </Button>
             <Button
               onClick={handleExportExcel}
@@ -552,12 +571,11 @@ export function CashOutflowSection({
         {/* Dedicated Filter Toolbar */}
         <div className="flex flex-col border-b border-slate-100 p-3.5 sm:p-4 bg-slate-50/60 gap-3">
           <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5">
-            {/* Live Search Input */}
             <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:max-w-xs flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Cari transaksi, voucher, keterangan..."
+                placeholder="Cari invoice, vendor, keterangan..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-9 text-xs text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
@@ -572,20 +590,17 @@ export function CashOutflowSection({
               )}
             </div>
 
-            {/* 2-Column Grid for Bulan & Tahun Dropdowns on Mobile */}
             <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
-              {/* CustomSelect Bulan Filter */}
               <CustomSelect
                 value={bulanFilter}
                 onValueChange={(val) => {
                   setBulanFilter(val);
                   onBulanChange?.(val);
                 }}
-                options={BULAN_FILTER_OPTIONS}
-                className="h-10 w-full sm:w-[135px]"
+                options={bulanOptions}
+                className="h-10 w-full sm:w-[155px]"
               />
 
-              {/* CustomSelect Tahun Filter */}
               <CustomSelect
                 value={tahunFilter}
                 onValueChange={(val) => {
@@ -597,7 +612,15 @@ export function CashOutflowSection({
               />
             </div>
 
-            {/* CustomSelect Kategori Beban Filter */}
+            <div className="w-full sm:w-auto">
+              <CustomSelect
+                value={sourceFilter}
+                onValueChange={(val) => setSourceFilter(val as 'all' | 'order' | 'manual')}
+                options={SOURCE_FILTER_OPTIONS}
+                className="h-10 w-full sm:min-w-[185px]"
+              />
+            </div>
+
             <div className="w-full sm:w-auto">
               <CustomSelect
                 value={categoryFilter}
@@ -608,10 +631,10 @@ export function CashOutflowSection({
               />
             </div>
 
-            {/* Reset Filter Button */}
-            {(categoryFilter !== 'all' || bulanFilter !== 'all' || tahunFilter !== 'all' || searchQuery) && (
+            {(sourceFilter !== 'all' || categoryFilter !== 'all' || bulanFilter !== 'all' || tahunFilter !== 'all' || searchQuery) && (
               <button
                 onClick={() => {
+                  setSourceFilter('all');
                   setCategoryFilter('all');
                   setBulanFilter('all');
                   setTahunFilter('all');
@@ -627,11 +650,10 @@ export function CashOutflowSection({
             )}
           </div>
 
-          {/* Active Filter Metrics Pill */}
           <div className="flex items-center justify-between text-xs text-slate-500 pt-1.5 border-t border-slate-200/50 sm:border-0 sm:pt-0">
             <span className="text-slate-400 text-[11px] font-medium">Menampilkan:</span>
             <span className="font-mono font-bold text-slate-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs tabular-num text-[11px]">
-              {filteredEntries.length} dari {entries.length} data ({formatRupiah(totalDanaKeluar)})
+              {filteredEntries.length} dari {allOutflowEntries.length} data ({formatRupiah(totalDanaKeluar)})
             </span>
           </div>
         </div>
@@ -652,6 +674,14 @@ export function CashOutflowSection({
                       {item.kategori}
                     </span>
                   </div>
+                  <div className="mt-1 flex items-center gap-1 min-w-0">
+                    <span className="font-mono text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200/80 rounded px-1 py-0.5 shrink-0">
+                      {item.noInv || 'KAS'}
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-500 truncate">
+                      {item.vendorOrTargetName}
+                    </span>
+                  </div>
                   <div className="mt-1 text-[11px] sm:text-xs font-semibold text-slate-800 leading-snug line-clamp-2" title={item.keterangan}>
                     {item.keterangan}
                   </div>
@@ -660,13 +690,29 @@ export function CashOutflowSection({
                   <span className="font-mono font-bold text-[11px] sm:text-xs text-rose-600 truncate">
                     -{formatRupiah(item.nominal)}
                   </span>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    title="Hapus Transaksi"
-                    className="h-6.5 w-6.5 flex items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer shrink-0"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  {item.sumber === 'order' && item.rawOrder ? (
+                    <button
+                      onClick={() => {
+                        if (onSelectOrder && item.rawOrder) {
+                          onSelectOrder(item.rawOrder);
+                        } else if (item.rawOrder) {
+                          router.push(`/orders/${item.rawOrder.id}/edit`);
+                        }
+                      }}
+                      title="Lihat Detail Order"
+                      className="h-7 w-7 flex items-center justify-center rounded-lg text-teal-600 hover:bg-teal-50 active:scale-95 transition-all cursor-pointer shrink-0"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      title="Hapus Transaksi"
+                      className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer shrink-0"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -679,6 +725,7 @@ export function CashOutflowSection({
             <thead className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-100">
               <tr>
                 <th className="px-4 py-3">TANGGAL</th>
+                <th className="px-4 py-3">REFERENSI / VENDOR</th>
                 <th className="px-4 py-3">KATEGORI</th>
                 <th className="px-4 py-3">KETERANGAN</th>
                 <th className="px-4 py-3 text-right">JUMLAH (RP)</th>
@@ -688,7 +735,7 @@ export function CashOutflowSection({
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {filteredEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Filter className="h-8 w-8 text-slate-300" />
                       <p className="text-xs font-semibold text-slate-600">
@@ -705,6 +752,20 @@ export function CashOutflowSection({
                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-4 py-3.5 font-mono text-slate-500">{item.tanggal}</td>
                     <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={
+                            item.sumber === 'order'
+                              ? 'rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 font-mono text-[10px] font-bold text-amber-800'
+                              : 'rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-600'
+                          }
+                        >
+                          {item.noInv || 'KAS-KELUAR'}
+                        </span>
+                        <span className="font-semibold text-slate-700">{item.vendorOrTargetName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5">
                       <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 border border-slate-200">
                         {item.kategori}
                       </span>
@@ -714,13 +775,30 @@ export function CashOutflowSection({
                       {formatRupiah(item.nominal)}
                     </td>
                     <td className="px-4 py-3.5 text-center">
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        title="Hapus Transaksi"
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {item.sumber === 'order' && item.rawOrder ? (
+                        <button
+                          onClick={() => {
+                            if (onSelectOrder && item.rawOrder) {
+                              onSelectOrder(item.rawOrder);
+                            } else if (item.rawOrder) {
+                              router.push(`/orders/${item.rawOrder.id}/edit`);
+                            }
+                          }}
+                          title="Lihat Detail Order"
+                          className="inline-flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-700 hover:bg-teal-100 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>Detail Order</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          title="Hapus Transaksi Kas"
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

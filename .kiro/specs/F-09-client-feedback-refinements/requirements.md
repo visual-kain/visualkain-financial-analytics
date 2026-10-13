@@ -348,6 +348,73 @@ Berdasarkan tinjauan langsung dan pengujian intensif dari klien (Head of Finance
   - **THEN** halaman SHALL memuat kartu metrik KPI (`FinanceStatsGrid`) dan grafik komparasi kas (`AnalyticsCharts`) tanpa memuat daftar 26 kartu order di bawahnya, menjaga halaman tetap ringkas dan tidak memicu lag scrolling pada layar HP.
   - **AND** pada tab `Dashboard` di bawah grafik, sistem SHALL menyertakan tombol aksi cepat: *"Buka Master Data Order (Data Table) →"* yang secara instan mengarahkan pengguna ke tab `Data Table`.
 
+---
 
+### Batch 7 Acceptance Criteria (New User Stories — Complete Cash Outflow Data, October 2026 Cutoff & Client Core Workflow):
 
+- **US-9.30 (October 2026 Cutoff `>= '2026-10-01'`, Payment Array Resolution & Seed Data Sync)**:
+  - **WHEN** sistem memuat data pesanan (`orders`) dan transaksi kas (`kas`) dari Firebase `appkonveksi` maupun dari fallback (`src/lib/seed-data.ts`),
+  - **THEN** sistem SHALL menyaring secara otomatis seluruh data keuangan sehingga hanya menampilkan dan menghitung transaksi mulai **1 Oktober 2026 dan bulan-bulan selanjutnya (`>= '2026-10-01'`)**, tanpa menghapus dokumen historis sebelum Oktober 2026 di database Firebase `appkonveksi`.
+  - **AND** pada `useFirebaseFinance.ts`, ketika sebuah dokumen order memiliki `riwayatPembayaran: []` (array kosong) namun memiliki data valid di `pembayaranList` (seperti `VK260041` dengan 4 termin pembayaran senilai `Rp 982.000`), sistem SHALL membaca array pembayaran yang tidak kosong sehingga tidak ada pembayaran konsumen yang terlewat menjadi `Rp 0`.
+  - **AND** `initialOrdersData` serta `initialCashTransactions` di `src/lib/seed-data.ts` SHALL memuat data autentik mulai Oktober 2026 (3 order Oktober 2026: `VK260041`, `VK260040`, `VK260039` serta 10 transaksi `kas` keluar Oktober 2026 senilai `Rp 1.779.000`).
+  - **AND** dropdown filter Bulan ketika tahun `2026` dipilih (atau saat seluruh data berada di tahun 2026 mulai Oktober) SHALL hanya menampilkan opsi bulan mulai Oktober (`Oktober`, `November`, `Desember`) agar klien tidak bingung dengan bulan-bulan sebelum Oktober 2026.
+
+- **US-9.31 (Dual-Source Cash Outflow Aggregator: `kas` + `orders` Vendor & Operational Expenses)**:
+  - **WHEN** pengguna membuka tab `Dana Keluar` (`CashOutflowSection`), menekan kartu KPI `Dana Keluar` (`MetricDetailDrawer`), atau melihat grafik komparasi kas di `Dashboard`,
+  - **THEN** sistem SHALL mengagregasi **seluruh sumber uang keluar riil dari Firebase** (sebagaimana tab `Dana Masuk` mengagregasi pembayaran `orders` + `kas`), yang terdiri dari 3 sumber terverifikasi:
+    1. **Sumber A - Pembayaran HPP / DP & Pelunasan ke Mitra Vendor (`orders`)**:
+       * Setiap order aktif (`>= '2026-10-01'`) yang memiliki `totalDibayarKeVendor > 0` SHALL menghasilkan entri pengeluaran berkategori **`Pembayaran Vendor`** dengan referensi Nomor Invoice (`noInv`), Nama Mitra Vendor (`vendorName`), dan Nama Proyek/Pelanggan (`customerName` - `projectName`).
+    2. **Sumber B - Biaya Operasional Pesanan (`orders.biayaOperasional`)**:
+       * Setiap order aktif (`>= '2026-10-01'`) yang memiliki `biayaOperasional > 0` SHALL menghasilkan entri pengeluaran berkategori **`Biaya Operasional Order`** dengan referensi Nomor Invoice (`noInv`) dan keterangan operasional pesanan.
+    3. **Sumber C - Pengeluaran Kas Langsung / Non-Order (`kas`)**:
+       * Seluruh dokumen di koleksi `kas` Firebase (`>= '2026-10-01'`) dengan `jenis === 'keluar'` (seperti `Gaji/Upah`, `Perawatan Web/Sistem`, `Biaya Lain`, dll.).
+  - **AND** metrik `totalKasKeluar` pada `calculateFinancialSummary` (`src/lib/financial-calculator.ts`) SHALL mencerminkan total akumulasi uang keluar menyeluruh (`totalDibayarKeVendor + totalBiayaOperasionalOrders + bebanOperasionalKas`), sehingga rumus pada kartu KPI **Dana Tersedia (Saldo Kas)** (`Dana Masuk - Dana Keluar = Saldo`) 100% konsisten secara matematis dengan angka pada kartu KPI **Dana Keluar** dan tab **Kas Keluar**.
+
+- **US-9.32 (Complete Outflow Category Taxonomy & Filter Alignment with Firebase)**:
+  - **WHEN** pengguna memfilter atau mencatat pengeluaran pada `CashOutflowSection` maupun `/cash-out/new`,
+  - **THEN** kontrak tipe `CashOutflowCategory` (`src/types/index.ts`), palet warna grafik Donut (`CATEGORY_COLORS`), dropdown filter kategori (`CATEGORY_FILTER_OPTIONS`), dan opsi form input SHALL mendukung seluruh kategori yang ada di Firebase `appkonveksi` dan `visualkaindb`:
+    * `Pembayaran Vendor` (DP & Pelunasan Produksi ke Mitra Vendor)
+    * `Biaya Operasional Order` (Biaya Operasional Melekat pada Invoice Pesanan)
+    * `Gaji/Upah`
+    * `Perawatan Web/Sistem`
+    * `Operasional`
+    * `Transport/Ongkir`
+    * `Pajak/Retribusi` (serta alias `Pajak`)
+    * `Marketing dan Penjualan`
+    * `Logistik`
+    * `Keuangan`
+    * `Biaya Lain`
+  - **AND** pengguna SHALL dapat memfilter sumber pengeluaran berdasarkan tipe sumber: `Semua Sumber Pengeluaran`, `Pengeluaran Order (Vendor & Operasional PO)`, atau `Pengeluaran Kas Umum (Non-Order)` selain filter per kategori pos biaya.
+
+- **US-9.33 (Order Reference Column, Detail Inspection Action & Complete Excel Export in Cash Outflow Table)**:
+  - **WHEN** pengguna melihat daftar transaksi pada tabel/kartu `Riwayat Mutasi Dana Keluar` di `CashOutflowSection` maupun `MetricDetailDrawer`,
+  - **THEN** setiap baris/kartu pengeluaran SHALL menampilkan informasi yang lengkap dan kaya konteks (setara dengan tab `Dana Masuk`):
+    * **Tanggal Transaksi** (`YYYY-MM-DD`).
+    * **Kategori Pos Beban** (Badge berwarna sesuai kategori).
+    * **Referensi Order / Penerima Dana**: Menampilkan badge Nomor Invoice (`noInv`, misal `VK260039`) + Nama Mitra Vendor / Pelanggan untuk pengeluaran yang berasal dari `orders`, atau badge `KAS UMUM` untuk pengeluaran dari koleksi `kas`.
+    * **Keterangan Rinci**: Rincian pembayaran atau keterangan kas manual.
+    * **Jumlah (Rp)**: Nominal pengeluaran terformat Rupiah.
+    * **Kolom Aksi Kontekstual**:
+      - Jika pengeluaran berasal dari `orders` (`sumber === 'order'`), tampilkan tombol **`Detail Order`** (`Eye` icon) yang membuka `OrderInspectionDrawer` untuk menginspeksi pesanan terkait.
+      - Jika pengeluaran berasal dari koleksi `kas` manual (`sumber === 'manual'`), tampilkan tombol **`Hapus`** (`Trash2` icon).
+  - **AND** fungsi **Ekspor Excel** pada tab `Dana Keluar` (`exportCashOutflowToExcel` di `src/lib/excel-export.ts`) SHALL menyertakan kolom `No. Referensi / Invoice` dan `Mitra Vendor / Tujuan`.
+
+- **US-9.34 (Client-First Dashboard Workflow: Quick Input Buttons, 6 Direct KPI Cards & Vendor Debt Coverage Status)**:
+  - **WHEN** klien membuka halaman utama `Dashboard`,
+  - **THEN** sistem SHALL menyediakan alur kerja yang menjawab langsung 2 kebutuhan utama klien:
+    1. **Kemudahan Input Dana Masuk & Dana Keluar**:
+       * Pada Header utama Dashboard, tampilkan tombol **`+ Dana Masuk`** (mengarahkan ke `/cash-in/new`) dan **`+ Dana Keluar`** (mengarahkan ke `/cash-out/new`) secara berdampingan dengan ukuran tap target ramah HP (`>= 40px`).
+    2. **Kejelasan 6 Angka Utama & Status Cover Hutang Vendor**:
+       * Susun 6 kartu metrik pada `FinanceStatsGrid.tsx` menjadi:
+         1. **Dana Masuk** (`summary.totalKasMasuk` - membuka rincian seluruh uang masuk customer & kas masuk).
+         2. **Dana Keluar** (`summary.totalKasKeluar` - membuka rincian seluruh uang keluar vendor, operasional order, & kas keluar).
+         3. **Dana Tersedia (Saldo Kas)** (`summary.saldoKasRiil` - selisih `Dana Masuk - Dana Keluar`).
+         4. **Sisa Customer (Piutang)** (`summary.totalPiutangCustomer` - sisa tagihan customer yang belum dibayar).
+         5. **Sisa Hutang ke Vendor** (`summary.totalUtangVendor` - sisa kewajiban HPP ke vendor yang belum dilunasi).
+         6. **Profit & Omzet (Realtime)** (`summary.totalProfitRealtime` beserta informasi nilai `Omzet` dan persentase margin).
+       * Tampilkan panel ringkas **"Status Kecukupan Dana Terhadap Hutang Vendor"** tepat di bawah 6 kartu KPI yang menampilkan secara eksplisit:
+         - **Dana yang Ada Saat Ini**: `formatRupiah(summary.saldoKasRiil)`
+         - **Sisa Hutang ke Vendor**: `formatRupiah(summary.totalUtangVendor)`
+         - **Status Kecukupan**: Badge jelas **`TERCOVER PENUH`** (jika `saldoKasRiil >= totalUtangVendor`) atau **`BELUM TERCOVER PENUH`** (jika `saldoKasRiil < totalUtangVendor`).
+         - **Sisa / Kekurangan Dana**: Menampilkan nominal **`Sisa Dana Setelah Bayar Hutang Vendor (+Rp ...)`** jika tercover, atau **`Kekurangan Dana untuk Hutang Vendor (-Rp ...)`** beserta informasi bahwa masih ada **`Sisa Tagihan Customer (Rp ...)`** yang dapat ditagih untuk menutup kekurangan tersebut.
 

@@ -3,6 +3,19 @@
  * Sumber Acuan: Dokumen Konfirmasi Fitur & Arsitektur Finansial VisualKain (Oktober 2026)
  */
 
+export const FINANCE_START_DATE = '2026-10-01';
+
+// Hanya proses transaksi mulai 1 Oktober 2026 ke atas sesuai kesepakatan pembukuan klien.
+export function isFromFinanceStartDate(dateStr?: string | null): boolean {
+  if (!dateStr) return false;
+  return dateStr.slice(0, 10) >= FINANCE_START_DATE;
+}
+
+export function getDefaultFinanceDate(): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return today >= FINANCE_START_DATE ? today : FINANCE_START_DATE;
+}
+
 export const CURRENCY_CONFIG = {
   locale: 'id-ID',
   prefix: 'Rp ',

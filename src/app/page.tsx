@@ -16,14 +16,18 @@ import { CashOutflowSection } from '@/components/finance/CashOutflowSection';
 import { VendorPerformanceSection } from '@/components/finance/VendorPerformanceSection';
 import { ProfitAktualSection } from '@/components/finance/ProfitAktualSection';
 import { CustomSelect } from '@/components/ui/custom-select';
-import { calculateFinancialSummary, calculateEscrowAllocation, transformToMasterRows } from '@/lib/financial-calculator';
+import {
+  calculateFinancialSummary,
+  calculateEscrowAllocation,
+  transformToMasterRows,
+  buildCashOutflowEntries,
+} from '@/lib/financial-calculator';
 import { computeVendorPerformance, computeCheapestByKategori } from '@/lib/calculations';
 import { initialOrdersData, initialCashTransactions } from '@/lib/seed-data';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { useAuth } from '@/context/AuthContext';
 import type {
   FinanceSubTab,
-  Order,
   MasterFinanceRow,
   ManualFinanceDraft,
   MetricDrawerType,
@@ -34,6 +38,7 @@ import {
   ShieldCheck,
   Download,
   Plus,
+  Minus,
   LogOut,
   UserCheck,
   AlertCircle,
@@ -58,7 +63,6 @@ function FinancialDashboardContent() {
     },
   });
 
-  // Guard: Jika tab manual diakses tanpa dev=true, otomatis arahkan kembali ke dashboard
   React.useEffect(() => {
     if (tab === 'manual' && !isDevMode) {
       setTab('dashboard');
@@ -75,7 +79,6 @@ function FinancialDashboardContent() {
   const [tahun, setTahun] = useState<string>('all');
   const [saldoAwal] = useState<number>(0);
 
-  // Firestore live sync (seluruh koleksi orders + kas + vendors)
   const {
     orders: rawOrders,
     cashTransactions: rawCashTxs,
@@ -86,39 +89,39 @@ function FinancialDashboardContent() {
     deleteKas,
   } = useFirebaseFinance(initialOrdersData, initialCashTransactions);
 
-  // Performa vendor dihitung secara menyeluruh (seluruh data order dan vendor terdaftar SSOT)
-  const vendorPerformance = useMemo(
-    () => computeVendorPerformance(rawOrders, rawVendors),
-    [rawOrders, rawVendors]
-  );
-  const cheapestCategories = useMemo(
-    () =>
-      computeCheapestByKategori(rawOrders, (id) => {
-        const v = rawVendors.find((item) => item.id === id);
-        return v ? v.nama : 'Tanpa Vendor';
-      }),
-    [rawOrders, rawVendors]
-  );
-
   const BULAN_LABEL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
   const selectedPeriod =
     bulan === 'all' && tahun === 'all'
-      ? 'Semua Periode'
-      : `${bulan === 'all' ? 'Semua Bulan' : BULAN_LABEL[Number(bulan) - 1]} ${tahun === 'all' ? 'Semua Tahun' : tahun}`;
+      ? 'Mulai Oktober 2026'
+      : `${bulan === 'all' ? 'Mulai Oktober' : BULAN_LABEL[Number(bulan) - 1]} ${tahun === 'all' ? '2026+' : tahun}`;
 
   const matchPeriod = (tanggal: string, b: string, y: string) => {
-    if (!tanggal) return false;
+    if (!tanggal || tanggal < '2026-10-01') return false;
     if (y !== 'all' && !tanggal.startsWith(y)) return false;
     if (b !== 'all' && tanggal.slice(5, 7) !== b) return false;
     return true;
   };
 
   const yearOptions = useMemo(() => {
-    const set = new Set<string>();
-    rawOrders.forEach((o) => o.tanggalOrder && set.add(o.tanggalOrder.slice(0, 4)));
-    rawCashTxs.forEach((t) => t.tanggal && set.add(t.tanggal.slice(0, 4)));
+    const set = new Set<string>(['2026']);
+    rawOrders.forEach((o) => o.tanggalOrder && o.tanggalOrder >= '2026-10-01' && set.add(o.tanggalOrder.slice(0, 4)));
+    rawCashTxs.forEach((t) => t.tanggal && t.tanggal >= '2026-10-01' && set.add(t.tanggal.slice(0, 4)));
     return [...set].sort().reverse();
   }, [rawOrders, rawCashTxs]);
+
+  const monthOptions = useMemo(() => {
+    const isOnly2026 = tahun === '2026' || (tahun === 'all' && yearOptions.every((y) => y === '2026'));
+    const months = BULAN_LABEL.map((label, i) => ({
+      value: String(i + 1).padStart(2, '0'),
+      label,
+      monthNum: i + 1,
+    })).filter((m) => !isOnly2026 || m.monthNum >= 10);
+
+    return [
+      { value: 'all', label: isOnly2026 ? 'Mulai Oktober (Semua)' : 'Semua Bulan' },
+      ...months.map(({ value, label }) => ({ value, label })),
+    ];
+  }, [tahun, yearOptions]);
 
   const allCashTransactions = rawCashTxs;
 
@@ -131,10 +134,22 @@ function FinancialDashboardContent() {
     [allCashTransactions, bulan, tahun]
   );
 
+  const vendorPerformance = useMemo(
+    () => computeVendorPerformance(filteredOrders, rawVendors),
+    [filteredOrders, rawVendors]
+  );
+  const cheapestCategories = useMemo(
+    () =>
+      computeCheapestByKategori(filteredOrders, (id) => {
+        const v = rawVendors.find((item) => item.id === id);
+        return v ? v.nama : 'Tanpa Vendor';
+      }),
+    [filteredOrders, rawVendors]
+  );
+
   const summary = calculateFinancialSummary(saldoAwal, filteredCashTxs, filteredOrders);
   const masterRows = transformToMasterRows(filteredOrders);
 
-  // Dynamic Escrow Allocation Donut Chart (Hak Pokok Vendor vs Margin VisualKain)
   const dynamicDonutData: DonutDataPoint[] = useMemo(() => {
     let hakVendor = 0;
     let marginVisualKain = 0;
@@ -159,20 +174,19 @@ function FinancialDashboardContent() {
     ];
   }, [filteredOrders]);
 
-  // Dynamic Real Cash Trend Data (Penerimaan kas bersih terhadap realisasi beban harian)
   const dynamicTrendData: TrendDataPoint[] = useMemo(() => {
     const map = new Map<string, { kasMasuk: number; kasKeluar: number }>();
 
     filteredOrders.forEach((o) => {
       if (Array.isArray(o.pembayaranList) && o.pembayaranList.length > 0) {
         o.pembayaranList.forEach((p) => {
-          if (p.nominal > 0 && p.tanggal) {
+          if (p.nominal > 0 && p.tanggal && matchPeriod(p.tanggal, bulan, tahun)) {
             const cur = map.get(p.tanggal) || { kasMasuk: 0, kasKeluar: 0 };
             cur.kasMasuk += p.nominal;
             map.set(p.tanggal, cur);
           }
         });
-      } else if (o.totalUangMasukCustomer > 0 && o.tanggalOrder) {
+      } else if (o.totalUangMasukCustomer > 0 && o.tanggalOrder && matchPeriod(o.tanggalOrder, bulan, tahun)) {
         const cur = map.get(o.tanggalOrder) || { kasMasuk: 0, kasKeluar: 0 };
         cur.kasMasuk += o.totalUangMasukCustomer;
         map.set(o.tanggalOrder, cur);
@@ -180,17 +194,19 @@ function FinancialDashboardContent() {
     });
 
     filteredCashTxs.forEach((t) => {
-      if (t.tanggal) {
+      if (t.tanggal && t.tipe === 'masuk' && t.kategori !== 'Penerimaan Konsumen') {
         const cur = map.get(t.tanggal) || { kasMasuk: 0, kasKeluar: 0 };
-        if (t.tipe === 'masuk') {
-          if (t.kategori !== 'Penerimaan Konsumen') {
-            cur.kasMasuk += t.nominal;
-            map.set(t.tanggal, cur);
-          }
-        } else {
-          cur.kasKeluar += t.nominal;
-          map.set(t.tanggal, cur);
-        }
+        cur.kasMasuk += t.nominal;
+        map.set(t.tanggal, cur);
+      }
+    });
+
+    const unifiedOutflows = buildCashOutflowEntries(filteredOrders, filteredCashTxs);
+    unifiedOutflows.forEach((entry) => {
+      if (entry.tanggal && matchPeriod(entry.tanggal, bulan, tahun)) {
+        const cur = map.get(entry.tanggal) || { kasMasuk: 0, kasKeluar: 0 };
+        cur.kasKeluar += entry.nominal;
+        map.set(entry.tanggal, cur);
       }
     });
 
@@ -213,19 +229,19 @@ function FinancialDashboardContent() {
   const viewTitles: Record<FinanceSubTab, { title: string; subtitle: string }> = {
     dashboard: {
       title: 'Ringkasan Finansial VisualKain',
-      subtitle: 'Master data keuangan, arus kas riil & komparasi penerimaan vs pengeluaran kas',
+      subtitle: 'Pantau dana masuk, dana keluar, sisa tagihan customer, sisa hutang vendor, dan status kecukupan dana (mulai Oktober 2026)',
     },
     datatable: {
       title: 'Master Data Finansial Order',
-      subtitle: 'Tabel komprehensif seluruh pesanan produksi, progres tagihan konsumen, dan HPP vendor',
+      subtitle: 'Tabel komprehensif seluruh pesanan produksi, progres tagihan konsumen, dan HPP vendor mulai Oktober 2026',
     },
     cashin: {
-      title: 'Arus Kas Masuk (Penerimaan Kas)',
-      subtitle: 'Pelacakan seluruh penerimaan kas masuk dari order konsumen dan mutasi kas bank',
+      title: 'Arus Dana Masuk (Penerimaan Kas)',
+      subtitle: 'Pelacakan seluruh dana masuk dari DP/pelunasan order customer dan mutasi kas masuk',
     },
     cashout: {
-      title: 'Arus Kas Keluar (Pengeluaran Kas)',
-      subtitle: 'Pelacakan seluruh beban operasional dan mutasi pengeluaran kas konveksi',
+      title: 'Arus Dana Keluar (Pengeluaran Kas & Vendor)',
+      subtitle: 'Pelacakan seluruh dana keluar dari pembayaran ke vendor, biaya operasional order, dan pengeluaran kas',
     },
     vendor: {
       title: 'Kinerja Mitra Vendor',
@@ -259,7 +275,6 @@ function FinancialDashboardContent() {
     <div className="flex min-h-screen bg-[#E8ECF2] text-slate-900">
       <Toaster richColors position="top-right" />
 
-      {/* 1. Collapsible / Persistent Executive Sidebar (Desktop) */}
       <Sidebar
         activeTab={tab}
         onSelectTab={setTab}
@@ -271,14 +286,12 @@ function FinancialDashboardContent() {
         showHiddenTabs={isDevMode}
       />
 
-      {/* 1.B Thumb-Friendly Fixed Bottom Navigation Bar (Mobile HP < 768px) */}
       <MobileBottomNav
         activeTab={tab}
         onSelectTab={setTab}
         showHiddenTabs={isDevMode}
       />
 
-      {/* 2. Slide-Over Order Inspection Drawer */}
       <OrderInspectionDrawer
         order={selectedOrder}
         onClose={() => setSelectedOrder(null)}
@@ -289,7 +302,6 @@ function FinancialDashboardContent() {
         }}
       />
 
-      {/* 3. Slide-Over Metric Detail Drawer (VisualKainDB 6-Card Drilldown) */}
       <MetricDetailDrawer
         isOpen={!!activeMetricDrawer}
         metricType={activeMetricDrawer}
@@ -313,7 +325,6 @@ function FinancialDashboardContent() {
         }}
       />
 
-      {/* 4. Modal Preview Invoice Resmi (SSOT VisualKainDB) */}
       <InvoicePreviewModal
         isOpen={!!previewInvoiceOrder}
         order={previewInvoiceOrder}
@@ -324,17 +335,14 @@ function FinancialDashboardContent() {
         }}
       />
 
-      {/* 5. Main Content View Area */}
       <main
         className={`flex-1 overflow-y-auto px-3.5 py-4 pb-28 sm:px-8 sm:py-8 sm:pb-8 transition-all duration-300 ${
           previewInvoiceOrder ? 'no-print' : ''
         }`}
       >
         <div className="mx-auto w-full max-w-[1920px] space-y-6">
-          {/* Top Executive Header Card (Flush to top/left/right on mobile, rounded card on desktop) */}
           <div className="-mx-3.5 -mt-4 rounded-none rounded-b-2xl border-b border-slate-200/90 border-t-0 border-x-0 bg-white/95 px-4 pt-4 pb-5 shadow-card-double backdrop-blur-md transition-all sm:mx-0 sm:mt-0 sm:rounded-2xl sm:border sm:border-slate-200/90 sm:p-6 mb-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              {/* Header Left: Brand Chips, Title & Subtitle */}
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-800 border border-teal-200/80 shadow-2xs">
@@ -359,55 +367,55 @@ function FinancialDashboardContent() {
                 </p>
               </div>
 
-              {/* Header Right Action Controls */}
               <div className="flex flex-col gap-2.5 w-full sm:w-auto sm:flex-row sm:flex-wrap sm:items-center pt-2 lg:pt-0 border-t border-slate-100 lg:border-t-0">
-                {/* Row 1: Filter Bulan & Tahun (Grid 2-Kolom Seimbang di HP) */}
                 <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
                   <CustomSelect
                     value={bulan}
                     onValueChange={setBulan}
                     icon={<Calendar className="h-3.5 w-3.5" />}
                     className="w-full sm:w-auto h-10"
-                    options={[
-                      { value: 'all', label: 'Semua Bulan' },
-                      ...BULAN_LABEL.map((label, i) => ({ value: String(i + 1).padStart(2, '0'), label })),
-                    ]}
+                    options={monthOptions}
                   />
                   <CustomSelect
                     value={tahun}
                     onValueChange={setTahun}
                     className="w-full sm:w-auto h-10"
                     options={[
-                      { value: 'all', label: 'Semua Tahun' },
+                      { value: 'all', label: 'Tahun 2026+' },
                       ...yearOptions.map((y) => ({ value: y, label: y })),
                     ]}
                   />
                 </div>
 
-                {/* Row 2: Tombol Aksi Utama (Tambahan Pemasukan & Ekspor Excel) */}
                 {(tab === 'dashboard' || tab === 'datatable') && (
-                  <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+                  <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:items-center">
                     <button
                       onClick={() => router.push('/cash-in/new')}
-                      className="flex-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+                      className="flex-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer"
                     >
-                      <Plus className="h-4 w-4" />
-                      <span className="truncate">Tambah Kas</span>
+                      <Plus className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Dana Masuk</span>
+                    </button>
+
+                    <button
+                      onClick={() => router.push('/cash-out/new')}
+                      className="flex-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 text-xs font-bold text-white shadow-sm hover:bg-rose-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+                    >
+                      <Minus className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Dana Keluar</span>
                     </button>
 
                     <button
                       onClick={handleExportExcel}
-                      className="flex-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 active:scale-[0.98] transition-transform duration-150 cursor-pointer"
+                      className="flex-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 active:scale-[0.98] transition-transform duration-150 cursor-pointer"
                     >
-                      <Download className="h-4 w-4 text-slate-500" />
-                      <span>Ekspor Excel</span>
+                      <Download className="h-4 w-4 text-slate-500 shrink-0" />
+                      <span className="truncate">Ekspor Excel</span>
                     </button>
                   </div>
                 )}
 
-                {/* Row 3: Live Status Card & Logout Controls (Matched height h-10, solid executive look) */}
                 <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-                  {/* Realtime Live Database Status Card */}
                   {syncState === 'live' ? (
                     <div className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-emerald-300/90 bg-emerald-50/80 px-3.5 text-xs font-bold text-emerald-900 shadow-2xs">
                       <span className="relative flex h-2 w-2 shrink-0">
@@ -426,7 +434,6 @@ function FinancialDashboardContent() {
                     </div>
                   )}
 
-                  {/* Quick Logout Button */}
                   <button
                     onClick={logout}
                     title="Keluar dari Sesi"
@@ -440,10 +447,8 @@ function FinancialDashboardContent() {
             </div>
           </div>
 
-          {/* Conditional Sub-Tab Rendering */}
           {tab === 'dashboard' && (
             <div className="space-y-6 animate-fadeIn">
-              {/* Minimal Deficit Alert Banner (US-9.23) */}
               {summary.saldoKasRiil < 0 && (
                 <div className="flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50/90 px-4 py-3 text-xs font-semibold text-rose-800 shadow-2xs">
                   <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
@@ -453,17 +458,15 @@ function FinancialDashboardContent() {
                 </div>
               )}
 
-              {/* Banner periode data */}
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white/70 px-3.5 py-2 text-xs text-slate-600">
                 <span>
-                  Laporan Periode: <strong className="text-slate-900">{selectedPeriod}</strong>
+                  Laporan Periode: <strong className="text-slate-900">{selectedPeriod}</strong> (Data mulai Oktober 2026)
                 </span>
                 <span className="font-semibold text-slate-500 tabular-nums">
-                  Total Aktif: {filteredOrders.length} dari {rawOrders.length} order
+                  Total Aktif: {filteredOrders.length} order &bull; {summary.kasKeluarCount} transaksi dana keluar
                 </span>
               </div>
 
-              {/* 6 KPI Metric Cards with Interactive Slide-Over Detail Drawers */}
               <FinanceStatsGrid
                 summary={summary}
                 orders={filteredOrders}
@@ -474,14 +477,12 @@ function FinancialDashboardContent() {
                 }}
               />
 
-              {/* Recharts Bar Comparison & Donut Allocation */}
               <AnalyticsCharts
                 summary={summary}
                 donutData={dynamicDonutData}
                 trendData={dynamicTrendData.length > 0 ? dynamicTrendData : undefined}
               />
 
-              {/* Shortcut Banner ke Dedicated Tab Data Table (US-9.29) */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-teal-200/90 bg-white p-4 sm:p-5 shadow-card-double">
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 border border-teal-200/80">
@@ -508,17 +509,14 @@ function FinancialDashboardContent() {
             </div>
           )}
 
-          {/* Dedicated Sub-Tab Data Table (US-9.29) */}
           {tab === 'datatable' && (
             <div className="space-y-4 animate-fadeIn">
-              {/* Master 17-Column Table with Dual-Sticky & Fullscreen Expand */}
               <MasterFinanceTable
                 rows={masterRows}
                 selectedPeriod={selectedPeriod}
                 onSelectRow={(row) => setSelectedOrder(row)}
                 onEditFinance={(row) => router.push(`/orders/${row.id}/edit`)}
                 onPreviewInvoice={(row) => setPreviewInvoiceOrder(row)}
-                onQuickWaFollowUp={(row) => setSelectedOrder(row)}
               />
             </div>
           )}
@@ -546,6 +544,7 @@ function FinancialDashboardContent() {
           {tab === 'cashout' && (
             <div className="animate-fadeIn">
               <CashOutflowSection
+                orders={rawOrders}
                 initialEntries={allCashTransactions}
                 selectedPeriod={selectedPeriod}
                 activeBulan={bulan}
@@ -554,6 +553,10 @@ function FinancialDashboardContent() {
                 onTahunChange={setTahun}
                 onAddTransaction={addKas}
                 onDeleteTransaction={deleteKas}
+                onSelectOrder={(order) => {
+                  const row = masterRows.find((r) => r.id === order.id) || transformToMasterRows([order])[0];
+                  setSelectedOrder(row);
+                }}
               />
             </div>
           )}
@@ -582,11 +585,11 @@ function FinancialDashboardContent() {
             <div className="animate-fadeIn">
               <div className="mb-4 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
                 <span className="font-semibold">
-                  ⚠️ Mode Pengembang Aktif: Fitur ini disembunyikan dari antarmuka klien dan hanya dapat diakses melalui parameter <code className="rounded bg-amber-100 px-1 py-0.5 font-mono font-bold">?tab=manual&dev=true</code>.
+                  Mode Pengembang Aktif: Fitur ini disembunyikan dari antarmuka klien dan hanya dapat diakses melalui parameter <code className="rounded bg-amber-100 px-1 py-0.5 font-mono font-bold">?tab=manual&dev=true</code>.
                 </span>
               </div>
               <ProfitAktualSection
-                orders={rawOrders}
+                orders={filteredOrders}
                 onSave={handleSaveProfitAktual}
               />
             </div>

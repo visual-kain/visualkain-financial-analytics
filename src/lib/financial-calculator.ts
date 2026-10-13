@@ -1,12 +1,137 @@
 import type {
   Order,
   CashTransaction,
+  CashOutflowEntry,
+  CashOutflowCategory,
   FinancialSummary,
   EscrowAllocation,
   VendorDebtBreakdown,
   EscrowLiquidityCalculation,
   MasterFinanceRow,
 } from '@/types';
+
+function isDuplicateOrderVendorTx(tx: CashTransaction, orders: Order[]): boolean {
+  if (tx.kategori !== 'Pembayaran Vendor') return false;
+  return orders.some((o) => {
+    if ((o.totalDibayarKeVendor || 0) <= 0) return false;
+    if (tx.orderId && tx.orderId === o.id) return true;
+    if (tx.refInvoice && tx.refInvoice === o.noInv) return true;
+    const ketLower = (tx.keterangan || '').toLowerCase();
+    const orderNumAlias = o.id.toLowerCase().replace('ord-', 'order ');
+    if (
+      o.totalDibayarKeVendor === tx.nominal &&
+      ((o.noInv && ketLower.includes(o.noInv.toLowerCase())) || ketLower.includes(orderNumAlias))
+    ) {
+      return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Menggabungkan seluruh arus uang keluar dari:
+ * 1. Pembayaran / DP ke Vendor pada Order (totalDibayarKeVendor / vendorPembayaranList)
+ * 2. Biaya Operasional Produksi pada Order (biayaOperasional)
+ * 3. Pengeluaran Kas Umum / Operasional Non-Order pada koleksi `kas` (tipe === 'keluar')
+ */
+export function buildCashOutflowEntries(
+  orders: Order[],
+  transactions: CashTransaction[]
+): CashOutflowEntry[] {
+  const entries: CashOutflowEntry[] = [];
+
+  for (const order of orders) {
+    const dibayarVendor = order.totalDibayarKeVendor || 0;
+    const vpList = order.vendorPembayaranList || [];
+    const vpListValid = vpList.filter((vp) => (vp.nominal || 0) > 0);
+
+    if (vpListValid.length > 0) {
+      let sumList = 0;
+      vpListValid.forEach((vp, idx) => {
+        sumList += vp.nominal;
+        const targetVendor = vp.vendorName || order.vendorName || 'Mitra Produksi';
+        entries.push({
+          id: vp.id || `vp-${order.id}-${idx + 1}`,
+          tanggal: vp.tanggal || order.tanggalOrder,
+          nominal: vp.nominal,
+          kategori: 'Pembayaran Vendor',
+          keterangan:
+            vp.catatan ||
+            `Pembayaran ke Vendor (${targetVendor}) - ${order.projectName || order.customerName} (${order.noInv})`,
+          sumber: 'order',
+          noInv: order.noInv,
+          vendorOrTargetName: targetVendor,
+          rawOrder: order,
+        });
+      });
+
+      const remainder = dibayarVendor - sumList;
+      if (remainder > 0) {
+        const targetVendor = order.vendorName || 'Mitra Produksi';
+        entries.push({
+          id: `vp-rem-${order.id}`,
+          tanggal: order.tanggalOrder,
+          nominal: remainder,
+          kategori: 'Pembayaran Vendor',
+          keterangan: `DP / Pembayaran ke Vendor (${targetVendor}) - ${order.projectName || order.customerName} (${order.noInv})`,
+          sumber: 'order',
+          noInv: order.noInv,
+          vendorOrTargetName: targetVendor,
+          rawOrder: order,
+        });
+      }
+    } else if (dibayarVendor > 0) {
+      const targetVendor = order.vendorName || 'Mitra Produksi';
+      entries.push({
+        id: `vp-${order.id}`,
+        tanggal: order.tanggalOrder,
+        nominal: dibayarVendor,
+        kategori: 'Pembayaran Vendor',
+        keterangan: `DP / Pembayaran ke Vendor (${targetVendor}) - ${order.projectName || order.customerName} (${order.noInv})`,
+        sumber: 'order',
+        noInv: order.noInv,
+        vendorOrTargetName: targetVendor,
+        rawOrder: order,
+      });
+    }
+
+    const opEx = order.biayaOperasional || 0;
+    if (opEx > 0) {
+      entries.push({
+        id: `opex-${order.id}`,
+        tanggal: order.tanggalOrder,
+        nominal: opEx,
+        kategori: 'Biaya Operasional Order',
+        keterangan: `Biaya Operasional Produksi - ${order.projectName || order.customerName} (${order.noInv})`,
+        sumber: 'order',
+        noInv: order.noInv,
+        vendorOrTargetName: order.customerName,
+        rawOrder: order,
+      });
+    }
+  }
+
+  for (const tx of transactions) {
+    if (tx.tipe !== 'keluar') continue;
+    if (isDuplicateOrderVendorTx(tx, orders)) {
+      continue;
+    }
+
+    entries.push({
+      id: tx.id,
+      tanggal: tx.tanggal,
+      nominal: tx.nominal,
+      kategori: (tx.kategori as CashOutflowCategory) || 'Operasional',
+      keterangan: tx.keterangan || 'Pengeluaran Kas Operasional',
+      sumber: 'manual',
+      noInv: tx.refInvoice || 'KAS-KELUAR',
+      vendorOrTargetName: tx.kategori === 'Pembayaran Vendor' ? 'Mitra Vendor (Non-Order)' : 'Kas Operasional',
+      rawTransaction: tx,
+    });
+  }
+
+  return entries.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+}
 
 /**
  * Menghitung alokasi 2 kantong likuiditas bank (Escrow Liquidity Invariant)
@@ -122,20 +247,20 @@ export function calculateFinancialSummary(
   orders: Order[]
 ): FinancialSummary {
   let kasMasukNonOrder = 0;
-  let totalKasKeluar = 0;
   let bebanOperasional = 0;
-  let kasKeluarCount = 0;
+  let manualVendorPayments = 0;
 
-  // 1. Hitung seluruh kas masuk non-order & kas keluar dari transaksi kas
   for (const tx of transactions) {
     if (tx.tipe === 'masuk') {
       if (tx.kategori !== 'Penerimaan Konsumen') {
         kasMasukNonOrder += tx.nominal;
       }
     } else {
-      totalKasKeluar += tx.nominal;
-      kasKeluarCount++;
-      if (tx.kategori !== 'Pembayaran Vendor') {
+      if (tx.kategori === 'Pembayaran Vendor') {
+        if (!isDuplicateOrderVendorTx(tx, orders)) {
+          manualVendorPayments += tx.nominal;
+        }
+      } else {
         bebanOperasional += tx.nominal;
       }
     }
@@ -150,7 +275,7 @@ export function calculateFinancialSummary(
   let totalProfitRealtime = 0;
   let vendorDebtCount = 0;
   let unpaidCustomerCount = 0;
-  let totalDibayarKeVendor = 0;
+  let totalDibayarKeVendor = manualVendorPayments;
   let totalUangMasukOrders = 0;
   let totalBiayaOperasionalOrders = 0;
 
@@ -167,7 +292,7 @@ export function calculateFinancialSummary(
 
     const opEx = order.biayaOperasional || 0;
     totalBiayaOperasionalOrders += opEx;
-    const profitOrder = order.profitAktual ?? (order.totalInvoice - order.totalHpp - opEx);
+    const profitOrder = order.totalInvoice - order.totalHpp - opEx;
     totalProfitRealtime += profitOrder;
 
     const allocation = calculateEscrowAllocation(order);
@@ -189,11 +314,12 @@ export function calculateFinancialSummary(
     }
   }
 
-  // VisualKainDB Saldo Formula:
-  // Saldo Kas Riil Bank = saldoAwal + Uang Masuk Customer + Kas Masuk Non-Order - DP Vendor Dibayar - Beban Operasional Kas - Beban Operasional Order
+  const outflowEntries = buildCashOutflowEntries(orders, transactions);
   const totalKasMasuk = totalUangMasukOrders + kasMasukNonOrder;
   const totalBebanOperasional = bebanOperasional + totalBiayaOperasionalOrders;
-  const saldoKasRiil = saldoAwal + totalKasMasuk - totalDibayarKeVendor - totalBebanOperasional;
+  const totalKasKeluar = totalDibayarKeVendor + totalBebanOperasional;
+  const kasKeluarCount = outflowEntries.length;
+  const saldoKasRiil = saldoAwal + totalKasMasuk - totalKasKeluar;
   const profitMarginPercent = omzetTotal > 0 ? (totalProfitRealtime / omzetTotal) * 100 : 0;
   const estimasiProfitBersih = totalMarginTerealisasi - totalBebanOperasional;
 

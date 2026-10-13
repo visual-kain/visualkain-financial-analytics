@@ -6,7 +6,13 @@ import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { formatRupiah, cn } from '@/lib/utils';
-import { DEFAULT_VENDOR_OPTIONS, DEFAULT_PAYMENT_CHANNELS } from '@/lib/constants';
+import {
+  DEFAULT_VENDOR_OPTIONS,
+  DEFAULT_PAYMENT_CHANNELS,
+  FINANCE_START_DATE,
+  isFromFinanceStartDate,
+  getDefaultFinanceDate,
+} from '@/lib/constants';
 import type { Order, CustomerPayment } from '@/types';
 import { toast, Toaster } from 'sonner';
 import {
@@ -55,7 +61,7 @@ export default function OrderEditFinancePage() {
 
   const [isAddingPayment, setIsAddingPayment] = useState<boolean>(false);
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
-  const [payTanggal, setPayTanggal] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [payTanggal, setPayTanggal] = useState<string>(getDefaultFinanceDate);
   const [payJenis, setPayJenis] = useState<'dp' | 'termin' | 'pelunasan'>('termin');
   const [payNominal, setPayNominal] = useState<number>(0);
   const [payRekening, setPayRekening] = useState<string>('Transfer BCA');
@@ -171,6 +177,11 @@ export default function OrderEditFinancePage() {
       return;
     }
 
+    if (!isFromFinanceStartDate(payTanggal)) {
+      toast.error('Tanggal pembayaran harus mulai 1 Oktober 2026 ke atas');
+      return;
+    }
+
     const ketText = payKeterangan ? `${payRekening} - ${payKeterangan}` : `${payRekening}`;
 
     if (editingPaymentId) {
@@ -179,7 +190,7 @@ export default function OrderEditFinancePage() {
           p.id === editingPaymentId
             ? {
                 ...p,
-                tanggal: payTanggal || new Date().toISOString().slice(0, 10),
+                tanggal: payTanggal || getDefaultFinanceDate(),
                 jenis: payJenis,
                 nominal: payNominal,
                 keterangan: ketText,
@@ -194,7 +205,7 @@ export default function OrderEditFinancePage() {
         id: `pay-${Date.now()}`,
         orderId: currentOrder?.id || orderId,
         noInv: currentOrder?.noInv || '',
-        tanggal: payTanggal || new Date().toISOString().slice(0, 10),
+        tanggal: payTanggal || getDefaultFinanceDate(),
         nominal: payNominal,
         jenis: payJenis,
         keterangan: ketText,
@@ -256,6 +267,9 @@ export default function OrderEditFinancePage() {
         totalUangMasukCustomer: nominalDpCustomer,
         totalHpp: totalBiayaVendor,
         totalBiayaVendor,
+        hppAktual: totalBiayaVendor,
+        profitAktual: netProfit,
+        targetMargin: netProfit,
         dpNominalPO: dpVendor,
         totalDibayarKeVendor: dpVendor,
         vendorName: vendorNama,
@@ -489,6 +503,7 @@ export default function OrderEditFinancePage() {
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">Tanggal Bayar</label>
                       <input
                         type="date"
+                        min={FINANCE_START_DATE}
                         value={payTanggal}
                         onChange={(e) => setPayTanggal(e.target.value)}
                         className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-teal-500 focus:outline-none"

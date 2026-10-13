@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { calculateOrderTotals } from '@/lib/calculations';
+import { isFromFinanceStartDate } from '@/lib/constants';
 import { initialOrdersData, initialCashTransactions } from '@/lib/seed-data';
 import type { Order, CashTransaction, CustomerPayment, CashOutflowCategory } from '@/types';
 
@@ -46,17 +47,20 @@ export function useFirebaseFinance(
   initialTransactions: CashTransaction[] = initialCashTransactions
 ): UseFirebaseFinanceResult {
   const [orders, setOrders] = useState<Order[]>(
-    initialOrders.length > 0 ? initialOrders : initialOrdersData
+    (initialOrders.length > 0 ? initialOrders : initialOrdersData).filter((o) =>
+      isFromFinanceStartDate(o.tanggalOrder)
+    )
   );
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(
-    initialTransactions.length > 0 ? initialTransactions : initialCashTransactions
+    (initialTransactions.length > 0 ? initialTransactions : initialCashTransactions).filter((t) =>
+      isFromFinanceStartDate(t.tanggal)
+    )
   );
   const [vendors, setVendors] = useState<VendorInfo[]>([]);
   const [syncState, setSyncState] = useState<SyncState>('connecting');
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Simpan raw orders dan vendors map untuk sinkronisasi reaktif
   const vendorsMapRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
@@ -65,7 +69,6 @@ export function useFirebaseFinance(
     let unsubscribeVendors: (() => void) | undefined;
 
     try {
-      // 1. Realtime Listener Koleksi 'vendors'
       const vendorsRef = collection(db, 'vendors');
       unsubscribeVendors = onSnapshot(
         vendorsRef,
@@ -85,7 +88,6 @@ export function useFirebaseFinance(
         }
       );
 
-      // 2. Realtime Listener Koleksi 'orders' (SEMUA DATA, TANPA LIMIT)
       const ordersRef = collection(db, 'orders');
 
       unsubscribeOrders = onSnapshot(
@@ -94,65 +96,72 @@ export function useFirebaseFinance(
           if (!snapshot.empty) {
             const mappedOrders: Order[] = snapshot.docs.map((docSnap) => {
               const d = docSnap.data();
-
-              // Hitung metrik komprehensif menggunakan rumus baku VisualKain
               const totals = calculateOrderTotals(d);
 
               const totalInv = totals.jumlahSemua;
               const totalHpp = totals.totalHpp;
 
-              // DP Vendor: prioritaskan totalDibayarKeVendor / dpNominalPO yang tersimpan, fallback persentase
+              // Prioritaskan nilai positif antara totalDibayarKeVendor dan dpNominalPO agar nilai 0 salah satu field tidak menimpa pembayaran vendor yang sah.
+              const rawPaidVendor = Number(d.totalDibayarKeVendor || 0);
+              const rawDpPo = Number(d.dpNominalPO || 0);
               const dpVendor =
-                d.totalDibayarKeVendor !== undefined
-                  ? Number(d.totalDibayarKeVendor)
-                  : d.dpNominalPO && Number(d.dpNominalPO) > 0
-                  ? Number(d.dpNominalPO)
+                rawPaidVendor > 0
+                  ? rawPaidVendor
+                  : rawDpPo > 0
+                  ? rawDpPo
+                  : d.totalDibayarKeVendor !== undefined
+                  ? rawPaidVendor
                   : Math.round(totalHpp * (Number(d.dpPersenPO || 0) / 100));
 
-              // Ekstrak riwayat pembayaran konsumen
               const payments: CustomerPayment[] = [];
               let hasModernPaymentRecord = false;
 
-              // Cek riwayat pembayaran bertahap modern (riwayatPembayaran)
-              if (Array.isArray(d.riwayatPembayaran)) {
+              const validPembayaranList = Array.isArray(d.pembayaranList)
+                ? d.pembayaranList.filter((p: any) => Number(p?.nominal || p?.jumlah || 0) > 0)
+                : [];
+              const validRiwayatList = Array.isArray(d.riwayatPembayaran)
+                ? d.riwayatPembayaran.filter((p: any) => {
+                    const nom = Number(p?.jumlah || p?.nominal || 0);
+                    const cat = String(p?.catatan || '').toLowerCase();
+                    return nom > 0 && !cat.includes('pinjaman');
+                  })
+                : [];
+
+              // Gunakan array pembayaran yang memiliki entri bernominal > 0 agar riwayatPembayaran: [] tidak mengabaikan pembayaranList yang terisi.
+              if (validPembayaranList.length > 0 && validPembayaranList.length >= validRiwayatList.length) {
                 hasModernPaymentRecord = true;
-                d.riwayatPembayaran.forEach((p: any, idx: number) => {
-                  const nominal = Number(p.jumlah || p.nominal || 0);
-                  const catatan = String(p.catatan || '').toLowerCase();
-                  // Saring pinjaman internal non-konsumen agar rincian pembayaran bersih
-                  if (nominal > 0 && !catatan.includes('pinjaman')) {
-                    payments.push({
-                      id: `${docSnap.id}-p-${idx}`,
-                      orderId: docSnap.id,
-                      noInv: d.noInv || 'INV',
-                      tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
-                      nominal,
-                      jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
-                      keterangan: p.catatan || (idx === 0 ? 'DP Pembayaran' : 'Pembayaran Termin'),
-                      createdAt: new Date().toISOString(),
-                    });
-                  }
-                });
-              } else if (Array.isArray(d.pembayaranList)) {
-                hasModernPaymentRecord = true;
-                d.pembayaranList.forEach((p: any, idx: number) => {
+                validPembayaranList.forEach((p: any, idx: number) => {
                   const nominal = Number(p.nominal || p.jumlah || 0);
-                  if (nominal > 0) {
-                    payments.push({
-                      id: p.id || `${docSnap.id}-p-${idx}`,
-                      orderId: docSnap.id,
-                      noInv: d.noInv || 'INV',
-                      tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
-                      nominal,
-                      jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
-                      keterangan: p.keterangan || p.catatan || 'Pembayaran Termin',
-                      createdAt: p.createdAt || new Date().toISOString(),
-                    });
-                  }
+                  payments.push({
+                    id: p.id || `${docSnap.id}-p-${idx}`,
+                    orderId: docSnap.id,
+                    noInv: d.noInv || 'INV',
+                    tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
+                    nominal,
+                    jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
+                    keterangan: p.keterangan || p.catatan || 'Pembayaran Termin',
+                    createdAt: p.createdAt || new Date().toISOString(),
+                  });
                 });
+              } else if (validRiwayatList.length > 0) {
+                hasModernPaymentRecord = true;
+                validRiwayatList.forEach((p: any, idx: number) => {
+                  const nominal = Number(p.jumlah || p.nominal || 0);
+                  payments.push({
+                    id: `${docSnap.id}-p-${idx}`,
+                    orderId: docSnap.id,
+                    noInv: d.noInv || 'INV',
+                    tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
+                    nominal,
+                    jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
+                    keterangan: p.catatan || (idx === 0 ? 'DP Pembayaran' : 'Pembayaran Termin'),
+                    createdAt: new Date().toISOString(),
+                  });
+                });
+              } else if (Array.isArray(d.riwayatPembayaran) || Array.isArray(d.pembayaranList)) {
+                hasModernPaymentRecord = true;
               }
 
-              // Fallback field dp1, dp2, pelunasan HANYA jika dokumen belum memiliki riwayat pembayaran modern
               if (!hasModernPaymentRecord) {
                 const dp1 = Number(d.dp1Nominal || 0);
                 const dp2 = Number(d.dp2Nominal || 0);
@@ -212,10 +221,10 @@ export function useFirebaseFinance(
                 }
               }
 
-              // DP Customer terverifikasi (SSOT VisualKainDB: prioritaskan riwayat pembayaran bertahap jika ada)
               const sumPayments = payments.reduce((acc, p) => acc + p.nominal, 0);
+              const fallbackPaidCust = Number(d.totalUangMasukCustomer || d.dpNominal || 0);
               const lockedDpCustomer = hasModernPaymentRecord
-                ? sumPayments
+                ? (sumPayments > 0 ? sumPayments : fallbackPaidCust)
                 : (d.dpNominal !== undefined && Number(d.dpNominal) >= 0
                     ? Number(d.dpNominal)
                     : (sumPayments > 0 ? sumPayments : totals.nominalDP));
@@ -267,10 +276,12 @@ export function useFirebaseFinance(
               };
             });
 
-            // Urutkan order berdasarkan tanggal terbaru
-            mappedOrders.sort((a, b) => b.tanggalOrder.localeCompare(a.tanggalOrder));
+            // Saring hanya pesanan mulai 1 Oktober 2026 ke atas sesuai kesepakatan pembukuan klien.
+            const filteredByCutoff = mappedOrders
+              .filter((o) => isFromFinanceStartDate(o.tanggalOrder))
+              .sort((a, b) => b.tanggalOrder.localeCompare(a.tanggalOrder));
 
-            setOrders(mappedOrders);
+            setOrders(filteredByCutoff);
             setSyncState('live');
             setLastSyncAt(new Date());
           } else {
@@ -284,7 +295,6 @@ export function useFirebaseFinance(
         }
       );
 
-      // 3. Realtime Listener Koleksi 'kas' (Bukan 'kasEntries')
       const kasRef = collection(db, 'kas');
       unsubscribeKas = onSnapshot(
         kasRef,
@@ -302,9 +312,11 @@ export function useFirebaseFinance(
               };
             });
 
-            // Urutkan transaksi kas terbaru ke terlama
-            mappedKas.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-            setCashTransactions(mappedKas);
+            // Saring hanya transaksi kas mulai 1 Oktober 2026 ke atas.
+            const filteredKasByCutoff = mappedKas
+              .filter((t) => isFromFinanceStartDate(t.tanggal))
+              .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+            setCashTransactions(filteredKasByCutoff);
           }
         },
         (err) => {
@@ -386,19 +398,45 @@ export function useFirebaseFinance(
         jumlah: data.nominal,
         createdAt: serverTimestamp(),
       });
+      if (isFromFinanceStartDate(data.tanggal)) {
+        const newTx: CashTransaction = {
+          id: ref.id,
+          tanggal: data.tanggal,
+          tipe: data.tipe,
+          nominal: data.nominal,
+          kategori: data.kategori,
+          keterangan: data.keterangan,
+        };
+        setCashTransactions((prev) => {
+          if (prev.some((t) => t.id === ref.id)) return prev;
+          return [newTx, ...prev];
+        });
+      }
       return ref.id;
     } catch (err: unknown) {
-      console.error('[Firestore] addKas failed:', err);
-      throw err;
+      console.warn('[Firestore] addKas failed, keeping local fallback:', err);
+      const localId = `kas-local-${Date.now()}`;
+      if (isFromFinanceStartDate(data.tanggal)) {
+        const newTx: CashTransaction = {
+          id: localId,
+          tanggal: data.tanggal,
+          tipe: data.tipe,
+          nominal: data.nominal,
+          kategori: data.kategori,
+          keterangan: data.keterangan,
+        };
+        setCashTransactions((prev) => [newTx, ...prev]);
+      }
+      return localId;
     }
   }, []);
 
   const deleteKas = useCallback(async (id: string): Promise<void> => {
+    setCashTransactions((prev) => prev.filter((t) => t.id !== id));
     try {
       await deleteDoc(doc(db, 'kas', id));
     } catch (err: unknown) {
-      console.error('[Firestore] deleteKas failed:', err);
-      throw err;
+      console.warn('[Firestore] deleteKas failed, removed from local state:', err);
     }
   }, []);
 

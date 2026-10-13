@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
+import { buildCashOutflowEntries } from '@/lib/financial-calculator';
 import type {
   Order,
   CashTransaction,
+  CashOutflowEntry,
   FinancialSummary,
   MetricDrawerType,
   MasterFinanceRow,
@@ -63,7 +65,6 @@ export function MetricDetailDrawer({
   const [inflowFilter, setInflowFilter] = useState<'all' | 'dp' | 'termin' | 'pelunasan' | 'kas_masuk'>('all');
   const [saldoSubView, setSaldoSubView] = useState<'komponen' | 'inflow' | 'outflow'>('komponen');
 
-  // Sinkronisasi vendor filter saat initialVendorFilter berubah
   useEffect(() => {
     if (initialVendorFilter) {
       setSelectedVendorFilter(initialVendorFilter);
@@ -72,7 +73,6 @@ export function MetricDetailDrawer({
     }
   }, [initialVendorFilter, metricType]);
 
-  // Reset filter saat drawer dibuka dengan metrik baru
   useEffect(() => {
     setSearchQuery('');
     setStatusFilter('all');
@@ -80,7 +80,6 @@ export function MetricDetailDrawer({
     setSaldoSubView('komponen');
   }, [metricType]);
 
-  // Listener tombol ESC
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -91,7 +90,6 @@ export function MetricDetailDrawer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Ekstraksi daftar vendor unik untuk tab/filter vendor
   const vendorList = useMemo(() => {
     const set = new Set<string>();
     orders.forEach((o) => {
@@ -107,7 +105,6 @@ export function MetricDetailDrawer({
     ];
   }, [vendorList]);
 
-  // Filter Orders sesuai pencarian dan filter aktif
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       const q = searchQuery.toLowerCase();
@@ -143,12 +140,28 @@ export function MetricDetailDrawer({
     });
   }, [orders, searchQuery, selectedVendorFilter, statusFilter, metricType]);
 
-  // Filter Cash Transactions untuk Uang Keluar & Saldo (US-9.21)
+  const allOutflowEntries: CashOutflowEntry[] = useMemo(() => {
+    return buildCashOutflowEntries(orders, transactions);
+  }, [orders, transactions]);
+
+  const filteredOutflows = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return allOutflowEntries.filter((item) => {
+      const matchSearch =
+        !q ||
+        item.keterangan.toLowerCase().includes(q) ||
+        item.kategori.toLowerCase().includes(q) ||
+        (item.noInv && item.noInv.toLowerCase().includes(q)) ||
+        (item.vendorOrTargetName && item.vendorOrTargetName.toLowerCase().includes(q)) ||
+        (item.tanggal && item.tanggal.includes(q)) ||
+        item.nominal.toString().includes(q);
+      return matchSearch;
+    });
+  }, [allOutflowEntries, searchQuery]);
+
   const filteredTransactions = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return transactions.filter((t) => {
-      if (metricType === 'cashout' && t.tipe !== 'keluar') return false;
-      if (metricType === 'saldo' && saldoSubView === 'outflow' && t.tipe !== 'keluar') return false;
       const matchSearch =
         !q ||
         t.keterangan.toLowerCase().includes(q) ||
@@ -158,7 +171,7 @@ export function MetricDetailDrawer({
         t.nominal.toString().includes(q);
       return matchSearch;
     });
-  }, [transactions, searchQuery, metricType, saldoSubView]);
+  }, [transactions, searchQuery]);
 
   // Agregasi seluruh arus kas masuk (pembayaran customer + kas masuk non-order) (US-9.9)
   const allInflowEntries = useMemo(() => {
@@ -179,6 +192,8 @@ export function MetricDetailDrawer({
     orders.forEach((o) => {
       if (o.pembayaranList && o.pembayaranList.length > 0) {
         o.pembayaranList.forEach((p, idx) => {
+          if (!p.nominal || p.nominal <= 0) return;
+          if (p.tanggal && p.tanggal < '2026-10-01') return;
           let katLabel = 'Uang Muka (DP 1)';
           if (p.jenis === 'termin') katLabel = 'Termin (DP 2 70%)';
           else if (p.jenis === 'pelunasan') katLabel = 'Pelunasan Penuh';
@@ -512,7 +527,6 @@ export function MetricDetailDrawer({
 
               {/* 3. Sub-Filters & Quick Search Controls */}
               <div className="space-y-3">
-                {/* Saldo Sub-View Switcher (Ringkasan vs Kas Masuk vs Kas Keluar) (US-9.9) */}
                 {metricType === 'saldo' && (
                   <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
                     <button
@@ -524,7 +538,7 @@ export function MetricDetailDrawer({
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      📊 Komponen
+                      Komponen
                     </button>
                     <button
                       type="button"
@@ -535,7 +549,7 @@ export function MetricDetailDrawer({
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      ⬇️ Masuk ({formatCompactRupiah(summary.totalKasMasuk)})
+                      Masuk ({formatCompactRupiah(summary.totalKasMasuk)})
                     </button>
                     <button
                       type="button"
@@ -546,7 +560,7 @@ export function MetricDetailDrawer({
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      ⬆️ Keluar ({formatCompactRupiah(summary.totalKasKeluar)})
+                      Keluar ({formatCompactRupiah(summary.totalKasKeluar)})
                     </button>
                   </div>
                 )}
@@ -560,7 +574,7 @@ export function MetricDetailDrawer({
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={
                         metricType === 'cashout' || (metricType === 'saldo' && saldoSubView === 'outflow')
-                          ? 'Cari beban kas, kategori, keterangan...'
+                          ? 'Cari beban kas, vendor, invoice, keterangan...'
                           : metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')
                           ? 'Cari cicilan DP, invoice, customer, rekening...'
                           : 'Cari invoice, customer, vendor...'
@@ -638,24 +652,25 @@ export function MetricDetailDrawer({
                 </div>
               </div>
 
-              {/* 4. Itemized Data Breakdown List */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs text-slate-500 font-medium pb-1 border-b border-slate-100">
                   <span>
-                    Rincian Transaksi Pembentuk (
-                    {metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')
-                      ? `${filteredInflows.length} mutasi masuk`
-                      : metricType === 'cashout' || (metricType === 'saldo' && saldoSubView === 'outflow')
-                      ? `${filteredTransactions.length} mutasi keluar`
-                      : `${filteredOrders.length} order`}
-                    )
+                    {metricType === 'saldo' && saldoSubView === 'komponen'
+                      ? 'Komponen Akuntansi Saldo Kas & Status Cover Hutang'
+                      : `Rincian Transaksi Pembentuk (${
+                          metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')
+                            ? `${filteredInflows.length} mutasi masuk`
+                            : metricType === 'cashout' || (metricType === 'saldo' && saldoSubView === 'outflow')
+                            ? `${filteredOutflows.length} mutasi keluar`
+                            : `${filteredOrders.length} order`
+                        })`}
                   </span>
                   {(metricType === 'cashout' || (metricType === 'saldo' && saldoSubView === 'outflow')) && (onOpenAddExpense || onOpenAddIncome) && (
                     <button
                       onClick={onOpenAddExpense || onOpenAddIncome}
                       className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-800 cursor-pointer"
                     >
-                      <Plus className="h-3 w-3" /> Catat Kas Keluar
+                      <Plus className="h-3 w-3" /> Catat Dana Keluar
                     </button>
                   )}
                   {(metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')) && onOpenAddIncome && (
@@ -663,12 +678,12 @@ export function MetricDetailDrawer({
                       onClick={onOpenAddIncome}
                       className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-800 cursor-pointer"
                     >
-                      <Plus className="h-3 w-3" /> Tambah Kas Masuk
+                      <Plus className="h-3 w-3" /> Catat Dana Masuk
                     </button>
                   )}
                 </div>
 
-                {/* A. TAMPILAN RINCIAN KAS MASUK (INFLOW BREAKDOWN) (US-9.9) */}
+                {/* A. TAMPILAN RINCIAN KAS MASUK (INFLOW BREAKDOWN) */}
                 {(metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')) && (
                   <div className="space-y-2.5">
                     {filteredInflows.length === 0 ? (
@@ -720,7 +735,6 @@ export function MetricDetailDrawer({
                             </div>
                           </div>
 
-                          {/* Footer Info & Action */}
                           <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[11px] text-slate-500">
                             <span className="truncate pr-2 italic text-[10.5px]">
                               Catatan: {item.keterangan || '-'}
@@ -741,45 +755,63 @@ export function MetricDetailDrawer({
                   </div>
                 )}
 
-                {/* B. TAMPILAN RINCIAN KAS KELUAR (OUTFLOW BREAKDOWN) */}
+                {/* B. TAMPILAN RINCIAN KAS KELUAR (OUTFLOW BREAKDOWN: VENDOR, OPEX ORDER, DAN KAS) */}
                 {(metricType === 'cashout' || (metricType === 'saldo' && saldoSubView === 'outflow')) && (
-                  <div className="space-y-2">
-                    {filteredTransactions.length === 0 ? (
+                  <div className="space-y-2.5">
+                    {filteredOutflows.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
                         Tidak ada transaksi pengeluaran yang cocok dengan pencarian.
                       </div>
                     ) : (
-                      filteredTransactions.map((tx) => (
+                      filteredOutflows.map((item) => (
                         <div
-                          key={tx.id}
-                          className="flex items-center justify-between rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-xs hover:border-slate-300 transition-all"
+                          key={item.id}
+                          className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-xs hover:border-rose-300 transition-all space-y-2"
                         >
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-xs text-slate-900">
-                                {tx.keterangan}
-                              </span>
-                              <span className="rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
-                                {tx.kategori}
-                              </span>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span
+                                  className={
+                                    item.sumber === 'order'
+                                      ? 'font-mono text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200'
+                                      : 'font-mono text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200'
+                                  }
+                                >
+                                  {item.noInv || 'KAS-KELUAR'}
+                                </span>
+                                <span className="rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                                  {item.kategori}
+                                </span>
+                                <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                                  <Calendar className="h-3 w-3" />
+                                  {item.tanggal}
+                                </span>
+                              </div>
+                              <div className="mt-1 font-bold text-xs text-slate-900">
+                                {item.keterangan}
+                              </div>
                             </div>
-                            <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
-                              <Calendar className="h-3 w-3" />
-                              <span>{tx.tanggal}</span>
-                              {tx.refInvoice && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-mono text-slate-500">
-                                    Ref: {tx.refInvoice}
-                                  </span>
-                                </>
-                              )}
+                            <div className="text-right shrink-0">
+                              <span className="text-xs sm:text-sm font-bold text-rose-600 tabular-nums font-mono">
+                                -{formatRupiah(item.nominal)}
+                              </span>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-rose-600 tabular-nums font-mono">
-                              -{formatRupiah(tx.nominal)}
+
+                          <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[11px] text-slate-500">
+                            <span className="truncate pr-2 text-[10.5px]">
+                              Tujuan / Mitra: <strong className="text-slate-700">{item.vendorOrTargetName}</strong>
                             </span>
+                            {item.rawOrder && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenOrderInspection(item.rawOrder!)}
+                                className="inline-flex items-center gap-1 text-[10.5px] font-bold text-teal-700 hover:text-teal-800 shrink-0 cursor-pointer"
+                              >
+                                Inspeksi Order <ExternalLink className="h-3 w-3" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))
@@ -787,7 +819,7 @@ export function MetricDetailDrawer({
                   </div>
                 )}
 
-                {/* C. TAMPILAN RINGKASAN SALDO KAS (KOMPONEN AUDIT) */}
+                {/* C. TAMPILAN RINGKASAN SALDO KAS (KOMPONEN AUDIT & COVER HUTANG VENDOR) */}
                 {metricType === 'saldo' && saldoSubView === 'komponen' && (
                   <div className="space-y-3">
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2 text-xs">
@@ -798,13 +830,13 @@ export function MetricDetailDrawer({
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-emerald-700">
-                        <span>2. Akumulasi Kas Masuk Konsumen (+)</span>
+                        <span>2. Total Dana Masuk (+)</span>
                         <span className="font-bold tabular-nums font-mono">
                           +{formatRupiah(summary.totalKasMasuk)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-rose-700">
-                        <span>3. Kas Keluar Pembayaran Vendor (-)</span>
+                        <span>3. Dana Keluar Pembayaran Vendor (-)</span>
                         <span className="font-bold tabular-nums font-mono">
                           -{formatRupiah(summary.totalDibayarKeVendor)}
                         </span>
@@ -825,10 +857,73 @@ export function MetricDetailDrawer({
                       )}
                       <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-extrabold">
                         <span className={summary.saldoKasRiil < 0 ? 'text-rose-950 font-bold' : 'text-teal-900'}>
-                          Saldo Kas Bersih Riil
+                          Dana Tersedia Saat Ini (Saldo Kas)
                         </span>
                         <span className={cn('tabular-nums font-mono', summary.saldoKasRiil < 0 ? 'text-rose-600 font-extrabold' : 'text-teal-700')}>
                           {formatRupiah(summary.saldoKasRiil)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Evaluasi Kecukupan Dana Terhadap Sisa Hutang Vendor */}
+                    <div
+                      className={cn(
+                        'rounded-xl border p-3.5 space-y-2 text-xs',
+                        summary.saldoKasRiil >= summary.totalUtangVendor
+                          ? 'border-emerald-200 bg-emerald-50/70'
+                          : 'border-amber-200 bg-amber-50/70'
+                      )}
+                    >
+                      <div className="flex items-center justify-between font-bold text-slate-900">
+                        <span>Status Cover Sisa Hutang ke Vendor</span>
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[10px] font-bold',
+                            summary.saldoKasRiil >= summary.totalUtangVendor
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-amber-100 text-amber-900 border border-amber-300'
+                          )}
+                        >
+                          {summary.saldoKasRiil >= summary.totalUtangVendor
+                            ? 'TERCOVER PENUH'
+                            : 'BELUM TERCOVER PENUH'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-600">
+                        <span>Dana Tersedia Saat Ini</span>
+                        <span className="font-mono font-bold text-slate-900 tabular-nums">
+                          {formatRupiah(summary.saldoKasRiil)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-600">
+                        <span>Sisa Hutang ke Vendor</span>
+                        <span className="font-mono font-bold text-amber-800 tabular-nums">
+                          {formatRupiah(summary.totalUtangVendor)}
+                        </span>
+                      </div>
+                      <div className="pt-1.5 border-t border-slate-200/80 flex justify-between items-center font-bold">
+                        <span>
+                          {summary.saldoKasRiil >= summary.totalUtangVendor
+                            ? 'Sisa Dana Bersih (Setelah Tutup Hutang)'
+                            : 'Kekurangan Dana (Untuk Tutup Hutang)'}
+                        </span>
+                        <span
+                          className={cn(
+                            'font-mono tabular-nums',
+                            summary.saldoKasRiil >= summary.totalUtangVendor
+                              ? 'text-emerald-700'
+                              : 'text-rose-600'
+                          )}
+                        >
+                          {summary.saldoKasRiil >= summary.totalUtangVendor
+                            ? `+${formatRupiah(summary.saldoKasRiil - summary.totalUtangVendor)}`
+                            : `-${formatRupiah(Math.abs(summary.saldoKasRiil - summary.totalUtangVendor))}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-indigo-700 pt-1">
+                        <span>Sisa Tagihan Customer (Piutang Belum Masuk)</span>
+                        <span className="font-mono font-bold tabular-nums">
+                          {formatRupiah(summary.totalPiutangCustomer)}
                         </span>
                       </div>
                     </div>
@@ -843,7 +938,7 @@ export function MetricDetailDrawer({
                     )}
 
                     <h5 className="text-xs font-bold text-slate-700 mt-4">
-                      Mutasi Terakhir (Kas Masuk & Keluar) ({filteredTransactions.length})
+                      Mutasi Kas Operasional Terakhir (Non-Order) ({filteredTransactions.length})
                     </h5>
                     <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                       {filteredTransactions.length === 0 ? (

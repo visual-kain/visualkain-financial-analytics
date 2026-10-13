@@ -90,7 +90,7 @@ export default function FinanceReportPaper({ order, getVendorById }: FinanceRepo
           <div className="tp-row"><span>Vendor:</span> <strong>{vendor?.nama || 'Tanpa Vendor'}</strong></div>
           <div className="tp-row"><span>PIC Vendor:</span> <strong>{vendor?.pic || '-'}</strong></div>
           <div className="tp-row"><span>Metode:</span> <strong>{order.jenisMetodeProduksi || '-'}</strong></div>
-          <div className="tp-row"><span>Kategori/Bahan:</span> <strong>{order.kategoriOrder || 'T Shirt'} — {order.jenisBahan || '-'}</strong></div>
+          <div className="tp-row"><span>Kategori/Bahan:</span> <strong>{order.kategoriOrder || 'T Shirt'} / {order.jenisBahan || '-'}</strong></div>
         </div>
       </div>
 
@@ -135,7 +135,7 @@ export default function FinanceReportPaper({ order, getVendorById }: FinanceRepo
         <div className="tp-section">
           <h3>Ringkasan Pendapatan</h3>
           <div className="tp-row"><span>Nilai Tagihan Kotor (Subtotal):</span> <strong>{formatIdr(t.grossTotal)}</strong></div>
-          <div className="tp-row"><span>Diskon:</span> <strong>− {formatIdr(t.diskon)}</strong></div>
+          <div className="tp-row"><span>Diskon:</span> <strong>- {formatIdr(t.diskon)}</strong></div>
           <div className="tp-row"><span>Total Tagihan:</span> <strong>{formatIdr(t.jumlahSemua)}</strong></div>
           <div className="tp-row"><span>DP Konsumen ({order.dpPersen || 0}%):</span> <strong>{formatIdr(dp)}</strong></div>
           <div className="tp-row"><span>Sisa Pelunasan:</span> <strong>{formatIdr(t.jumlahSemua - dp)}</strong></div>
@@ -152,7 +152,7 @@ export default function FinanceReportPaper({ order, getVendorById }: FinanceRepo
       </div>
 
       <div className="tp-footer-print">
-        <p>Dicetak otomatis oleh Sistem Finansial VisualKain — Laporan Finansial</p>
+        <p>Dicetak otomatis oleh Sistem Finansial VisualKain (Laporan Finansial)</p>
       </div>
     </div>
   );
