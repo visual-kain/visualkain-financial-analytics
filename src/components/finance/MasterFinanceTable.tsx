@@ -5,6 +5,7 @@ import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
 import type { MasterFinanceRow } from '@/types';
 import {
   TableProperties,
+  LayoutGrid,
   MessageCircle,
   Eye,
   Maximize2,
@@ -13,9 +14,7 @@ import {
   Filter,
   Download,
   X,
-  CreditCard,
   Building,
-  FileText,
   Pencil,
   ChevronLeft,
   ChevronRight,
@@ -163,29 +162,31 @@ export function MasterFinanceTable({
     );
   };
 
-  // US-9.14: Logika Adaptif WhatsApp Follow-Up & Notifikasi
   const getWaActionConfig = (row: MasterFinanceRow) => {
     const isLunas = row.dpPersenCustomer >= 100 || row.sisaPelunasanCustomer <= 0;
     const isSiapProduksi = row.dpPersenCustomer >= 70;
 
     let label = 'Tagih DP 70%';
+    let shortLabel = 'Tagih DP';
     let title = 'Kirim Penagihan WhatsApp DP 70% (Syarat Mulai Produksi)';
     let bgClass = 'bg-amber-600 hover:bg-amber-700 text-white';
     let message = `Halo Kak ${row.namaCustomer}, kami dari VisualKain menginfokan terkait pesanan ${row.namaProject} (${row.noInv}). Saat ini pembayaran DP tercatat ${formatRupiah(row.nominalDpCustomer)} (${row.dpPersenCustomer.toFixed(0)}%). Untuk memulai proses potong & jahit di vendor konveksi, mohon pelunasan DP minimal 70% (kurang ${formatRupiah(row.sisaMenujuDp70)}). Terima kasih 🙏`;
 
     if (isLunas) {
       label = 'Notif WA';
+      shortLabel = 'Notif WA';
       title = 'Kirim Konfirmasi Lunas / Info Pesanan via WhatsApp';
       bgClass = 'bg-emerald-600 hover:bg-emerald-700 text-white';
       message = `Halo Kak ${row.namaCustomer}, terima kasih pembayaran pesanan ${row.namaProject} (${row.noInv}) telah LUNAS sebesar ${formatRupiah(row.totalJumlah)}. Kami akan mengabari perkembangan produksi pesanan secepatnya. Terima kasih 🙏`;
     } else if (isSiapProduksi) {
       label = 'Tagih Pelunasan';
+      shortLabel = 'Pelunasan';
       title = 'Kirim Penagihan Pelunasan 30% via WhatsApp';
       bgClass = 'bg-teal-600 hover:bg-teal-700 text-white';
       message = `Halo Kak ${row.namaCustomer}, pesanan ${row.namaProject} (${row.noInv}) saat ini sedang dalam proses produksi. Terdapat sisa pelunasan sebesar ${formatRupiah(row.sisaPelunasanCustomer)}. Mohon konfirmasi jika sudah transfer pelunasan ya Kak. Terima kasih 🙏`;
     }
 
-    return { label, title, bgClass, message };
+    return { label, shortLabel, title, bgClass, message };
   };
 
   const handleOpenWhatsApp = (e: React.MouseEvent, row: MasterFinanceRow) => {
@@ -253,11 +254,10 @@ export function MasterFinanceTable({
     }
   };
 
-  // Mobile Order Card View (< 768px - Adaptive Ergonomic 2-Grid Layout)
   const renderMobileCardContent = () => (
-    <div className="p-2 sm:p-3 grid grid-cols-2 gap-2 sm:gap-2.5 bg-slate-50/40">
+    <div className="p-2.5 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 bg-slate-50/40">
       {paginatedRows.length === 0 ? (
-        <div className="col-span-2 py-12 text-center text-slate-400 text-xs">
+        <div className="col-span-2 py-12 text-center text-slate-500 text-xs">
           Tidak ada order yang cocok dengan kriteria pencarian / filter.
         </div>
       ) : (
@@ -266,9 +266,9 @@ export function MasterFinanceTable({
           return (
             <div
               key={row.id}
-              className="flex flex-col justify-between rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-card-double hover:border-teal-300 transition-all duration-200 gap-2 overflow-hidden"
+              onClick={() => onSelectRow?.(row)}
+              className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-2.5 sm:p-3.5 shadow-card-double hover:border-teal-300 transition-colors duration-150 gap-2 overflow-hidden cursor-pointer"
             >
-              {/* 1. Header: No Inv & Status Badge (Clean fit, anti-overflow) */}
               <div className="flex items-center justify-between gap-1 border-b border-slate-100 pb-1.5 min-w-0">
                 <span className="font-mono text-[9.5px] sm:text-[10px] font-black tracking-tight text-teal-900 bg-teal-50 px-1.5 py-0.5 rounded-md border border-teal-200/90 whitespace-nowrap shrink-0">
                   {row.noInv}
@@ -276,19 +276,17 @@ export function MasterFinanceTable({
                 <div className="shrink-0">{renderStatusBadge(row.statusOrder, true)}</div>
               </div>
 
-              {/* 2. Customer & Project Info */}
               <div className="space-y-0.5 min-w-0">
                 <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 leading-snug truncate" title={row.namaCustomer}>
                   {row.namaCustomer}
                 </h4>
-                <p className="text-[9px] sm:text-[9.5px] text-slate-400 font-medium truncate" title={row.namaProject}>
-                  {row.namaProject} &bull; <span className="font-bold text-slate-600">{row.totalQty} pcs</span>
+                <p className="text-[9.5px] sm:text-[10px] text-slate-500 font-medium truncate" title={row.namaProject}>
+                  {row.namaProject} &bull; <span className="font-bold text-slate-700">{row.totalQty} pcs</span>
                 </p>
               </div>
 
-              {/* 3. Hero Metric: Omzet Order */}
               <div className="min-w-0">
-                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400 block leading-tight">
+                <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400 block leading-tight">
                   Total Omzet
                 </span>
                 <div className="font-mono text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight tabular-nums truncate">
@@ -296,57 +294,60 @@ export function MasterFinanceTable({
                 </div>
               </div>
 
-              {/* 4. Sub-Metrics: Terbayar vs Sisa (Clean 2-Box Tile) */}
-              <div className="grid grid-cols-2 gap-1 text-[9px] min-w-0">
-                <div className="rounded-md bg-teal-50/70 p-1 sm:p-1.5 border border-teal-100/90 min-w-0">
-                  <span className="text-teal-700/80 block text-[8px] font-medium leading-none mb-0.5 truncate">Terbayar</span>
-                  <span className="font-mono font-bold text-teal-800 tabular-nums truncate block text-[9px] sm:text-[10px]">
+              <div className="grid grid-cols-2 gap-1.5 text-[9px] min-w-0">
+                <div className="rounded-lg bg-teal-50/70 p-1.5 border border-teal-100/90 min-w-0">
+                  <span className="text-teal-800 block text-[8.5px] font-medium leading-none mb-0.5 truncate">Terbayar</span>
+                  <span className="font-mono font-bold text-teal-900 tabular-nums truncate block text-[9.5px] sm:text-[10px]">
                     {formatCompactRupiah(row.nominalDpCustomer)}
                   </span>
                 </div>
-                <div className={cn(
-                  "rounded-md p-1 sm:p-1.5 border min-w-0",
-                  row.sisaPelunasanCustomer > 0
-                    ? "bg-amber-50/70 border-amber-100/90 text-amber-800"
-                    : "bg-emerald-50/70 border-emerald-100/90 text-emerald-800"
-                )}>
-                  <span className="block text-[8px] font-medium opacity-80 leading-none mb-0.5 truncate">
+                <div
+                  className={cn(
+                    'rounded-lg p-1.5 border min-w-0',
+                    row.sisaPelunasanCustomer > 0
+                      ? 'bg-amber-50/70 border-amber-100/90 text-amber-900'
+                      : 'bg-emerald-50/70 border-emerald-100/90 text-emerald-900'
+                  )}
+                >
+                  <span className="block text-[8.5px] font-medium opacity-85 leading-none mb-0.5 truncate">
                     {row.sisaPelunasanCustomer > 0 ? 'Sisa Piutang' : 'Status'}
                   </span>
-                  <span className="font-mono font-bold tabular-nums truncate block text-[9px] sm:text-[10px]">
+                  <span className="font-mono font-bold tabular-nums truncate block text-[9.5px] sm:text-[10px]">
                     {row.sisaPelunasanCustomer > 0 ? formatCompactRupiah(row.sisaPelunasanCustomer) : 'LUNAS'}
                   </span>
                 </div>
               </div>
 
-              {/* 5. Profit Row */}
-              <div className="flex items-center justify-between text-[8.5px] sm:text-[9px] px-0.5 text-slate-500 min-w-0">
+              <div className="flex items-center justify-between text-[9px] sm:text-[10px] px-0.5 text-slate-500 min-w-0">
                 <span className="font-medium truncate">Profit ({row.profitPercent.toFixed(0)}%):</span>
-                <span className="font-mono font-bold text-emerald-600 shrink-0 text-[9px] sm:text-[9.5px]">
+                <span className="font-mono font-bold text-emerald-600 shrink-0">
                   +{formatCompactRupiah(row.profitBersih)}
                 </span>
               </div>
 
-              {/* 6. Touch Action Buttons (US-9.14: 3 Ergonomic Buttons with Adaptive WA) */}
-              <div className="pt-1.5 grid grid-cols-3 gap-1 border-t border-slate-100">
+              {/* Asymmetric Proportional Action Row: [👁️] [✏️] + Full-Width [💬 WA Action] */}
+              <div
+                className="pt-2 flex items-center gap-1.5 border-t border-slate-100"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
-                  onClick={() => onEditFinance?.(row)}
-                  title="Edit Finansial"
-                  className="h-7.5 sm:h-8 flex items-center justify-center gap-1 rounded-lg bg-teal-600 px-1 text-[10px] font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-[0.97] transition-all cursor-pointer"
+                  onClick={() => onSelectRow?.(row)}
+                  title="Inspeksi Detail Order & Faktur"
+                  aria-label="Inspeksi Detail Order"
+                  className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
                 >
-                  <Pencil className="h-3 w-3 shrink-0" />
-                  <span className="truncate">Edit</span>
+                  <Eye className="h-3.5 w-3.5" />
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => onSelectRow?.(row)}
-                  title="Inspeksi Detail Order"
-                  className="h-7.5 sm:h-8 flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1 text-[10px] font-bold text-slate-700 hover:bg-slate-100 active:scale-[0.97] transition-all cursor-pointer"
+                  onClick={() => onEditFinance?.(row)}
+                  title="Edit Finansial & Termin DP"
+                  aria-label="Edit Finansial Order"
+                  className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
                 >
-                  <Eye className="h-3 w-3 shrink-0 text-slate-500" />
-                  <span className="truncate">Detail</span>
+                  <Pencil className="h-3.5 w-3.5" />
                 </button>
 
                 <button
@@ -354,12 +355,13 @@ export function MasterFinanceTable({
                   onClick={(e) => handleOpenWhatsApp(e, row)}
                   title={waConfig.title}
                   className={cn(
-                    "h-7.5 sm:h-8 flex items-center justify-center gap-0.5 rounded-lg px-1 text-[9.5px] font-bold shadow-2xs active:scale-[0.97] transition-all cursor-pointer truncate",
+                    'flex-1 h-8 inline-flex items-center justify-center gap-1 rounded-lg px-2 text-[10px] sm:text-[11px] font-bold shadow-2xs active:scale-[0.96] transition-transform duration-150 cursor-pointer whitespace-nowrap',
                     waConfig.bgClass
                   )}
                 >
-                  <MessageCircle className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{waConfig.label}</span>
+                  <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span className="sm:hidden">{waConfig.shortLabel}</span>
+                  <span className="hidden sm:inline">{waConfig.label}</span>
                 </button>
               </div>
             </div>
@@ -517,38 +519,40 @@ export function MasterFinanceTable({
 
                 {/* Frozen Sticky Right 1: Aksi Kompak */}
                 <td
-                  className="px-2.5 py-2 text-center w-52 min-w-[200px] md:sticky md:right-[124px] bg-white group-hover:bg-[#f6fbfb] z-20 shadow-[-1px_0_0_0_#e2e8f0]"
+                  className="px-2.5 py-2 text-center w-56 min-w-[216px] md:sticky md:right-[124px] bg-white group-hover:bg-[#f6fbfb] z-20 shadow-[-1px_0_0_0_#e2e8f0]"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center justify-center gap-1.5">
-                    {/* 1. Ikon Pensil: Edit Finansial Order */}
                     <button
+                      type="button"
                       onClick={() => onEditFinance?.(row)}
                       title="Edit Finansial Order (Harga, DP, Vendor, HPP)"
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 active:scale-95 transition-all cursor-pointer"
+                      aria-label={`Edit Finansial ${row.noInvoice}`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50/90 text-teal-700 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
 
-                    {/* 2. Ikon Mata: Detail Cicilan & Faktur */}
                     <button
+                      type="button"
                       onClick={() => onSelectRow?.(row)}
                       title="Inspeksi Detail Cicilan & Faktur"
-                      className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+                      aria-label={`Detail Cicilan ${row.noInvoice}`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </button>
 
-                    {/* 3. Tombol Adaptif WhatsApp (US-9.14: Tidak Pernah Hilang) */}
                     <button
+                      type="button"
                       onClick={(e) => handleOpenWhatsApp(e, row)}
                       title={waConfig.title}
                       className={cn(
-                        "inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[10px] font-bold shadow-sm active:scale-95 transition-all cursor-pointer whitespace-nowrap",
+                        "inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-bold shadow-2xs active:scale-[0.96] transition-transform duration-150 cursor-pointer whitespace-nowrap",
                         waConfig.bgClass
                       )}
                     >
-                      <MessageCircle className="h-3 w-3 shrink-0" />
+                      <MessageCircle className="h-3.5 w-3.5 shrink-0" />
                       <span>{waConfig.label}</span>
                     </button>
                   </div>
@@ -699,24 +703,28 @@ export function MasterFinanceTable({
               <button
                 type="button"
                 onClick={() => setMobileViewMode('card')}
-                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                className={cn(
+                  'inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer',
                   mobileViewMode === 'card'
                     ? 'bg-white text-teal-700 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800'
-                }`}
+                )}
               >
-                📱 Kartu
+                <LayoutGrid className="h-3.5 w-3.5 shrink-0" />
+                <span>Kartu</span>
               </button>
               <button
                 type="button"
                 onClick={() => setMobileViewMode('table')}
-                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
+                className={cn(
+                  'inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer',
                   mobileViewMode === 'table'
                     ? 'bg-white text-teal-700 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800'
-                }`}
+                )}
               >
-                📊 Tabel
+                <TableProperties className="h-3.5 w-3.5 shrink-0" />
+                <span>Tabel</span>
               </button>
             </div>
 
