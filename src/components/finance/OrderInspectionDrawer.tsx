@@ -102,7 +102,7 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[60] overflow-hidden">
+      <div className="fixed inset-0 z-[60] overflow-hidden no-print">
         {/* Backdrop Overlay */}
         <motion.div
           initial={{ opacity: 0 }}

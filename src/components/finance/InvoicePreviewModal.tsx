@@ -46,18 +46,22 @@ export function InvoicePreviewModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[70] flex items-start justify-center p-2 sm:p-6 overflow-y-auto bg-slate-900/60 backdrop-blur-sm">
+      <div
+        id="invoicePrintModalRoot"
+        className="fixed inset-0 z-[70] flex items-start justify-center p-2 sm:p-6 overflow-y-auto bg-slate-900/60 backdrop-blur-sm"
+      >
         {/* Backdrop Click-to-Close */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-transparent"
+          className="fixed inset-0 bg-transparent no-print"
         />
 
         {/* Modal Paper Container */}
         <motion.div
+          id="invoicePrintDialog"
           initial={{ scale: 0.96, opacity: 0, y: 12 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.96, opacity: 0, y: 12 }}
