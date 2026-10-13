@@ -10,7 +10,6 @@ import {
   WalletCards,
   Award,
   FileSpreadsheet,
-  ShieldCheck,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -202,31 +201,6 @@ export function Sidebar({
             })}
           </nav>
         </div>
-
-        {/* Bank Reconciliation Status Box */}
-        {!isCollapsed ? (
-          <div className="mt-8 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3.5">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <span className="text-xs font-bold text-emerald-800">
-                Rekening Bank Terhubung
-              </span>
-            </div>
-            <p className="mt-1 text-[11px] text-emerald-700 leading-snug">
-              Sinkron BCA: Kas Riil tidak terpotong biaya pokok vendor.
-            </p>
-          </div>
-        ) : (
-          <div
-            title="Rekening Bank Terhubung: Sinkron BCA aktif"
-            className="mt-6 flex justify-center"
-          >
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600">
-              <ShieldCheck className="h-4 w-4" />
-              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* User Profile & Logout */}
