@@ -5,6 +5,7 @@ import type {
   EscrowAllocation,
   VendorDebtBreakdown,
   EscrowLiquidityCalculation,
+  MasterFinanceRow,
 } from '@/types';
 
 /**
@@ -120,15 +121,17 @@ export function calculateFinancialSummary(
   transactions: CashTransaction[],
   orders: Order[]
 ): FinancialSummary {
-  let totalKasMasuk = 0;
+  let kasMasukNonOrder = 0;
   let totalKasKeluar = 0;
   let bebanOperasional = 0;
   let kasKeluarCount = 0;
 
-  // 1. Hitung seluruh kas keluar dari transaksi kas (Cash Outflow)
+  // 1. Hitung seluruh kas masuk non-order & kas keluar dari transaksi kas
   for (const tx of transactions) {
     if (tx.tipe === 'masuk') {
-      // transaksi kas masuk non-order
+      if (tx.kategori !== 'Penerimaan Konsumen') {
+        kasMasukNonOrder += tx.nominal;
+      }
     } else {
       totalKasKeluar += tx.nominal;
       kasKeluarCount++;
@@ -187,8 +190,8 @@ export function calculateFinancialSummary(
   }
 
   // VisualKainDB Saldo Formula:
-  // Saldo Kas Riil Bank = saldoAwal + Uang Masuk Customer - DP Vendor Dibayar - Beban Operasional Kas - Beban Operasional Order
-  totalKasMasuk = totalUangMasukOrders;
+  // Saldo Kas Riil Bank = saldoAwal + Uang Masuk Customer + Kas Masuk Non-Order - DP Vendor Dibayar - Beban Operasional Kas - Beban Operasional Order
+  const totalKasMasuk = totalUangMasukOrders + kasMasukNonOrder;
   const totalBebanOperasional = bebanOperasional + totalBiayaOperasionalOrders;
   const saldoKasRiil = saldoAwal + totalKasMasuk - totalDibayarKeVendor - totalBebanOperasional;
   const profitMarginPercent = omzetTotal > 0 ? (totalProfitRealtime / omzetTotal) * 100 : 0;
@@ -247,3 +250,70 @@ export function computeVendorDebtBreakdown(orders: Order[]): VendorDebtBreakdown
 
   return Array.from(map.values()).sort((a, b) => b.sisaUtang - a.sisaUtang);
 }
+
+/**
+ * Mengonversi daftar Order menjadi MasterFinanceRow dengan metrik 70% threshold & referensi originalOrder
+ */
+export function transformToMasterRows(orders: Order[]): MasterFinanceRow[] {
+  return orders.map((o) => {
+    const totalJumlah = o.totalInvoice;
+    const nominalDpCustomer = o.totalUangMasukCustomer;
+    const dpPersenCustomer = totalJumlah > 0 ? (nominalDpCustomer / totalJumlah) * 100 : 0;
+    const sisaPelunasanCustomer = Math.max(0, totalJumlah - nominalDpCustomer);
+    const sisaPembayaranVendor = Math.max(0, o.totalHpp - o.totalDibayarKeVendor);
+    const biayaOperasional = o.biayaOperasional || 0;
+    const profitBersih = totalJumlah - o.totalHpp - biayaOperasional;
+    const profitPercent = totalJumlah > 0 ? (profitBersih / totalJumlah) * 100 : 0;
+
+    let statusDpThreshold: 'belum_dp' | 'dp1_parsial' | 'dp2_siap_produksi' | 'lunas_total' = 'belum_dp';
+    let sisaMenujuDp70 = 0;
+
+    if (dpPersenCustomer >= 100) {
+      statusDpThreshold = 'lunas_total';
+    } else if (dpPersenCustomer >= 70) {
+      statusDpThreshold = 'dp2_siap_produksi';
+    } else if (dpPersenCustomer > 0) {
+      statusDpThreshold = 'dp1_parsial';
+      sisaMenujuDp70 = Math.max(0, 0.7 * totalJumlah - nominalDpCustomer);
+    }
+
+    const statusOrder =
+      o.statusOrder ||
+      (o.statusPembayaran === 'lunas' || dpPersenCustomer >= 100
+        ? 'SELESAI'
+        : dpPersenCustomer >= 70
+        ? 'PRODUKSI'
+        : 'PEMBAYARAN');
+
+    return {
+      ...o,
+      originalOrder: o,
+      id: o.id,
+      noInv: o.noInv,
+      tanggalInv: o.tanggalOrder,
+      namaCustomer: o.customerName,
+      namaProject: o.projectName || '-',
+      noWaCustomer: o.noWaCustomer,
+      totalBiayaVendor: o.totalHpp,
+      dpVendor: o.totalDibayarKeVendor,
+      sisaPembayaranVendor,
+      totalQty: o.totalQty || 1,
+      totalJumlah,
+      dpPersenCustomer,
+      nominalDpCustomer,
+      sisaPelunasanCustomer,
+      biayaOperasional,
+      biayaTambahanVendor: o.biayaTambahanVendor || 0,
+      biayaTambahanCustomer: o.biayaTambahanCustomer || 0,
+      diskon: o.diskon || 0,
+      profitBersih,
+      profitPercent,
+      statusDpThreshold,
+      sisaMenujuDp70,
+      statusOrder,
+      pembayaranList: o.pembayaranList,
+      vendorName: o.vendorName || '-',
+    };
+  });
+}
+

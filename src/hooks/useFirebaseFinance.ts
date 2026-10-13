@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { calculateOrderTotals } from '@/lib/calculations';
+import { initialOrdersData, initialCashTransactions } from '@/lib/seed-data';
 import type { Order, CashTransaction, CustomerPayment, CashOutflowCategory } from '@/types';
 
 export type SyncState = 'connecting' | 'live' | 'fallback' | 'error';
@@ -31,18 +32,25 @@ interface UseFirebaseFinanceResult {
   error: string | null;
   updateOrderFinance: (
     orderId: string,
-    data: { hppAktual?: number | null; profitAktual?: number | null; catatanFinance?: string }
+    data: Partial<Order> & {
+      pembayaranList?: CustomerPayment[];
+      vendorPrices?: { pendek: number; panjang: number; tanpaLengan: number };
+    }
   ) => Promise<boolean>;
   addKas: (data: Omit<CashTransaction, 'id'>) => Promise<string>;
   deleteKas: (id: string) => Promise<void>;
 }
 
 export function useFirebaseFinance(
-  initialOrders: Order[],
-  initialTransactions: CashTransaction[]
+  initialOrders: Order[] = initialOrdersData,
+  initialTransactions: CashTransaction[] = initialCashTransactions
 ): UseFirebaseFinanceResult {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(initialTransactions);
+  const [orders, setOrders] = useState<Order[]>(
+    initialOrders.length > 0 ? initialOrders : initialOrdersData
+  );
+  const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>(
+    initialTransactions.length > 0 ? initialTransactions : initialCashTransactions
+  );
   const [vendors, setVendors] = useState<VendorInfo[]>([]);
   const [syncState, setSyncState] = useState<SyncState>('connecting');
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
@@ -93,16 +101,21 @@ export function useFirebaseFinance(
               const totalInv = totals.jumlahSemua;
               const totalHpp = totals.totalHpp;
 
-              // DP Vendor: prioritaskan dpNominalPO yang tersimpan, fallback persentase
-              const dpVendor = d.dpNominalPO && Number(d.dpNominalPO) > 0
-                ? Number(d.dpNominalPO)
-                : Math.round(totalHpp * (Number(d.dpPersenPO || 0) / 100));
+              // DP Vendor: prioritaskan totalDibayarKeVendor / dpNominalPO yang tersimpan, fallback persentase
+              const dpVendor =
+                d.totalDibayarKeVendor !== undefined
+                  ? Number(d.totalDibayarKeVendor)
+                  : d.dpNominalPO && Number(d.dpNominalPO) > 0
+                  ? Number(d.dpNominalPO)
+                  : Math.round(totalHpp * (Number(d.dpPersenPO || 0) / 100));
 
               // Ekstrak riwayat pembayaran konsumen
               const payments: CustomerPayment[] = [];
+              let hasModernPaymentRecord = false;
 
               // Cek riwayat pembayaran bertahap modern (riwayatPembayaran)
-              if (Array.isArray(d.riwayatPembayaran) && d.riwayatPembayaran.length > 0) {
+              if (Array.isArray(d.riwayatPembayaran)) {
+                hasModernPaymentRecord = true;
                 d.riwayatPembayaran.forEach((p: any, idx: number) => {
                   const nominal = Number(p.jumlah || p.nominal || 0);
                   const catatan = String(p.catatan || '').toLowerCase();
@@ -114,14 +127,33 @@ export function useFirebaseFinance(
                       noInv: d.noInv || 'INV',
                       tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
                       nominal,
-                      jenis: idx === 0 ? 'dp' : 'termin',
+                      jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
                       keterangan: p.catatan || (idx === 0 ? 'DP Pembayaran' : 'Pembayaran Termin'),
                       createdAt: new Date().toISOString(),
                     });
                   }
                 });
-              } else {
-                // Fallback field dp1, dp2, pelunasan
+              } else if (Array.isArray(d.pembayaranList)) {
+                hasModernPaymentRecord = true;
+                d.pembayaranList.forEach((p: any, idx: number) => {
+                  const nominal = Number(p.nominal || p.jumlah || 0);
+                  if (nominal > 0) {
+                    payments.push({
+                      id: p.id || `${docSnap.id}-p-${idx}`,
+                      orderId: docSnap.id,
+                      noInv: d.noInv || 'INV',
+                      tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
+                      nominal,
+                      jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
+                      keterangan: p.keterangan || p.catatan || 'Pembayaran Termin',
+                      createdAt: p.createdAt || new Date().toISOString(),
+                    });
+                  }
+                });
+              }
+
+              // Fallback field dp1, dp2, pelunasan HANYA jika dokumen belum memiliki riwayat pembayaran modern
+              if (!hasModernPaymentRecord) {
                 const dp1 = Number(d.dp1Nominal || 0);
                 const dp2 = Number(d.dp2Nominal || 0);
                 const pelunasan = Number(d.pelunasanNominal || 0);
@@ -182,10 +214,12 @@ export function useFirebaseFinance(
 
               // DP Customer terverifikasi (SSOT VisualKainDB: prioritaskan riwayat pembayaran bertahap jika ada)
               const sumPayments = payments.reduce((acc, p) => acc + p.nominal, 0);
-              const lockedDpCustomer = sumPayments > 0
+              const lockedDpCustomer = hasModernPaymentRecord
                 ? sumPayments
-                : (d.dpNominal && Number(d.dpNominal) > 0 ? Number(d.dpNominal) : totals.nominalDP);
-              const isOrderCompleted = d.status === 'completed' || d.statusOrder === 'SELESAI' || d.statusPembayaran === 'lunas';
+                : (d.dpNominal !== undefined && Number(d.dpNominal) >= 0
+                    ? Number(d.dpNominal)
+                    : (sumPayments > 0 ? sumPayments : totals.nominalDP));
+              const isOrderCompleted = (d.status === 'completed' || d.statusOrder === 'SELESAI' || d.statusPembayaran === 'lunas') && lockedDpCustomer >= totalInv;
               const totalMasuk = isOrderCompleted ? totalInv : lockedDpCustomer;
 
               const resolvedVendorName =
@@ -204,6 +238,7 @@ export function useFirebaseFinance(
                 projectName: d.namaProject || d.projectName || '-',
                 noWaCustomer: d.noWaCustomer || '',
                 tanggalOrder: tanggalInv,
+                grossTotal: totals.grossTotal,
                 totalInvoice: totalInv,
                 totalHpp: totalHpp,
                 targetMargin: totals.profit,
@@ -294,18 +329,44 @@ export function useFirebaseFinance(
   const updateOrderFinance = useCallback(
     async (
       orderId: string,
-      data: Partial<Order>
+      data: Partial<Order> & {
+        pembayaranList?: CustomerPayment[];
+        vendorPrices?: { pendek: number; panjang: number; tanpaLengan: number };
+      }
     ): Promise<boolean> => {
+      const firestorePayload: Record<string, unknown> = {
+        ...data,
+        updatedAt: serverTimestamp(),
+      };
+
+      if (data.totalDibayarKeVendor !== undefined) {
+        firestorePayload.dpNominalPO = Number(data.totalDibayarKeVendor);
+      }
+      if (data.diskon !== undefined) {
+        firestorePayload.diskonHarga = Number(data.diskon);
+      }
+
+      if (data.pembayaranList !== undefined && Array.isArray(data.pembayaranList)) {
+        const riwayatPembayaranFirestore = data.pembayaranList.map((p) => ({
+          jumlah: Number(p.nominal),
+          nominal: Number(p.nominal),
+          tanggal: p.tanggal,
+          catatan: p.keterangan || (p.jenis === 'dp' ? 'DP Pembayaran' : 'Pembayaran Termin'),
+          jenis: p.jenis,
+        }));
+        firestorePayload.riwayatPembayaran = riwayatPembayaranFirestore;
+        const totalMasuk = data.pembayaranList.reduce((acc, p) => acc + Number(p.nominal), 0);
+        firestorePayload.dpNominal = totalMasuk;
+        firestorePayload.totalUangMasukCustomer = totalMasuk;
+      }
+
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, ...data } : o))
       );
 
       try {
         const orderDocRef = doc(db, 'orders', orderId);
-        await updateDoc(orderDocRef, {
-          ...data,
-          updatedAt: serverTimestamp(),
-        });
+        await updateDoc(orderDocRef, firestorePayload);
         return true;
       } catch (err: unknown) {
         console.warn('[Firestore] Update failed, keeping local fallback:', err);

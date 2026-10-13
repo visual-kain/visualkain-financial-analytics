@@ -318,6 +318,7 @@ describe('VisualKain Financial Calculator Engine', () => {
       const orderA: Order = {
         id: 'ord-A',
         noInv: 'INV-A',
+        customerName: 'Customer A',
         tanggalOrder: '2026-10-01',
         totalInvoice: 1000000,
         totalHpp: 600000,
@@ -332,6 +333,7 @@ describe('VisualKain Financial Calculator Engine', () => {
       const orderB: Order = {
         id: 'ord-B',
         noInv: 'INV-B',
+        customerName: 'Customer B',
         tanggalOrder: '2026-10-05',
         totalInvoice: 2000000,
         totalHpp: 1400000,

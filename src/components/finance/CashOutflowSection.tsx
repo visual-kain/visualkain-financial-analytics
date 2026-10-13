@@ -1,10 +1,17 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import * as XLSX from 'xlsx';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { formatRupiah, formatCompactRupiah } from '@/lib/utils';
+import {
+  formatRupiah,
+  formatCompactRupiah,
+  formatDateTick,
+  formatIndonesianDateFull,
+  formatDateRangeBadge,
+} from '@/lib/utils';
 import type { CashTransaction, CashOutflowCategory } from '@/types';
+import { exportCashOutflowToExcel } from '@/lib/excel-export';
 import { Button } from '@/components/ui/button';
 import { Drawer } from 'vaul';
 import { CustomSelect } from '@/components/ui/custom-select';
@@ -23,6 +30,7 @@ import {
   Search,
   Filter,
   RotateCcw,
+  Calendar,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -116,6 +124,7 @@ export function CashOutflowSection({
   onAddTransaction,
   onDeleteTransaction,
 }: CashOutflowSectionProps) {
+  const router = useRouter();
   const [entries, setEntries] = useState<CashTransaction[]>(initialEntries);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -158,6 +167,8 @@ export function CashOutflowSection({
   // Filtered dataset for table and charts
   const filteredEntries = useMemo(() => {
     return entries.filter((item) => {
+      // US-9.21: Pastikan hanya transaksi kas keluar riil yang diproses
+      if (item.tipe && item.tipe !== 'keluar') return false;
       const matchesCategory = categoryFilter === 'all' || item.kategori === categoryFilter;
       const matchesTahun = tahunFilter === 'all' || (item.tanggal || '').startsWith(tahunFilter);
       const matchesBulan = bulanFilter === 'all' || (item.tanggal || '').slice(5, 7) === bulanFilter;
@@ -209,7 +220,7 @@ export function CashOutflowSection({
     return Object.entries(map)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([tgl, amount]) => ({
-        tanggal: tgl.slice(5),
+        tanggal: formatDateTick(tgl),
         fullDate: tgl,
         nominal: amount,
       }));
@@ -278,19 +289,19 @@ export function CashOutflowSection({
     }
   };
 
-  const handleExportExcel = () => {
-    const dataToExport = entries.map((e) => ({
-      Tanggal: e.tanggal,
-      Kategori: e.kategori,
-      Keterangan: e.keterangan,
-      'Jumlah (Rp)': e.nominal,
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Dana Keluar');
-    XLSX.writeFile(workbook, `Laporan_Dana_Keluar_VisualKain_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success('File Excel berhasil diekspor');
+  // Export Excel Eksekutif Standar Inzta (US-9.28)
+  const handleExportExcel = async () => {
+    if (filteredEntries.length === 0) {
+      toast.error('Tidak ada data pengeluaran untuk diekspor!');
+      return;
+    }
+    try {
+      await exportCashOutflowToExcel(filteredEntries, selectedPeriod);
+      toast.success('Laporan Arus Kas Keluar berhasil diekspor ke Excel!');
+    } catch (err) {
+      console.error('Gagal mengekspor Excel:', err);
+      toast.error('Gagal mengekspor berkas Excel');
+    }
   };
 
   return (
@@ -451,9 +462,12 @@ export function CashOutflowSection({
                 Mendeteksi lonjakan kas keluar pada tanggal pencairan/belanja
               </p>
             </div>
-            <span className="text-xs font-mono font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
-              {dailyTrendData.length} Titik Waktu
-            </span>
+            {dailyTrendData.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-mono font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
+                <Calendar className="h-3 w-3 text-slate-400" />
+                {formatDateRangeBadge(dailyTrendData.map((d) => d.fullDate))}
+              </span>
+            )}
           </div>
 
           <div className="h-64 w-full my-3">
@@ -477,10 +491,12 @@ export function CashOutflowSection({
                   content={({ active, payload, label }) => {
                     if (!active || !payload?.length) return null;
                     const val = Number(payload[0].value) || 0;
+                    const fullDate = (payload[0]?.payload as any)?.fullDate;
+                    const displayDate = fullDate ? formatIndonesianDateFull(fullDate) : label;
                     return (
                       <div className="rounded-xl border border-slate-700 bg-slate-900/95 p-2.5 shadow-xl backdrop-blur-sm text-xs min-w-[150px]">
                         <div className="font-medium text-slate-400 border-b border-slate-800 pb-1 mb-1.5">
-                          Tanggal: <span className="text-white font-mono font-bold">{label}</span>
+                          Tanggal: <span className="text-white font-mono font-bold">{displayDate}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-slate-400">Pengeluaran:</span>
@@ -516,7 +532,7 @@ export function CashOutflowSection({
           </div>
           <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:items-center">
             <Button
-              onClick={() => setIsDrawerOpen(true)}
+              onClick={() => router.push('/cash-out/new')}
               className="h-10 min-h-[40px] flex-1 sm:flex-none gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer justify-center"
             >
               <Plus className="h-4 w-4 shrink-0" />
@@ -528,7 +544,7 @@ export function CashOutflowSection({
               className="h-10 min-h-[40px] flex-1 sm:flex-none gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 active:scale-[0.98] transition-transform duration-150 cursor-pointer justify-center"
             >
               <Download className="h-4 w-4 shrink-0 text-slate-500" />
-              <span>Export Excel</span>
+              <span>Ekspor Excel</span>
             </Button>
           </div>
         </div>
@@ -666,7 +682,7 @@ export function CashOutflowSection({
                 <th className="px-4 py-3">KATEGORI</th>
                 <th className="px-4 py-3">KETERANGAN</th>
                 <th className="px-4 py-3 text-right">JUMLAH (RP)</th>
-                <th className="px-4 py-3 text-center">ACTION</th>
+                <th className="px-4 py-3 text-center">AKSI</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">

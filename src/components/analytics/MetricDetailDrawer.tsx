@@ -40,6 +40,7 @@ interface MetricDetailDrawerProps {
   saldoAwal?: number;
   initialVendorFilter?: string | null;
   onOpenAddIncome?: () => void;
+  onOpenAddExpense?: () => void;
   onSelectOrder?: (order: MasterFinanceRow) => void;
 }
 
@@ -53,11 +54,14 @@ export function MetricDetailDrawer({
   saldoAwal = 0,
   initialVendorFilter = null,
   onOpenAddIncome,
+  onOpenAddExpense,
   onSelectOrder,
 }: MetricDetailDrawerProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'lunas' | 'berjalan'>('all');
+  const [inflowFilter, setInflowFilter] = useState<'all' | 'dp' | 'termin' | 'pelunasan' | 'kas_masuk'>('all');
+  const [saldoSubView, setSaldoSubView] = useState<'komponen' | 'inflow' | 'outflow'>('komponen');
 
   // Sinkronisasi vendor filter saat initialVendorFilter berubah
   useEffect(() => {
@@ -72,6 +76,8 @@ export function MetricDetailDrawer({
   useEffect(() => {
     setSearchQuery('');
     setStatusFilter('all');
+    setInflowFilter('all');
+    setSaldoSubView('komponen');
   }, [metricType]);
 
   // Listener tombol ESC
@@ -137,19 +143,117 @@ export function MetricDetailDrawer({
     });
   }, [orders, searchQuery, selectedVendorFilter, statusFilter, metricType]);
 
-  // Filter Cash Transactions untuk Uang Keluar & Saldo
+  // Filter Cash Transactions untuk Uang Keluar & Saldo (US-9.21)
   const filteredTransactions = useMemo(() => {
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
     return transactions.filter((t) => {
       if (metricType === 'cashout' && t.tipe !== 'keluar') return false;
+      if (metricType === 'saldo' && saldoSubView === 'outflow' && t.tipe !== 'keluar') return false;
       const matchSearch =
         !q ||
         t.keterangan.toLowerCase().includes(q) ||
         t.kategori.toLowerCase().includes(q) ||
-        (t.refInvoice && t.refInvoice.toLowerCase().includes(q));
+        (t.refInvoice && t.refInvoice.toLowerCase().includes(q)) ||
+        (t.tanggal && t.tanggal.includes(q)) ||
+        t.nominal.toString().includes(q);
       return matchSearch;
     });
-  }, [transactions, searchQuery, metricType]);
+  }, [transactions, searchQuery, metricType, saldoSubView]);
+
+  // Agregasi seluruh arus kas masuk (pembayaran customer + kas masuk non-order) (US-9.9)
+  const allInflowEntries = useMemo(() => {
+    const list: Array<{
+      id: string;
+      order?: Order;
+      noInv: string;
+      namaCustomer: string;
+      namaProject: string;
+      tanggal: string;
+      nominal: number;
+      kategori: 'dp' | 'termin' | 'pelunasan' | 'kas_masuk';
+      kategoriLabel: string;
+      rekening: string;
+      keterangan: string;
+    }> = [];
+
+    orders.forEach((o) => {
+      if (o.pembayaranList && o.pembayaranList.length > 0) {
+        o.pembayaranList.forEach((p, idx) => {
+          let katLabel = 'Uang Muka (DP 1)';
+          if (p.jenis === 'termin') katLabel = 'Termin (DP 2 70%)';
+          else if (p.jenis === 'pelunasan') katLabel = 'Pelunasan Penuh';
+
+          const parts = (p.keterangan || '').split(' - ');
+          const rekening = parts[0] || 'Transfer Bank';
+          const note = parts.slice(1).join(' - ') || p.keterangan || '-';
+
+          list.push({
+            id: p.id || `inflow-${o.id}-${idx}`,
+            order: o,
+            noInv: o.noInv,
+            namaCustomer: o.customerName,
+            namaProject: o.projectName || '-',
+            tanggal: p.tanggal,
+            nominal: p.nominal,
+            kategori: p.jenis,
+            kategoriLabel: katLabel,
+            rekening,
+            keterangan: note,
+          });
+        });
+      } else if (o.totalUangMasukCustomer > 0) {
+        list.push({
+          id: `inflow-${o.id}-legacy`,
+          order: o,
+          noInv: o.noInv,
+          namaCustomer: o.customerName,
+          namaProject: o.projectName || '-',
+          tanggal: o.tanggalInv || o.tanggalOrder || '-',
+          nominal: o.totalUangMasukCustomer,
+          kategori: 'dp',
+          kategoriLabel: 'Uang Muka (DP)',
+          rekening: 'Transfer Bank',
+          keterangan: 'Pembayaran DP Konsumen',
+        });
+      }
+    });
+
+    transactions.forEach((tx) => {
+      if (tx.tipe === 'masuk' && tx.kategori !== 'Penerimaan Konsumen') {
+        list.push({
+          id: tx.id,
+          noInv: tx.refInvoice || 'KAS-MASUK',
+          namaCustomer: 'Penerimaan Non-Order',
+          namaProject: tx.kategori || 'Kas Langsung',
+          tanggal: tx.tanggal,
+          nominal: tx.nominal,
+          kategori: 'kas_masuk',
+          kategoriLabel: 'Kas Masuk Non-Order',
+          rekening: 'Kas / Bank',
+          keterangan: tx.keterangan,
+        });
+      }
+    });
+
+    return list.sort((a, b) => (b.tanggal > a.tanggal ? 1 : -1));
+  }, [orders, transactions]);
+
+  const filteredInflows = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return allInflowEntries.filter((item) => {
+      const matchSearch =
+        !q ||
+        item.noInv.toLowerCase().includes(q) ||
+        item.namaCustomer.toLowerCase().includes(q) ||
+        item.namaProject.toLowerCase().includes(q) ||
+        item.keterangan.toLowerCase().includes(q) ||
+        item.rekening.toLowerCase().includes(q);
+
+      if (!matchSearch) return false;
+      if (inflowFilter !== 'all' && item.kategori !== inflowFilter) return false;
+      return true;
+    });
+  }, [allInflowEntries, searchQuery, inflowFilter]);
 
   if (!isOpen || !metricType) return null;
 
@@ -184,10 +288,10 @@ export function MetricDetailDrawer({
       badge: summary.saldoKasRiil < 0 ? 'Defisit Kas Periode' : 'Kas Bank Riil',
       badgeColor: summary.saldoKasRiil < 0 ? 'bg-rose-50 text-rose-700 border-rose-200 font-bold' : 'bg-teal-50 text-teal-700 border-teal-200',
       totalValue: summary.saldoKasRiil,
-      subtitle: `Saldo Awal: ${formatCompactRupiah(saldoAwal)} • Inflow: ${formatCompactRupiah(summary.totalKasMasuk)}`,
+      subtitle: `Saldo Awal: ${formatCompactRupiah(saldoAwal)} • Kas Masuk: ${formatCompactRupiah(summary.totalKasMasuk)}`,
       formula: 'Saldo Kas = (Saldo Awal + Total Uang Masuk) - (Bayar Vendor + Beban Operasional)',
       formulaDesc:
-        'Posisi kas nyata yang tersedia di rekening bank. Mengikuti prinsip Dua Kantong Alokasi Dana agar uang operasional dan titipan pokok vendor terpisah.',
+        'Posisi kas nyata yang tersedia di rekening bank. Mengikuti prinsip alokasi dana agar uang operasional dan titipan pokok vendor terpisah.',
       icon: Wallet,
       accentColor: summary.saldoKasRiil < 0 ? 'text-rose-600' : 'text-teal-600',
     },
@@ -216,16 +320,28 @@ export function MetricDetailDrawer({
       accentColor: 'text-amber-600',
     },
     outstanding: {
-      title: 'Detail Piutang & Outstanding Customer',
+      title: 'Detail Sisa Piutang Pelanggan',
       badge: 'Hak Tagih Konsumen',
       badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
       totalValue: summary.totalPiutangCustomer,
       subtitle: `${summary.unpaidCustomerCount} pesanan belum menyelesaikan pelunasan 100%`,
-      formula: 'Outstanding = ∑ (Total Tagihan Invoice - Akumulasi Uang Masuk Customer)',
+      formula: 'Sisa Piutang = ∑ (Total Tagihan Invoice - Akumulasi Uang Masuk Customer)',
       formulaDesc:
         'Dana tagihan yang masih tertahan di tangan pelanggan. Dilengkapi tombol 1-klik follow up WhatsApp dengan pesan formal sesuai tahap cicilan.',
       icon: HandCoins,
       accentColor: 'text-indigo-600',
+    },
+    cashin: {
+      title: 'Detail Arus Kas Masuk (Penerimaan Kas)',
+      badge: 'Pemasukan Kas Riil',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      totalValue: summary.totalKasMasuk,
+      subtitle: `Akumulasi seluruh pembayaran customer & kas masuk non-order`,
+      formula: 'Total Kas Masuk = ∑ DP 1 + ∑ DP 2 (70%) + ∑ Pelunasan Konsumen + ∑ Kas Masuk Non-Order',
+      formulaDesc:
+        'Rincian seluruh arus kas masuk yang telah berhasil diterima ke rekening bank VisualKain. Menampilkan breakdown per invoice, customer, dan kategori termin.',
+      icon: HandCoins,
+      accentColor: 'text-emerald-600',
     },
   }[metricType];
 
@@ -256,6 +372,8 @@ export function MetricDetailDrawer({
     }
 
     const row: MasterFinanceRow = {
+      ...o,
+      originalOrder: o.rawOrder || o,
       id: o.id,
       noInv: o.noInv,
       tanggalInv: o.tanggalOrder,
@@ -307,7 +425,7 @@ export function MetricDetailDrawer({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-hidden">
+      <div className="fixed inset-0 z-[60] overflow-hidden">
         {/* Backdrop Overlay */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -394,6 +512,45 @@ export function MetricDetailDrawer({
 
               {/* 3. Sub-Filters & Quick Search Controls */}
               <div className="space-y-3">
+                {/* Saldo Sub-View Switcher (Ringkasan vs Kas Masuk vs Kas Keluar) (US-9.9) */}
+                {metricType === 'saldo' && (
+                  <div className="grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSaldoSubView('komponen')}
+                      className={`rounded-lg py-1.5 px-2 font-medium transition-all text-center cursor-pointer ${
+                        saldoSubView === 'komponen'
+                          ? 'bg-white text-slate-900 shadow-xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      📊 Komponen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSaldoSubView('inflow')}
+                      className={`rounded-lg py-1.5 px-2 font-medium transition-all text-center cursor-pointer ${
+                        saldoSubView === 'inflow'
+                          ? 'bg-white text-emerald-700 shadow-xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      ⬇️ Masuk ({formatCompactRupiah(summary.totalKasMasuk)})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSaldoSubView('outflow')}
+                      className={`rounded-lg py-1.5 px-2 font-medium transition-all text-center cursor-pointer ${
+                        saldoSubView === 'outflow'
+                          ? 'bg-white text-rose-700 shadow-xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      ⬆️ Keluar ({formatCompactRupiah(summary.totalKasKeluar)})
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
@@ -402,8 +559,10 @@ export function MetricDetailDrawer({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={
-                        metricType === 'cashout'
+                        metricType === 'cashout' || (metricType === 'saldo' && saldoSubView === 'outflow')
                           ? 'Cari beban kas, kategori, keterangan...'
+                          : metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')
+                          ? 'Cari cicilan DP, invoice, customer, rekening...'
                           : 'Cari invoice, customer, vendor...'
                       }
                       className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 shadow-xs"
@@ -411,10 +570,11 @@ export function MetricDetailDrawer({
                   </div>
 
                   {metricType === 'omzet' && (
-                    <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
+                    <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs shrink-0">
                       <button
+                        type="button"
                         onClick={() => setStatusFilter('all')}
-                        className={`rounded-lg px-2.5 py-1 font-medium transition-all ${
+                        className={`rounded-lg px-2.5 py-1 font-medium transition-all cursor-pointer ${
                           statusFilter === 'all'
                             ? 'bg-white text-slate-900 shadow-xs font-bold'
                             : 'text-slate-600 hover:text-slate-900'
@@ -423,8 +583,9 @@ export function MetricDetailDrawer({
                         Semua ({orders.length})
                       </button>
                       <button
+                        type="button"
                         onClick={() => setStatusFilter('lunas')}
-                        className={`rounded-lg px-2.5 py-1 font-medium transition-all ${
+                        className={`rounded-lg px-2.5 py-1 font-medium transition-all cursor-pointer ${
                           statusFilter === 'lunas'
                             ? 'bg-white text-emerald-700 shadow-xs font-bold'
                             : 'text-slate-600 hover:text-slate-900'
@@ -433,8 +594,9 @@ export function MetricDetailDrawer({
                         Lunas
                       </button>
                       <button
+                        type="button"
                         onClick={() => setStatusFilter('berjalan')}
-                        className={`rounded-lg px-2.5 py-1 font-medium transition-all ${
+                        className={`rounded-lg px-2.5 py-1 font-medium transition-all cursor-pointer ${
                           statusFilter === 'berjalan'
                             ? 'bg-white text-amber-700 shadow-xs font-bold'
                             : 'text-slate-600 hover:text-slate-900'
@@ -442,6 +604,23 @@ export function MetricDetailDrawer({
                       >
                         Berjalan
                       </button>
+                    </div>
+                  )}
+
+                  {(metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')) && (
+                    <div className="w-full sm:w-56 shrink-0">
+                      <CustomSelect
+                        value={inflowFilter}
+                        onValueChange={(val) => setInflowFilter(val as typeof inflowFilter)}
+                        icon={<Filter className="h-3.5 w-3.5" />}
+                        options={[
+                          { value: 'all', label: 'Semua Kas Masuk' },
+                          { value: 'dp', label: 'DP 1 (Booking)' },
+                          { value: 'termin', label: 'DP 2 (70% Produksi)' },
+                          { value: 'pelunasan', label: 'Pelunasan (30%)' },
+                          { value: 'kas_masuk', label: 'Kas Masuk Non-Order' },
+                        ]}
+                      />
                     </div>
                   )}
 
@@ -464,20 +643,106 @@ export function MetricDetailDrawer({
                 <div className="flex items-center justify-between text-xs text-slate-500 font-medium pb-1 border-b border-slate-100">
                   <span>
                     Rincian Transaksi Pembentuk (
-                    {metricType === 'cashout' ? filteredTransactions.length : filteredOrders.length} data)
+                    {metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')
+                      ? `${filteredInflows.length} mutasi masuk`
+                      : metricType === 'cashout' || (metricType === 'saldo' && saldoSubView === 'outflow')
+                      ? `${filteredTransactions.length} mutasi keluar`
+                      : `${filteredOrders.length} order`}
+                    )
                   </span>
-                  {metricType === 'cashout' && onOpenAddIncome && (
+                  {(metricType === 'cashout' || (metricType === 'saldo' && saldoSubView === 'outflow')) && (onOpenAddExpense || onOpenAddIncome) && (
                     <button
-                      onClick={onOpenAddIncome}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-800"
+                      onClick={onOpenAddExpense || onOpenAddIncome}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-800 cursor-pointer"
                     >
                       <Plus className="h-3 w-3" /> Catat Kas Keluar
                     </button>
                   )}
+                  {(metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')) && onOpenAddIncome && (
+                    <button
+                      onClick={onOpenAddIncome}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:text-teal-800 cursor-pointer"
+                    >
+                      <Plus className="h-3 w-3" /> Tambah Kas Masuk
+                    </button>
+                  )}
                 </div>
 
-                {/* Tampilan untuk Uang Keluar (Cash Transactions) */}
-                {metricType === 'cashout' && (
+                {/* A. TAMPILAN RINCIAN KAS MASUK (INFLOW BREAKDOWN) (US-9.9) */}
+                {(metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')) && (
+                  <div className="space-y-2.5">
+                    {filteredInflows.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
+                        Tidak ada transaksi kas masuk yang sesuai dengan kriteria filter.
+                      </div>
+                    ) : (
+                      filteredInflows.map((item) => (
+                        <div
+                          key={item.id}
+                          className="group rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-card-double hover:border-emerald-300 transition-all space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="font-mono text-[10px] sm:text-[11px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                                  {item.noInv}
+                                </span>
+                                <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate" title={item.namaCustomer}>
+                                  {item.namaCustomer}
+                                </h4>
+                                <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                                  <Calendar className="h-3 w-3" />
+                                  {item.tanggal}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[11px] text-slate-500 font-medium truncate" title={item.namaProject}>
+                                {item.namaProject} &bull; <span className="text-slate-600">{item.rekening}</span>
+                              </p>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <div className="font-mono text-xs sm:text-sm font-black text-emerald-700 tabular-nums">
+                                +{formatRupiah(item.nominal)}
+                              </div>
+                              <span
+                                className={`inline-block mt-1 text-[9.5px] font-bold px-2 py-0.5 rounded-md border ${
+                                  item.kategori === 'dp'
+                                    ? 'bg-sky-50 text-sky-700 border-sky-200'
+                                    : item.kategori === 'termin'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : item.kategori === 'pelunasan'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-purple-50 text-purple-700 border-purple-200'
+                                }`}
+                              >
+                                {item.kategoriLabel}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Footer Info & Action */}
+                          <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[11px] text-slate-500">
+                            <span className="truncate pr-2 italic text-[10.5px]">
+                              Catatan: {item.keterangan || '-'}
+                            </span>
+                            {item.order && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenOrderInspection(item.order!)}
+                                className="inline-flex items-center gap-1 text-[10.5px] font-bold text-teal-700 hover:text-teal-800 shrink-0 cursor-pointer"
+                              >
+                                Inspeksi Order <ExternalLink className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* B. TAMPILAN RINCIAN KAS KELUAR (OUTFLOW BREAKDOWN) */}
+                {(metricType === 'cashout' || (metricType === 'saldo' && saldoSubView === 'outflow')) && (
                   <div className="space-y-2">
                     {filteredTransactions.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
@@ -512,7 +777,7 @@ export function MetricDetailDrawer({
                             </div>
                           </div>
                           <div className="text-right">
-                            <span className="text-xs font-bold text-rose-600 tabular-nums">
+                            <span className="text-xs font-bold text-rose-600 tabular-nums font-mono">
                               -{formatRupiah(tx.nominal)}
                             </span>
                           </div>
@@ -522,38 +787,38 @@ export function MetricDetailDrawer({
                   </div>
                 )}
 
-                {/* Tampilan untuk Saldo Kas (Rincian Komponen Saldo) */}
-                {metricType === 'saldo' && (
+                {/* C. TAMPILAN RINGKASAN SALDO KAS (KOMPONEN AUDIT) */}
+                {metricType === 'saldo' && saldoSubView === 'komponen' && (
                   <div className="space-y-3">
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2 text-xs">
                       <div className="flex justify-between items-center text-slate-600">
                         <span>1. Saldo Awal Pembukuan Bank</span>
-                        <span className="font-bold text-slate-900 tabular-nums">
+                        <span className="font-bold text-slate-900 tabular-nums font-mono">
                           {formatRupiah(saldoAwal)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-emerald-700">
                         <span>2. Akumulasi Kas Masuk Konsumen (+)</span>
-                        <span className="font-bold tabular-nums">
+                        <span className="font-bold tabular-nums font-mono">
                           +{formatRupiah(summary.totalKasMasuk)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-rose-700">
                         <span>3. Kas Keluar Pembayaran Vendor (-)</span>
-                        <span className="font-bold tabular-nums">
+                        <span className="font-bold tabular-nums font-mono">
                           -{formatRupiah(summary.totalDibayarKeVendor)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-rose-700">
                         <span>4. Beban Operasional Kas (-)</span>
-                        <span className="font-bold tabular-nums">
+                        <span className="font-bold tabular-nums font-mono">
                           -{formatRupiah(summary.bebanOperasionalKas ?? summary.totalKasKeluar)}
                         </span>
                       </div>
                       {(summary.bebanOperasionalOrders ?? 0) > 0 && (
                         <div className="flex justify-between items-center text-rose-700">
                           <span>5. Biaya Operasional Order (-)</span>
-                          <span className="font-bold tabular-nums">
+                          <span className="font-bold tabular-nums font-mono">
                             -{formatRupiah(summary.bebanOperasionalOrders || 0)}
                           </span>
                         </div>
@@ -578,39 +843,46 @@ export function MetricDetailDrawer({
                     )}
 
                     <h5 className="text-xs font-bold text-slate-700 mt-4">
-                      Mutasi Kas Terakhir
+                      Mutasi Terakhir (Kas Masuk & Keluar) ({filteredTransactions.length})
                     </h5>
                     <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                      {transactions.slice(0, 8).map((tx) => (
-                        <div
-                          key={tx.id}
-                          className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 text-xs"
-                        >
-                          <div>
-                            <span className="font-medium text-slate-800">
-                              {tx.keterangan}
-                            </span>
-                            <div className="text-[10px] text-slate-400 mt-0.5">
-                              {tx.tanggal} • {tx.kategori}
-                            </div>
-                          </div>
-                          <span
-                            className={`font-bold tabular-nums ${
-                              tx.tipe === 'masuk' ? 'text-emerald-600' : 'text-rose-600'
-                            }`}
-                          >
-                            {tx.tipe === 'masuk' ? '+' : '-'}
-                            {formatRupiah(tx.nominal)}
-                          </span>
+                      {filteredTransactions.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400">
+                          Tidak ada mutasi kas yang sesuai dengan pencarian.
                         </div>
-                      ))}
+                      ) : (
+                        filteredTransactions.slice(0, 15).map((tx) => (
+                          <div
+                            key={tx.id}
+                            className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3 text-xs"
+                          >
+                            <div>
+                              <span className="font-medium text-slate-800">
+                                {tx.keterangan}
+                              </span>
+                              <div className="text-[10px] text-slate-400 mt-0.5">
+                                {tx.tanggal} • {tx.kategori}
+                              </div>
+                            </div>
+                            <span
+                              className={`font-bold tabular-nums font-mono ${
+                                tx.tipe === 'masuk' ? 'text-emerald-600' : 'text-rose-600'
+                              }`}
+                            >
+                              {tx.tipe === 'masuk' ? '+' : '-'}
+                              {formatRupiah(tx.nominal)}
+                            </span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Tampilan untuk Omzet, Profit, Utang Vendor, dan Outstanding (Order Breakdown) */}
+                {/* D. TAMPILAN ORDER BREAKDOWN (OMZET, PROFIT, UTANG VENDOR, OUTSTANDING) */}
+                {/* Redesain Kartu Sesuai US-9.11: No Inv, Customer, Tanggal, Status, Vendor, Revenue, Modal HPP, Biaya Op, Net Margin, Margin % (TANPA PROFIT AKTUAL) */}
                 {['omzet', 'profit', 'vendor_debt', 'outstanding'].includes(metricType) && (
-                  <div className="space-y-2.5">
+                  <div className="space-y-3">
                     {filteredOrders.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
                         Tidak ada pesanan yang sesuai dengan kriteria filter.
@@ -619,180 +891,125 @@ export function MetricDetailDrawer({
                       filteredOrders.map((o) => {
                         const sisaPiutang = Math.max(0, o.totalInvoice - o.totalUangMasukCustomer);
                         const sisaVendor = Math.max(0, o.totalHpp - o.totalDibayarKeVendor);
-                        const isLunas = o.statusPembayaran === 'lunas' || sisaPiutang === 0;
-                        const marginNet = o.profitAktual ?? (o.totalInvoice - o.totalHpp - (o.biayaOperasional || 0));
-                        const marginPercent = o.totalInvoice > 0 ? (marginNet / o.totalInvoice) * 100 : 0;
+                        const opCost = o.biayaOperasional || 0;
+                        const netProfit = o.totalInvoice - o.totalHpp - opCost;
+                        const marginPercent = o.totalInvoice > 0 ? (netProfit / o.totalInvoice) * 100 : 0;
                         const waLink = getWhatsAppLink(o);
 
                         return (
                           <div
                             key={o.id}
-                            className="group rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all space-y-3"
+                            className="group rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-card-double hover:border-teal-300 transition-all space-y-2.5"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-700">
+                            {/* Header: No Inv, Customer, Tanggal, Status Badge */}
+                            <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                  <span className="rounded-md border border-teal-200 bg-teal-50 px-2 py-0.5 font-mono text-[10px] sm:text-[11px] font-bold text-teal-800">
                                     {o.noInv}
                                   </span>
-                                  <h4 className="text-xs font-extrabold text-slate-900">
+                                  <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate" title={o.customerName}>
                                     {o.customerName}
                                   </h4>
+                                  <span className="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-400 font-medium">
+                                    <Calendar className="h-3 w-3" />
+                                    {o.tanggalOrder || o.tanggalInv || '-'}
+                                  </span>
                                 </div>
-                                <p className="mt-1 text-xs text-slate-500 font-medium">
-                                  {o.projectName || '-'}
-                                  {o.vendorName && ` • Vendor: ${o.vendorName}`}
+                                <p className="mt-1 text-[11px] text-slate-500 font-medium truncate">
+                                  {o.projectName || '-'} &bull; <span className="font-semibold text-slate-700">Mitra: {o.vendorName || 'Umum'}</span>
                                 </p>
                               </div>
 
                               <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[9.5px] sm:text-[10px] font-bold text-slate-700 border border-slate-200">
+                                  {o.statusOrder || 'PRODUKSI'}
+                                </span>
+
                                 {metricType === 'outstanding' && sisaPiutang > 0 && (
                                   <a
                                     href={waLink}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all"
+                                    className="inline-flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 active:scale-95 transition-all"
                                     title="Kirim pesan penagihan WhatsApp"
                                   >
                                     <MessageCircle className="h-3 w-3" />
-                                    WA Tagih
+                                    <span className="hidden sm:inline">WA Tagih</span>
                                   </a>
                                 )}
 
                                 <button
+                                  type="button"
                                   onClick={() => handleOpenOrderInspection(o)}
-                                  className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 active:scale-95 transition-all"
+                                  className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-700 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
                                   title="Lihat riwayat lengkap"
                                 >
-                                  Detail <ExternalLink className="h-3 w-3" />
+                                  <span>Detail</span> <ExternalLink className="h-3 w-3" />
                                 </button>
                               </div>
                             </div>
 
-                            {/* Rincian Angka Kontekstual */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-[11px]">
-                              {metricType === 'omzet' && (
-                                <>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Nilai Invoice</span>
-                                    <span className="font-bold text-slate-900 tabular-nums">
-                                      {formatRupiah(o.totalInvoice)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Uang Masuk</span>
-                                    <span className="font-bold text-emerald-600 tabular-nums">
-                                      {formatRupiah(o.totalUangMasukCustomer)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Sisa Piutang</span>
-                                    <span className="font-bold text-slate-700 tabular-nums">
-                                      {formatRupiah(sisaPiutang)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Status</span>
-                                    <span
-                                      className={`inline-block font-bold text-[10px] rounded px-1.5 py-0.5 ${
-                                        isLunas
-                                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                      }`}
-                                    >
-                                      {isLunas ? 'LUNAS' : 'BERJALAN'}
-                                    </span>
-                                  </div>
-                                </>
-                              )}
+                            {/* Grid Metrik Finansial (US-9.11: Revenue, HPP Vendor, Biaya Operasional, Net Profit, Margin % - DILARANG TAMPILKAN PROFIT AKTUAL) */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1 text-[11px]">
+                              <div className="rounded-lg bg-slate-50/80 p-2 border border-slate-100">
+                                <span className="text-slate-400 block text-[9.5px] font-medium leading-tight">Total Nilai Invoice</span>
+                                <span className="font-bold text-slate-900 tabular-nums font-mono text-xs block mt-0.5">
+                                  {formatRupiah(o.totalInvoice)}
+                                </span>
+                              </div>
 
-                              {metricType === 'profit' && (
-                                <>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Invoice</span>
-                                    <span className="font-bold text-slate-900 tabular-nums">
-                                      {formatRupiah(o.totalInvoice)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Modal HPP</span>
-                                    <span className="font-bold text-slate-600 tabular-nums">
-                                      {formatRupiah(o.totalHpp)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Net Margin</span>
-                                    <span className="font-bold text-emerald-700 tabular-nums">
-                                      {formatRupiah(marginNet)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Margin %</span>
-                                    <span className="font-bold text-emerald-700 tabular-nums">
-                                      {marginPercent.toFixed(1)}%
-                                    </span>
-                                  </div>
-                                </>
-                              )}
+                              <div className="rounded-lg bg-slate-50/80 p-2 border border-slate-100">
+                                <span className="text-slate-400 block text-[9.5px] font-medium leading-tight">Modal HPP Vendor</span>
+                                <span className="font-bold text-slate-700 tabular-nums font-mono text-xs block mt-0.5">
+                                  {formatRupiah(o.totalHpp)}
+                                </span>
+                              </div>
 
-                              {metricType === 'vendor_debt' && (
-                                <>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Total HPP PO</span>
-                                    <span className="font-bold text-slate-900 tabular-nums">
-                                      {formatRupiah(o.totalHpp)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Diserahkan</span>
-                                    <span className="font-bold text-emerald-600 tabular-nums">
-                                      {formatRupiah(o.totalDibayarKeVendor)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Sisa Utang</span>
-                                    <span className="font-bold text-rose-600 tabular-nums">
-                                      {formatRupiah(sisaVendor)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Mitra</span>
-                                    <span className="font-bold text-slate-700 truncate block">
-                                      {o.vendorName || 'Umum'}
-                                    </span>
-                                  </div>
-                                </>
-                              )}
+                              <div className="rounded-lg bg-slate-50/80 p-2 border border-slate-100">
+                                <span className="text-slate-400 block text-[9.5px] font-medium leading-tight">Biaya Operasional</span>
+                                <span className="font-bold text-slate-600 tabular-nums font-mono text-xs block mt-0.5">
+                                  {formatRupiah(opCost)}
+                                </span>
+                              </div>
 
-                              {metricType === 'outstanding' && (
-                                <>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Total Invoice</span>
-                                    <span className="font-bold text-slate-900 tabular-nums">
-                                      {formatRupiah(o.totalInvoice)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">DP Masuk</span>
-                                    <span className="font-bold text-emerald-600 tabular-nums">
-                                      {formatRupiah(o.totalUangMasukCustomer)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Sisa Tagihan</span>
-                                    <span className="font-bold text-rose-600 tabular-nums">
-                                      {formatRupiah(sisaPiutang)}
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-400 block text-[10px]">Progres DP</span>
-                                    <span className="font-bold text-indigo-700 tabular-nums">
-                                      {((o.totalUangMasukCustomer / (o.totalInvoice || 1)) * 100).toFixed(0)}%
-                                    </span>
-                                  </div>
-                                </>
-                              )}
+                              <div className="rounded-lg bg-emerald-50/70 p-2 border border-emerald-100">
+                                <span className="text-emerald-700 block text-[9.5px] font-medium leading-tight">Net Profit Bersih</span>
+                                <span className="font-bold text-emerald-800 tabular-nums font-mono text-xs block mt-0.5">
+                                  {formatRupiah(netProfit)}
+                                </span>
+                              </div>
+
+                              <div className="rounded-lg bg-emerald-50/70 p-2 border border-emerald-100 col-span-2 sm:col-span-1">
+                                <span className="text-emerald-700 block text-[9.5px] font-medium leading-tight">Margin (%)</span>
+                                <span className="font-bold text-emerald-800 tabular-nums font-mono text-xs block mt-0.5">
+                                  {marginPercent.toFixed(1)}%
+                                </span>
+                              </div>
                             </div>
+
+                            {/* Baris Ekstra Kontekstual untuk Utang Vendor & Piutang Konsumen */}
+                            {metricType === 'vendor_debt' && (
+                              <div className="flex items-center justify-between text-xs bg-amber-50/80 border border-amber-200/80 rounded-xl px-3 py-1.5 mt-1">
+                                <span className="text-amber-800 font-medium text-[11px]">
+                                  Diserahkan ke Vendor: <strong className="font-mono text-slate-800">{formatRupiah(o.totalDibayarKeVendor || 0)}</strong>
+                                </span>
+                                <span className="text-rose-700 font-bold font-mono text-[11px]">
+                                  Sisa Utang: {formatRupiah(sisaVendor)}
+                                </span>
+                              </div>
+                            )}
+
+                            {metricType === 'outstanding' && (
+                              <div className="flex items-center justify-between text-xs bg-indigo-50/80 border border-indigo-200/80 rounded-xl px-3 py-1.5 mt-1">
+                                <span className="text-indigo-800 font-medium text-[11px]">
+                                  Uang Masuk: <strong className="font-mono text-emerald-700">{formatRupiah(o.totalUangMasukCustomer || 0)}</strong> ({((o.totalUangMasukCustomer / (o.totalInvoice || 1)) * 100).toFixed(0)}%)
+                                </span>
+                                <span className="text-rose-700 font-bold font-mono text-[11px]">
+                                  Sisa Piutang: {formatRupiah(sisaPiutang)}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         );
                       })

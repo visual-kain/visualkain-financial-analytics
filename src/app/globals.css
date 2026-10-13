@@ -243,31 +243,92 @@ body {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 15mm;
+    margin: 8mm 10mm;
   }
+
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    height: 100% !important;
+    max-height: 297mm !important;
+    overflow: hidden !important;
+  }
+
+  /* Sembunyikan elemen non-cetak dengan display: none untuk mencegah layout flow vertikal ribuan pixel */
+  aside, nav, header, footer, .no-print, .techpack-actions {
+    display: none !important;
+  }
+
+  /* Netralkan wrapper modal saat print */
+  .fixed {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: 275mm !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .invoice-preview-wrapper, #techpackPreviewWrapper {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    min-height: auto !important;
+  }
+
   body * {
     visibility: hidden;
   }
-  .no-print, .techpack-actions {
-    display: none !important;
-  }
+
   #financeReportPaper, #financeReportPaper * {
     visibility: visible;
   }
+
   #financeReportPaper {
     position: absolute;
     left: 0;
     top: 0;
     width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    max-width: 190mm !important;
+    max-height: 275mm !important;
+    margin: 0 auto !important;
+    padding: 4mm 6mm !important;
     box-shadow: none !important;
     border: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    overflow: hidden !important;
   }
-  .invoice-preview-wrapper {
-    background: white !important;
-    padding: 0 !important;
-    margin: 0 !important;
+
+  .invoice-items {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  .invoice-items th {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    border: 1px solid #0f172a !important;
+  }
+
+  .invoice-items td {
+    border-bottom: 1px solid #cbd5e1 !important;
   }
 }
+
 

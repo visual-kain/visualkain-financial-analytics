@@ -21,11 +21,12 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { CustomSelect } from '@/components/ui/custom-select';
-import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
+import { exportMasterFinanceToExcel } from '@/lib/excel-export';
 
 interface MasterFinanceTableProps {
   rows: MasterFinanceRow[];
+  selectedPeriod?: string;
   onSelectRow?: (row: MasterFinanceRow) => void;
   onEditFinance?: (row: MasterFinanceRow) => void;
   onPreviewInvoice?: (row: MasterFinanceRow) => void;
@@ -34,6 +35,7 @@ interface MasterFinanceTableProps {
 
 export function MasterFinanceTable({
   rows,
+  selectedPeriod,
   onSelectRow,
   onEditFinance,
   onPreviewInvoice,
@@ -73,11 +75,11 @@ export function MasterFinanceTable({
         return false;
       }
 
-      // 3. Vendor Debt Filter
+      // 3. Vendor Debt Filter (US-9.24)
       if (vendorDebtFilter === 'has_debt' && row.sisaPembayaranVendor <= 0) {
         return false;
       }
-      if (vendorDebtFilter === 'settled' && row.sisaPembayaranVendor > 0) {
+      if (vendorDebtFilter === 'settled' && (row.sisaPembayaranVendor > 0 || row.totalBiayaVendor <= 0)) {
         return false;
       }
 
@@ -101,31 +103,14 @@ export function MasterFinanceTable({
     return filteredRows.slice(start, start + pageSize);
   }, [filteredRows, safeCurrentPage, pageSize]);
 
-  const handleExportCsv = () => {
-    const csvData = filteredRows.map((r) => ({
-      'No Inv': r.noInv,
-      'Tanggal': r.tanggalInv,
-      'Nama Customer': r.namaCustomer,
-      'Nama Project': r.namaProject,
-      'Total Biaya Vendor': r.totalBiayaVendor,
-      'DP Vendor': r.dpVendor,
-      'Sisa Bayar Vendor': r.sisaPembayaranVendor,
-      'Total Qty': r.totalQty,
-      'Total Jumlah': r.totalJumlah,
-      'DP (%)': r.dpPersenCustomer.toFixed(1) + '%',
-      'Nominal DP': r.nominalDpCustomer,
-      'Sisa Pelunasan': r.sisaPelunasanCustomer,
-      'Biaya Operasional': r.biayaOperasional,
-      'Profit Bersih': r.profitBersih,
-      'Profit (%)': r.profitPercent.toFixed(1) + '%',
-      'Status Order': r.statusOrder,
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(csvData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Master Finansial');
-    XLSX.writeFile(workbook, `VisualKain_Master_Finance_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success('File Master Finansial berhasil diekspor!');
+  const handleExportExcel = async () => {
+    try {
+      await exportMasterFinanceToExcel(filteredRows, selectedPeriod);
+      toast.success('File Master Finansial berhasil diekspor ke Excel!');
+    } catch (err) {
+      console.error('Gagal mengekspor Excel:', err);
+      toast.error('Gagal mengekspor berkas Excel');
+    }
   };
 
   const renderStatusBadge = (status: string, compact = false) => {
@@ -178,6 +163,59 @@ export function MasterFinanceTable({
     );
   };
 
+  // US-9.14: Logika Adaptif WhatsApp Follow-Up & Notifikasi
+  const getWaActionConfig = (row: MasterFinanceRow) => {
+    const isLunas = row.dpPersenCustomer >= 100 || row.sisaPelunasanCustomer <= 0;
+    const isSiapProduksi = row.dpPersenCustomer >= 70;
+
+    let label = 'Tagih DP 70%';
+    let title = 'Kirim Penagihan WhatsApp DP 70% (Syarat Mulai Produksi)';
+    let bgClass = 'bg-amber-600 hover:bg-amber-700 text-white';
+    let message = `Halo Kak ${row.namaCustomer}, kami dari VisualKain menginfokan terkait pesanan ${row.namaProject} (${row.noInv}). Saat ini pembayaran DP tercatat ${formatRupiah(row.nominalDpCustomer)} (${row.dpPersenCustomer.toFixed(0)}%). Untuk memulai proses potong & jahit di vendor konveksi, mohon pelunasan DP minimal 70% (kurang ${formatRupiah(row.sisaMenujuDp70)}). Terima kasih 🙏`;
+
+    if (isLunas) {
+      label = 'Notif WA';
+      title = 'Kirim Konfirmasi Lunas / Info Pesanan via WhatsApp';
+      bgClass = 'bg-emerald-600 hover:bg-emerald-700 text-white';
+      message = `Halo Kak ${row.namaCustomer}, terima kasih pembayaran pesanan ${row.namaProject} (${row.noInv}) telah LUNAS sebesar ${formatRupiah(row.totalJumlah)}. Kami akan mengabari perkembangan produksi pesanan secepatnya. Terima kasih 🙏`;
+    } else if (isSiapProduksi) {
+      label = 'Tagih Pelunasan';
+      title = 'Kirim Penagihan Pelunasan 30% via WhatsApp';
+      bgClass = 'bg-teal-600 hover:bg-teal-700 text-white';
+      message = `Halo Kak ${row.namaCustomer}, pesanan ${row.namaProject} (${row.noInv}) saat ini sedang dalam proses produksi. Terdapat sisa pelunasan sebesar ${formatRupiah(row.sisaPelunasanCustomer)}. Mohon konfirmasi jika sudah transfer pelunasan ya Kak. Terima kasih 🙏`;
+    }
+
+    return { label, title, bgClass, message };
+  };
+
+  const handleOpenWhatsApp = (e: React.MouseEvent, row: MasterFinanceRow) => {
+    e.stopPropagation();
+    const rawPhone =
+      row.noWaCustomer ||
+      row.originalOrder?.noWaCustomer ||
+      row.originalOrder?.customerPhone ||
+      row.originalOrder?.phone ||
+      '';
+    const cleanPhone = rawPhone.replace(/\D/g, '');
+    const { message } = getWaActionConfig(row);
+
+    if (!cleanPhone) {
+      toast.error(`Nomor WhatsApp untuk pesanan ${row.noInv} (${row.namaCustomer}) belum terisi`);
+      onSelectRow?.(row);
+      onQuickWaFollowUp?.(row);
+      return;
+    }
+
+    const formattedPhone = cleanPhone.startsWith('0')
+      ? '62' + cleanPhone.slice(1)
+      : cleanPhone.startsWith('62')
+      ? cleanPhone
+      : '62' + cleanPhone;
+
+    const waUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
   const renderDpBadge = (row: MasterFinanceRow) => {
     switch (row.statusDpThreshold) {
       case 'lunas_total':
@@ -223,94 +261,110 @@ export function MasterFinanceTable({
           Tidak ada order yang cocok dengan kriteria pencarian / filter.
         </div>
       ) : (
-        paginatedRows.map((row) => (
-          <div
-            key={row.id}
-            className="flex flex-col justify-between rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-card-double hover:border-teal-300 transition-all duration-200 gap-2 overflow-hidden"
-          >
-            {/* 1. Header: No Inv & Status Badge (Clean fit, anti-overflow) */}
-            <div className="flex items-center justify-between gap-1 border-b border-slate-100 pb-1.5 min-w-0">
-              <span className="font-mono text-[9.5px] sm:text-[10px] font-black tracking-tight text-teal-900 bg-teal-50 px-1.5 py-0.5 rounded-md border border-teal-200/90 whitespace-nowrap shrink-0">
-                {row.noInv}
-              </span>
-              <div className="shrink-0">{renderStatusBadge(row.statusOrder, true)}</div>
-            </div>
-
-            {/* 2. Customer & Project Info */}
-            <div className="space-y-0.5 min-w-0">
-              <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 leading-snug truncate" title={row.namaCustomer}>
-                {row.namaCustomer}
-              </h4>
-              <p className="text-[9px] sm:text-[9.5px] text-slate-400 font-medium truncate" title={row.namaProject}>
-                {row.namaProject} &bull; <span className="font-bold text-slate-600">{row.totalQty} pcs</span>
-              </p>
-            </div>
-
-            {/* 3. Hero Metric: Omzet Order */}
-            <div className="min-w-0">
-              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400 block leading-tight">
-                Total Omzet
-              </span>
-              <div className="font-mono text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight tabular-nums truncate">
-                {formatRupiah(row.totalJumlah)}
+        paginatedRows.map((row) => {
+          const waConfig = getWaActionConfig(row);
+          return (
+            <div
+              key={row.id}
+              className="flex flex-col justify-between rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-card-double hover:border-teal-300 transition-all duration-200 gap-2 overflow-hidden"
+            >
+              {/* 1. Header: No Inv & Status Badge (Clean fit, anti-overflow) */}
+              <div className="flex items-center justify-between gap-1 border-b border-slate-100 pb-1.5 min-w-0">
+                <span className="font-mono text-[9.5px] sm:text-[10px] font-black tracking-tight text-teal-900 bg-teal-50 px-1.5 py-0.5 rounded-md border border-teal-200/90 whitespace-nowrap shrink-0">
+                  {row.noInv}
+                </span>
+                <div className="shrink-0">{renderStatusBadge(row.statusOrder, true)}</div>
               </div>
-            </div>
 
-            {/* 4. Sub-Metrics: Terbayar vs Sisa (Clean 2-Box Tile) */}
-            <div className="grid grid-cols-2 gap-1 text-[9px] min-w-0">
-              <div className="rounded-md bg-teal-50/70 p-1 sm:p-1.5 border border-teal-100/90 min-w-0">
-                <span className="text-teal-700/80 block text-[8px] font-medium leading-none mb-0.5 truncate">Terbayar</span>
-                <span className="font-mono font-bold text-teal-800 tabular-nums truncate block text-[9px] sm:text-[10px]">
-                  {formatCompactRupiah(row.nominalDpCustomer)}
+              {/* 2. Customer & Project Info */}
+              <div className="space-y-0.5 min-w-0">
+                <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 leading-snug truncate" title={row.namaCustomer}>
+                  {row.namaCustomer}
+                </h4>
+                <p className="text-[9px] sm:text-[9.5px] text-slate-400 font-medium truncate" title={row.namaProject}>
+                  {row.namaProject} &bull; <span className="font-bold text-slate-600">{row.totalQty} pcs</span>
+                </p>
+              </div>
+
+              {/* 3. Hero Metric: Omzet Order */}
+              <div className="min-w-0">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400 block leading-tight">
+                  Total Omzet
+                </span>
+                <div className="font-mono text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight tabular-nums truncate">
+                  {formatRupiah(row.totalJumlah)}
+                </div>
+              </div>
+
+              {/* 4. Sub-Metrics: Terbayar vs Sisa (Clean 2-Box Tile) */}
+              <div className="grid grid-cols-2 gap-1 text-[9px] min-w-0">
+                <div className="rounded-md bg-teal-50/70 p-1 sm:p-1.5 border border-teal-100/90 min-w-0">
+                  <span className="text-teal-700/80 block text-[8px] font-medium leading-none mb-0.5 truncate">Terbayar</span>
+                  <span className="font-mono font-bold text-teal-800 tabular-nums truncate block text-[9px] sm:text-[10px]">
+                    {formatCompactRupiah(row.nominalDpCustomer)}
+                  </span>
+                </div>
+                <div className={cn(
+                  "rounded-md p-1 sm:p-1.5 border min-w-0",
+                  row.sisaPelunasanCustomer > 0
+                    ? "bg-amber-50/70 border-amber-100/90 text-amber-800"
+                    : "bg-emerald-50/70 border-emerald-100/90 text-emerald-800"
+                )}>
+                  <span className="block text-[8px] font-medium opacity-80 leading-none mb-0.5 truncate">
+                    {row.sisaPelunasanCustomer > 0 ? 'Sisa Piutang' : 'Status'}
+                  </span>
+                  <span className="font-mono font-bold tabular-nums truncate block text-[9px] sm:text-[10px]">
+                    {row.sisaPelunasanCustomer > 0 ? formatCompactRupiah(row.sisaPelunasanCustomer) : 'LUNAS'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 5. Profit Row */}
+              <div className="flex items-center justify-between text-[8.5px] sm:text-[9px] px-0.5 text-slate-500 min-w-0">
+                <span className="font-medium truncate">Profit ({row.profitPercent.toFixed(0)}%):</span>
+                <span className="font-mono font-bold text-emerald-600 shrink-0 text-[9px] sm:text-[9.5px]">
+                  +{formatCompactRupiah(row.profitBersih)}
                 </span>
               </div>
-              <div className={cn(
-                "rounded-md p-1 sm:p-1.5 border min-w-0",
-                row.sisaPelunasanCustomer > 0
-                  ? "bg-amber-50/70 border-amber-100/90 text-amber-800"
-                  : "bg-emerald-50/70 border-emerald-100/90 text-emerald-800"
-              )}>
-                <span className="block text-[8px] font-medium opacity-80 leading-none mb-0.5 truncate">
-                  {row.sisaPelunasanCustomer > 0 ? 'Sisa Piutang' : 'Status'}
-                </span>
-                <span className="font-mono font-bold tabular-nums truncate block text-[9px] sm:text-[10px]">
-                  {row.sisaPelunasanCustomer > 0 ? formatCompactRupiah(row.sisaPelunasanCustomer) : 'LUNAS'}
-                </span>
+
+              {/* 6. Touch Action Buttons (US-9.14: 3 Ergonomic Buttons with Adaptive WA) */}
+              <div className="pt-1.5 grid grid-cols-3 gap-1 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => onEditFinance?.(row)}
+                  title="Edit Finansial"
+                  className="h-7.5 sm:h-8 flex items-center justify-center gap-1 rounded-lg bg-teal-600 px-1 text-[10px] font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-[0.97] transition-all cursor-pointer"
+                >
+                  <Pencil className="h-3 w-3 shrink-0" />
+                  <span className="truncate">Edit</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectRow?.(row)}
+                  title="Inspeksi Detail Order"
+                  className="h-7.5 sm:h-8 flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1 text-[10px] font-bold text-slate-700 hover:bg-slate-100 active:scale-[0.97] transition-all cursor-pointer"
+                >
+                  <Eye className="h-3 w-3 shrink-0 text-slate-500" />
+                  <span className="truncate">Detail</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => handleOpenWhatsApp(e, row)}
+                  title={waConfig.title}
+                  className={cn(
+                    "h-7.5 sm:h-8 flex items-center justify-center gap-0.5 rounded-lg px-1 text-[9.5px] font-bold shadow-2xs active:scale-[0.97] transition-all cursor-pointer truncate",
+                    waConfig.bgClass
+                  )}
+                >
+                  <MessageCircle className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{waConfig.label}</span>
+                </button>
               </div>
             </div>
-
-            {/* 5. Profit Row */}
-            <div className="flex items-center justify-between text-[8.5px] sm:text-[9px] px-0.5 text-slate-500 min-w-0">
-              <span className="font-medium truncate">Profit ({row.profitPercent.toFixed(0)}%):</span>
-              <span className="font-mono font-bold text-emerald-600 shrink-0 text-[9px] sm:text-[9.5px]">
-                +{formatCompactRupiah(row.profitBersih)}
-              </span>
-            </div>
-
-            {/* 6. Touch Action Buttons */}
-            <div className="pt-1 grid grid-cols-2 gap-1 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => onEditFinance?.(row)}
-                title="Edit Finansial"
-                className="h-7 sm:h-7.5 flex items-center justify-center gap-1 rounded-lg bg-teal-600 px-1.5 text-[10px] font-bold text-white shadow-2xs hover:bg-teal-700 active:scale-[0.97] transition-transform duration-150 cursor-pointer"
-              >
-                <Pencil className="h-3 w-3 shrink-0" />
-                <span>Edit</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onSelectRow?.(row)}
-                title="Inspeksi Detail Order"
-                className="h-7 sm:h-7.5 flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1.5 text-[10px] font-bold text-slate-700 hover:bg-slate-100 active:scale-[0.97] transition-transform duration-150 cursor-pointer"
-              >
-                <Eye className="h-3 w-3 shrink-0 text-slate-500" />
-                <span>Detail</span>
-              </button>
-            </div>
-          </div>
-        ))
+          );
+        })
       )}
     </div>
   );
@@ -319,28 +373,28 @@ export function MasterFinanceTable({
   const renderTableContent = () => (
     <div className="overflow-x-auto flex-1">
       <table className="w-full text-left text-xs whitespace-nowrap border-collapse">
-        <thead className="bg-slate-50/95 text-slate-600 font-bold border-b border-slate-200 select-none">
+        <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 select-none">
           {/* Header Super-Row: Category Groupings */}
-          <tr className="border-b border-slate-200/60 text-[10px] uppercase tracking-wider text-slate-400">
-            <th colSpan={2} className="px-4 py-2 bg-slate-100/70 text-slate-700 md:sticky md:left-0 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+          <tr className="border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-400">
+            <th colSpan={2} className="px-4 py-2 bg-slate-100 text-slate-700 md:sticky md:left-0 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
               Identitas Pesanan (Kunci)
             </th>
-            <th className="px-4 py-2 bg-slate-100/40 text-slate-500">
+            <th className="px-4 py-2 bg-slate-100 text-slate-500">
               Project
             </th>
-            <th colSpan={3} className="px-4 py-2 bg-blue-50/50 text-blue-800">
+            <th colSpan={3} className="px-4 py-2 bg-blue-50 text-blue-800">
               Komitmen Vendor (HPP)
             </th>
-            <th colSpan={5} className="px-4 py-2 bg-teal-50/50 text-teal-800">
+            <th colSpan={5} className="px-4 py-2 bg-teal-50 text-teal-800">
               Pembayaran Konsumen
             </th>
-            <th colSpan={4} className="px-4 py-2 bg-slate-100/40 text-slate-500">
+            <th colSpan={4} className="px-4 py-2 bg-slate-100 text-slate-500">
               Beban & Penyesuaian
             </th>
-            <th colSpan={2} className="px-4 py-2 bg-emerald-50/60 text-emerald-800">
+            <th colSpan={2} className="px-4 py-2 bg-emerald-50 text-emerald-800">
               Realisasi Margin
             </th>
-            <th colSpan={2} className="px-4 py-2 bg-slate-100/70 text-center md:sticky md:right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+            <th colSpan={2} className="px-4 py-2 bg-slate-100 text-center md:sticky md:right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.06)]">
               Aksi Cepat & Status
             </th>
           </tr>
@@ -357,14 +411,14 @@ export function MasterFinanceTable({
             </th>
             {/* Scrollable Columns */}
             <th className="px-4 py-3 min-w-[180px]">NAMA PROJECT</th>
-            <th className="px-4 py-3 bg-blue-50/40 text-blue-900">TOTAL BIAYA VENDOR</th>
-            <th className="px-4 py-3 bg-blue-50/40 text-blue-900">DP VENDOR</th>
-            <th className="px-4 py-3 bg-blue-50/60 text-blue-950 font-bold">SISA BAYAR VENDOR</th>
+            <th className="px-4 py-3 bg-blue-50 text-blue-900">TOTAL BIAYA VENDOR</th>
+            <th className="px-4 py-3 bg-blue-50 text-blue-900">DP VENDOR</th>
+            <th className="px-4 py-3 bg-blue-100 text-blue-950 font-bold">SISA BAYAR VENDOR</th>
             <th className="px-4 py-3 text-center">QTY</th>
-            <th className="px-4 py-3 bg-purple-50/50 text-purple-900 font-bold">TOTAL JUMLAH</th>
-            <th className="px-4 py-3 bg-pink-50/50 text-center text-pink-900">DP (%) CUST</th>
-            <th className="px-4 py-3 bg-pink-50/50 text-pink-900">NOMINAL DP</th>
-            <th className="px-4 py-3 bg-amber-50/60 text-amber-900 font-bold">SISA PELUNASAN</th>
+            <th className="px-4 py-3 bg-purple-50 text-purple-900 font-bold">TOTAL JUMLAH</th>
+            <th className="px-4 py-3 bg-pink-50 text-center text-pink-900">DP (%) CUST</th>
+            <th className="px-4 py-3 bg-pink-50 text-pink-900">NOMINAL DP</th>
+            <th className="px-4 py-3 bg-amber-100 text-amber-900 font-bold">SISA PELUNASAN</th>
             <th className="px-4 py-3">OPERASIONAL</th>
             <th className="px-4 py-3">TAMBAHAN VENDOR</th>
             <th className="px-4 py-3">TAMBAHAN CUST</th>
@@ -372,11 +426,11 @@ export function MasterFinanceTable({
             <th className="px-4 py-3 bg-emerald-50 text-emerald-800 font-bold">PROFIT BERSIH</th>
             <th className="px-4 py-3 bg-emerald-50 text-emerald-800 font-bold">PROFIT (%)</th>
             {/* Frozen Sticky Right 1: Aksi (right: 124px) */}
-            <th className="px-3 py-3 text-center bg-slate-50 w-44 min-w-[176px] md:sticky md:right-[124px] z-30 shadow-[-1px_0_0_0_#e2e8f0]">
+            <th className="px-3 py-3 text-center bg-slate-100 w-52 min-w-[200px] md:sticky md:right-[124px] z-30 shadow-[-1px_0_0_0_#e2e8f0]">
               AKSI
             </th>
             {/* Frozen Sticky Right 2: Status (right: 0) */}
-            <th className="px-3 py-3 text-center bg-blue-50/70 text-blue-900 w-32 min-w-[124px] md:sticky md:right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]">
+            <th className="px-3 py-3 text-center bg-blue-100 text-blue-900 w-32 min-w-[124px] md:sticky md:right-0 z-30 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]">
               STATUS
             </th>
           </tr>
@@ -390,12 +444,14 @@ export function MasterFinanceTable({
               </td>
             </tr>
           ) : (
-            paginatedRows.map((row) => (
-              <tr
-                key={row.id}
-                onClick={() => onSelectRow?.(row)}
-                className="hover:bg-teal-50/40 transition-colors cursor-pointer group"
-              >
+            paginatedRows.map((row) => {
+              const waConfig = getWaActionConfig(row);
+              return (
+                <tr
+                  key={row.id}
+                  onClick={() => onSelectRow?.(row)}
+                  className="hover:bg-teal-50/40 transition-colors cursor-pointer group"
+                >
                 {/* Frozen Sticky 1: NO INV */}
                 <td className="px-4 py-3.5 font-bold text-teal-700 w-32 min-w-[128px] max-w-[128px] md:sticky md:left-0 bg-white group-hover:bg-[#f6fbfb] z-20 shadow-[1px_0_0_0_#e2e8f0]">
                   {row.noInv}
@@ -461,11 +517,11 @@ export function MasterFinanceTable({
 
                 {/* Frozen Sticky Right 1: Aksi Kompak */}
                 <td
-                  className="px-2.5 py-2 text-center w-44 min-w-[176px] md:sticky md:right-[124px] bg-white group-hover:bg-[#f6fbfb] z-20 shadow-[-1px_0_0_0_#e2e8f0]"
+                  className="px-2.5 py-2 text-center w-52 min-w-[200px] md:sticky md:right-[124px] bg-white group-hover:bg-[#f6fbfb] z-20 shadow-[-1px_0_0_0_#e2e8f0]"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center justify-center gap-1.5">
-                    {/* 1. Ikon Pensil Hijau: Edit Finansial Order */}
+                    {/* 1. Ikon Pensil: Edit Finansial Order */}
                     <button
                       onClick={() => onEditFinance?.(row)}
                       title="Edit Finansial Order (Harga, DP, Vendor, HPP)"
@@ -474,7 +530,7 @@ export function MasterFinanceTable({
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
 
-                    {/* 2. Ikon Mata Abu: Detail Cicilan & Faktur */}
+                    {/* 2. Ikon Mata: Detail Cicilan & Faktur */}
                     <button
                       onClick={() => onSelectRow?.(row)}
                       title="Inspeksi Detail Cicilan & Faktur"
@@ -483,20 +539,18 @@ export function MasterFinanceTable({
                       <Eye className="h-3.5 w-3.5" />
                     </button>
 
-                    {/* 3. Tombol Tagih WA (DP < 70%) */}
-                    {row.dpPersenCustomer < 70 && (
-                      <button
-                        onClick={() => {
-                          onSelectRow?.(row);
-                          onQuickWaFollowUp?.(row);
-                        }}
-                        title="Kirim Penagihan WhatsApp DP 70%"
-                        className="inline-flex h-7 items-center gap-1 rounded-lg bg-emerald-600 px-2 text-[10px] font-bold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
-                      >
-                        <MessageCircle className="h-3 w-3" />
-                        <span>Tagih WA</span>
-                      </button>
-                    )}
+                    {/* 3. Tombol Adaptif WhatsApp (US-9.14: Tidak Pernah Hilang) */}
+                    <button
+                      onClick={(e) => handleOpenWhatsApp(e, row)}
+                      title={waConfig.title}
+                      className={cn(
+                        "inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[10px] font-bold shadow-sm active:scale-95 transition-all cursor-pointer whitespace-nowrap",
+                        waConfig.bgClass
+                      )}
+                    >
+                      <MessageCircle className="h-3 w-3 shrink-0" />
+                      <span>{waConfig.label}</span>
+                    </button>
                   </div>
                 </td>
 
@@ -508,7 +562,8 @@ export function MasterFinanceTable({
                   {renderStatusBadge(row.statusOrder)}
                 </td>
               </tr>
-            ))
+            );
+          })
           )}
         </tbody>
       </table>
@@ -723,8 +778,8 @@ export function MasterFinanceTable({
               onValueChange={(val) => setVendorDebtFilter(val as typeof vendorDebtFilter)}
               icon={<Building className="h-3.5 w-3.5" />}
               options={[
-                { value: 'all', label: 'Semua Utang Vendor' },
-                { value: 'has_debt', label: 'Ada Sisa Utang' },
+                { value: 'all', label: 'Semua Status Vendor' },
+                { value: 'has_debt', label: 'Hanya Utang Vendor' },
                 { value: 'settled', label: 'Vendor Lunas' },
               ]}
               className="h-9 text-xs w-full sm:w-auto"
@@ -762,7 +817,7 @@ export function MasterFinanceTable({
 
       {/* 2. FULLSCREEN EXPANDED OVERLAY (POLISHED FULL-VIEWPORT) */}
       {isExpanded && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[#E8ECF2] p-4 sm:p-6 overflow-hidden animate-fadeIn">
+        <div className="fixed inset-0 z-40 flex flex-col bg-[#E8ECF2] p-4 sm:p-6 overflow-hidden animate-fadeIn">
           {/* Top Fullscreen Header & Custom Filter Bar */}
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card-double flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
@@ -772,7 +827,7 @@ export function MasterFinanceTable({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-extrabold text-slate-900">
-                    Master Finansial Order — Fullscreen View
+                    Master Finansial Order — Tampilan Layar Penuh
                   </h2>
                   <span className="rounded-lg bg-teal-50 px-2 py-0.5 text-xs font-bold text-teal-700 border border-teal-200">
                     {filteredRows.length} dari {rows.length} Order
@@ -819,25 +874,25 @@ export function MasterFinanceTable({
                 ]}
               />
 
-              {/* Utang Vendor Filter (Custom Select) */}
+              {/* Utang Vendor Filter (Custom Select - US-9.24) */}
               <CustomSelect
                 value={vendorDebtFilter}
                 onValueChange={(val) => setVendorDebtFilter(val as typeof vendorDebtFilter)}
                 icon={<Building className="h-3.5 w-3.5" />}
                 options={[
-                  { value: 'all', label: 'Semua Utang Vendor' },
-                  { value: 'has_debt', label: 'Ada Sisa Utang Vendor', badge: 'Utang' },
-                  { value: 'settled', label: 'Vendor Sudah Lunas' },
+                  { value: 'all', label: 'Semua Status Vendor' },
+                  { value: 'has_debt', label: 'Hanya Utang Vendor' },
+                  { value: 'settled', label: 'Vendor Lunas' },
                 ]}
               />
 
-              {/* CSV Export */}
+              {/* Ekspor Excel Standar Inzta (US-9.28) */}
               <button
-                onClick={handleExportCsv}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition-all"
+                onClick={handleExportExcel}
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
               >
                 <Download className="h-3.5 w-3.5 text-slate-500" />
-                <span>Export CSV</span>
+                <span>Ekspor Excel</span>
               </button>
 
               {/* Close Fullscreen */}

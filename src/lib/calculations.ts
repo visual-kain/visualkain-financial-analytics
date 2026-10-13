@@ -73,16 +73,78 @@ export function calculateOrderTotals(order: Record<string, any>): CalculatedOrde
   });
 
   const opEx = Number(order.biayaOperasional || 0);
-  const discount = Number(order.diskonHarga || order.diskon || 0);
+  const discount = Number(
+    order.diskon !== undefined ? order.diskon : (order.diskonHarga || 0)
+  );
   const dpPersen = Number(order.dpPersen || 0);
   const dpPersenPO = Number(order.dpPersenPO || 0);
 
   const biayaTambahanCust = Number(order.biayaTambahanCust || order.biayaTambahanCustomer || 0);
   const biayaLainnya = Number(order.biayaLainnya || order.biayaTambahanVendor || 0);
 
+  // Jika dokumen telah di-override secara manual melalui halaman Edit Finansial (/orders/[id]/edit)
+  if (order.isManualFinanceOverride) {
+    const manualGross =
+      order.grossTotal !== undefined && Number(order.grossTotal) > 0
+        ? Number(order.grossTotal)
+        : Number(order.totalInvoice || order.jumlahSemua || 0) + discount;
+    const manualNet =
+      order.totalInvoice !== undefined && Number(order.totalInvoice) > 0
+        ? Number(order.totalInvoice)
+        : Math.max(0, manualGross - discount + biayaTambahanCust);
+    const manualHpp =
+      order.totalHpp !== undefined
+        ? Number(order.totalHpp)
+        : Number(order.totalBiayaVendor || order.hpp || grandTotalModal + biayaLainnya);
+    const manualQty = hasSizeBreakdown
+      ? grandTotalQty
+      : Number(order.totalPesanan || order.totalQty || 1);
+    const listPaid =
+      Array.isArray(order.pembayaranList) && order.pembayaranList.length > 0
+        ? order.pembayaranList.reduce((acc: number, p: any) => acc + Number(p.nominal || 0), 0)
+        : undefined;
+    const nominalDP =
+      listPaid !== undefined
+        ? listPaid
+        : order.dpNominal !== undefined && Number(order.dpNominal) >= 0
+        ? Number(order.dpNominal)
+        : order.totalUangMasukCustomer !== undefined && Number(order.totalUangMasukCustomer) >= 0
+        ? Number(order.totalUangMasukCustomer)
+        : Math.round(manualNet * (dpPersen / 100));
+    const sisaPelunasan = Math.max(0, manualNet - nominalDP);
+    const profit = manualNet - manualHpp - opEx;
+    const dpVendor =
+      order.totalDibayarKeVendor !== undefined
+        ? Number(order.totalDibayarKeVendor)
+        : order.dpNominalPO && Number(order.dpNominalPO) > 0
+        ? Number(order.dpNominalPO)
+        : Math.round(manualHpp * (dpPersenPO / 100));
+    const sisaVendor = Math.max(manualHpp - dpVendor, 0);
+
+    return {
+      totalPesanan: manualQty,
+      grossTotal: manualGross,
+      diskon: discount,
+      biayaTambahanCust,
+      biayaLainnya,
+      jumlahSemua: manualNet,
+      totalHpp: manualHpp,
+      dpVendor,
+      sisaVendor,
+      dpPersen,
+      nominalDP,
+      sisaPelunasan,
+      profit,
+      profitPercent: manualNet > 0 ? (profit / manualNet) * 100 : 0,
+    };
+  }
+
   // Jika tidak memiliki data breakdown size, gunakan field total agregat yang ada
   if (!hasSizeBreakdown) {
-    const fallBackJual = Number(order.totalInvoice || order.jumlahSemua || order.grossTotal || 0);
+    const hasExplicitGross = order.grossTotal !== undefined && Number(order.grossTotal) > 0;
+    const fallBackJual = hasExplicitGross
+      ? Number(order.grossTotal)
+      : Number(order.totalInvoice || order.jumlahSemua || 0);
     const fallBackModal = Number(order.totalBiayaVendor || order.hpp || order.totalHpp || 0);
     const fallBackQty = Number(order.totalPesanan || order.totalQty || 1);
 
@@ -94,9 +156,12 @@ export function calculateOrderTotals(order: Record<string, any>): CalculatedOrde
     const profit = netTotal - fallBackModal - opEx - biayaLainnya;
     const totalHpp = netTotal - opEx - profit;
 
-    const dpVendor = order.dpNominalPO && Number(order.dpNominalPO) > 0
-      ? Number(order.dpNominalPO)
-      : Math.round(totalHpp * (dpPersenPO / 100));
+    const dpVendor =
+      order.totalDibayarKeVendor !== undefined
+        ? Number(order.totalDibayarKeVendor)
+        : order.dpNominalPO && Number(order.dpNominalPO) > 0
+        ? Number(order.dpNominalPO)
+        : Math.round(totalHpp * (dpPersenPO / 100));
     const sisaVendor = Math.max(totalHpp - dpVendor, 0);
 
     return {
@@ -131,9 +196,12 @@ export function calculateOrderTotals(order: Record<string, any>): CalculatedOrde
   // HPP = netTotal - opEx - profit (Secara matematis sama dengan grandTotalModal + biayaLainnya)
   const totalHpp = netTotal - opEx - profit;
 
-  const dpVendor = order.dpNominalPO && Number(order.dpNominalPO) > 0
-    ? Number(order.dpNominalPO)
-    : Math.round(totalHpp * (dpPersenPO / 100));
+  const dpVendor =
+    order.totalDibayarKeVendor !== undefined
+      ? Number(order.totalDibayarKeVendor)
+      : order.dpNominalPO && Number(order.dpNominalPO) > 0
+      ? Number(order.dpNominalPO)
+      : Math.round(totalHpp * (dpPersenPO / 100));
   const sisaVendor = Math.max(totalHpp - dpVendor, 0);
 
   return {

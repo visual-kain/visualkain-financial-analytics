@@ -47,6 +47,8 @@ export const DEFAULT_VENDOR_OPTIONS = [
   { value: 'FJ MERCHANDISE', label: 'FJ MERCHANDISE (Jaket & Jersey)', badge: 'Termurah Jaket' },
   { value: 'CITITEX', label: 'CITITEX (Hoodie & Crewneck)', badge: 'Termurah Hoodie' },
   { value: 'VENDOR TOPI PK UCI', label: 'VENDOR TOPI PK UCI', badge: 'Termurah Topi' },
+  { value: 'Vendor Wisnu', label: 'Vendor Wisnu (Kemeja & Celana)', badge: 'Mitra Konveksi' },
+  { value: 'LAJUWARNA', label: 'LAJUWARNA (Sublim & Printing)', badge: 'Mitra Printing' },
   { value: 'LAINNYA', label: 'Mitra Vendor Lainnya' },
 ] as const;
 

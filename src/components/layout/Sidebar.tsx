@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { FinanceSubTab } from '@/types';
 import {
   LayoutDashboard,
+  Table2,
   Coins,
   WalletCards,
   Award,
@@ -39,35 +40,35 @@ export function Sidebar({
   const tabs = [
     {
       id: 'dashboard' as FinanceSubTab,
-      label: 'Financial Dashboard',
+      label: 'Ringkasan Finansial',
       icon: LayoutDashboard,
-      badge: 'Master',
+    },
+    {
+      id: 'datatable' as FinanceSubTab,
+      label: 'Data Table (Master Order)',
+      icon: Table2,
     },
     {
       id: 'cashin' as FinanceSubTab,
-      label: 'Cash Inflow',
+      label: 'Arus Kas Masuk',
       icon: Coins,
-      badge: 'Pemasukan',
     },
     {
       id: 'cashout' as FinanceSubTab,
-      label: 'Cash Outflow',
+      label: 'Arus Kas Keluar',
       icon: WalletCards,
-      badge: 'Beban',
     },
     {
       id: 'vendor' as FinanceSubTab,
-      label: 'Vendor Performance',
+      label: 'Kinerja Mitra Vendor',
       icon: Award,
-      badge: 'Ranking',
     },
     ...(showHiddenTabs
       ? [
           {
             id: 'manual' as FinanceSubTab,
-            label: 'Profit Aktual (Manual)',
+            label: 'Realisasi Laba Bersih',
             icon: FileSpreadsheet,
-            badge: 'Dev',
           },
         ]
       : []),
@@ -196,18 +197,6 @@ export function Sidebar({
                       <span className="truncate">{tab.label}</span>
                     )}
                   </div>
-
-                  {!isCollapsed && (
-                    <span
-                      className={`relative z-10 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        isActive
-                          ? 'bg-white/20 text-white'
-                          : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                      }`}
-                    >
-                      {tab.badge}
-                    </span>
-                  )}
                 </button>
               );
             })}

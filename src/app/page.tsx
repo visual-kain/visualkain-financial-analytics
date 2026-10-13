@@ -1,32 +1,30 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQueryState } from 'nuqs';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
-import { EscrowLiquidityBar } from '@/components/finance/EscrowLiquidityBar';
 import { FinanceStatsGrid } from '@/components/analytics/FinanceStatsGrid';
 import { AnalyticsCharts, type DonutDataPoint, type TrendDataPoint } from '@/components/analytics/AnalyticsCharts';
 import { MasterFinanceTable } from '@/components/finance/MasterFinanceTable';
 import { OrderInspectionDrawer } from '@/components/finance/OrderInspectionDrawer';
 import { MetricDetailDrawer } from '@/components/analytics/MetricDetailDrawer';
-import { AddIncomeModal } from '@/components/finance/AddIncomeModal';
-import { EditFinanceModal } from '@/components/finance/EditFinanceModal';
 import { InvoicePreviewModal } from '@/components/finance/InvoicePreviewModal';
 import { CashInflowSection } from '@/components/finance/CashInflowSection';
 import { CashOutflowSection } from '@/components/finance/CashOutflowSection';
 import { VendorPerformanceSection } from '@/components/finance/VendorPerformanceSection';
 import { ProfitAktualSection } from '@/components/finance/ProfitAktualSection';
 import { CustomSelect } from '@/components/ui/custom-select';
-import { calculateFinancialSummary, calculateEscrowAllocation } from '@/lib/financial-calculator';
+import { calculateFinancialSummary, calculateEscrowAllocation, transformToMasterRows } from '@/lib/financial-calculator';
 import { computeVendorPerformance, computeCheapestByKategori } from '@/lib/calculations';
+import { initialOrdersData, initialCashTransactions } from '@/lib/seed-data';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { useAuth } from '@/context/AuthContext';
 import type {
   FinanceSubTab,
   Order,
   MasterFinanceRow,
-  CashTransaction,
   ManualFinanceDraft,
   MetricDrawerType,
 } from '@/types';
@@ -36,270 +34,17 @@ import {
   ShieldCheck,
   Download,
   Plus,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Radio,
   LogOut,
   UserCheck,
+  AlertCircle,
+  Table2,
+  ArrowRight,
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
-
-
-// Initial Seed Dataset (Fallback & Ground Truth)
-const initialOrdersData: Order[] = [
-  {
-    id: 'ord-41',
-    noInv: 'VK260041',
-    namaCustomer: 'XBI SUKABUMI',
-    customerName: 'XBI SUKABUMI',
-    namaProject: 'LAMPUNG EXPEDITION',
-    projectName: 'LAMPUNG EXPEDITION',
-    noWaCustomer: '0812-2168-8065',
-    tanggalOrder: '2026-10-07',
-    tanggalInv: '2026-10-07',
-    status: 'production',
-    statusOrder: 'PRODUKSI',
-    kategoriOrder: 'T Shirt',
-    jenisBahan: 'COTTON COMBED 30S',
-    jenisMetodeProduksi: 'Sablon',
-    vendorId: 'vendor-lajuwarna',
-    vendorName: 'LAJUWARNA',
-    picVendor: 'Admin Lajuwarna',
-    hargaPendek: 100000,
-    hargaVendorPendek: 69000,
-    hargaPanjang: 110000,
-    hargaVendorPanjang: 79000,
-    pendekM: 12,
-    panjangM: 2,
-    totalInvoice: 1420000,
-    totalHpp: 986000,
-    targetMargin: 434000,
-    totalQty: 14,
-    biayaOperasional: 0,
-    biayaTambahanVendor: 0,
-    biayaTambahanCustomer: 0,
-    diskon: 0,
-    diskonHarga: 0,
-    dpPersen: 0,
-    dpNominal: 0,
-    dpNominalPO: 0,
-    hppAktual: 986000,
-    profitAktual: 434000,
-    catatanFinance: 'Revisi sablon aman',
-    pembayaranList: [
-      {
-        id: 'p-41-1',
-        orderId: 'ord-41',
-        noInv: 'VK260041',
-        tanggal: '2026-10-07',
-        nominal: 810000,
-        jenis: 'dp',
-        keterangan: 'DP 1 Transfer BCA',
-        createdAt: '2026-10-07T09:00:00Z',
-      },
-    ],
-    totalUangMasukCustomer: 810000,
-    statusPembayaran: 'parsial',
-    totalDibayarKeVendor: 700000,
-    statusPembayaranVendor: 'dp_vendor',
-  },
-  {
-    id: 'ord-40',
-    noInv: 'VK260040',
-    customerName: 'VISUALKAIN',
-    projectName: 'WORK JAKET FILOSOPHY',
-    noWaCustomer: '08987654321',
-    tanggalOrder: '2026-10-07',
-    totalInvoice: 3000000,
-    totalHpp: 2400000,
-    targetMargin: 600000,
-    totalQty: 12,
-    biayaOperasional: 0,
-    biayaTambahanVendor: 0,
-    biayaTambahanCustomer: 0,
-    diskon: 0,
-    vendorName: 'FJ MERCHANDISE',
-    hppAktual: 2400000,
-    profitAktual: 600000,
-    catatanFinance: '',
-    pembayaranList: [
-      {
-        id: 'p-40-1',
-        orderId: 'ord-40',
-        noInv: 'VK260040',
-        tanggal: '2026-10-07',
-        nominal: 700000,
-        jenis: 'dp',
-        keterangan: 'DP 1 Tokopedia',
-        createdAt: '2026-10-07T11:00:00Z',
-      },
-    ],
-    totalUangMasukCustomer: 700000,
-    statusPembayaran: 'parsial',
-    totalDibayarKeVendor: 1000000,
-    statusPembayaranVendor: 'dp_vendor',
-    statusOrder: 'PRODUKSI',
-  },
-  {
-    id: 'ord-39',
-    noInv: 'VK260039',
-    customerName: 'ADAM',
-    projectName: 'Seragam PDL Himpunan',
-    noWaCustomer: '08561234567',
-    tanggalOrder: '2026-10-06',
-    totalInvoice: 8835000,
-    totalHpp: 5735000,
-    targetMargin: 3100000,
-    totalQty: 45,
-    biayaOperasional: 0,
-    biayaTambahanVendor: 500000,
-    biayaTambahanCustomer: 900000,
-    diskon: 0,
-    vendorName: 'CAHAYA BORDIR',
-    hppAktual: 5735000,
-    profitAktual: 3100000,
-    catatanFinance: 'Bordir emblem rapi',
-    pembayaranList: [
-      {
-        id: 'p-39-1',
-        orderId: 'ord-39',
-        noInv: 'VK260039',
-        tanggal: '2026-10-06',
-        nominal: 3500000,
-        jenis: 'dp',
-        keterangan: 'DP 1 (Booking & Antrean Bahan) - Transfer BCA',
-        createdAt: '2026-10-06T10:00:00Z',
-      },
-      {
-        id: 'p-39-2',
-        orderId: 'ord-39',
-        noInv: 'VK260039',
-        tanggal: '2026-10-06',
-        nominal: 2684500,
-        jenis: 'termin',
-        keterangan: 'DP 2 (Genap 70% Naik Potong) - Transfer Mandiri',
-        createdAt: '2026-10-06T15:30:00Z',
-      },
-    ],
-    totalUangMasukCustomer: 6184500,
-    statusPembayaran: 'parsial',
-    totalDibayarKeVendor: 4000000,
-    statusPembayaranVendor: 'dp_vendor',
-    statusOrder: 'PRODUKSI',
-  },
-  {
-    id: 'ord-38',
-    noInv: 'VK260038',
-    customerName: 'OM SEDORF',
-    projectName: 'BAJU POLO EUPA',
-    noWaCustomer: '087711223344',
-    tanggalOrder: '2026-09-02',
-    totalInvoice: 3785000,
-    totalHpp: 2805000,
-    targetMargin: 980000,
-    totalQty: 28,
-    biayaOperasional: 0,
-    biayaTambahanVendor: 0,
-    biayaTambahanCustomer: 0,
-    diskon: 0,
-    vendorName: 'AMRIN',
-    hppAktual: 2805000,
-    profitAktual: 880000,
-    catatanFinance: 'Ongkir tambahan Rp 100k',
-    pembayaranList: [
-      {
-        id: 'p-38-1',
-        orderId: 'ord-38',
-        noInv: 'VK260038',
-        tanggal: '2026-09-02',
-        nominal: 3785000,
-        jenis: 'pelunasan',
-        keterangan: 'Pelunasan Penuh Transfer BCA',
-        createdAt: '2026-09-02T16:00:00Z',
-      },
-    ],
-    totalUangMasukCustomer: 3785000,
-    statusPembayaran: 'lunas',
-    totalDibayarKeVendor: 2805000,
-    statusPembayaranVendor: 'lunas_vendor',
-    statusOrder: 'SELESAI',
-  },
-];
-
-const initialCashTransactions: CashTransaction[] = [
-  { id: 'tx-1', tanggal: '2026-10-10', tipe: 'keluar', nominal: 300000, kategori: 'Gaji/Upah', keterangan: 'Biaya finance' },
-  { id: 'tx-2', tanggal: '2026-10-10', tipe: 'keluar', nominal: 484000, kategori: 'Biaya Lain', keterangan: 'Biaya Handphone raja' },
-  { id: 'tx-3', tanggal: '2026-10-09', tipe: 'keluar', nominal: 177500, kategori: 'Biaya Lain', keterangan: 'Biaya Illustrator' },
-  { id: 'tx-4', tanggal: '2026-10-09', tipe: 'keluar', nominal: 201000, kategori: 'Biaya Lain', keterangan: 'Biaya pinjaman wawa' },
-  { id: 'tx-5', tanggal: '2026-10-08', tipe: 'keluar', nominal: 100000, kategori: 'Biaya Lain', keterangan: 'Operasional RAJA PURNAMA' },
-  { id: 'tx-6', tanggal: '2026-10-06', tipe: 'keluar', nominal: 102500, kategori: 'Biaya Lain', keterangan: 'Biaya illustrator' },
-  { id: 'tx-7', tanggal: '2026-10-02', tipe: 'keluar', nominal: 14000, kategori: 'Biaya Lain', keterangan: 'Biaya Admin atm' },
-];
-
-function transformToMasterRows(orders: Order[]): MasterFinanceRow[] {
-  return orders.map((o) => {
-    const totalJumlah = o.totalInvoice;
-    const nominalDpCustomer = o.totalUangMasukCustomer;
-    const dpPersenCustomer = totalJumlah > 0 ? (nominalDpCustomer / totalJumlah) * 100 : 0;
-    const sisaPelunasanCustomer = Math.max(0, totalJumlah - nominalDpCustomer);
-    const sisaPembayaranVendor = Math.max(0, o.totalHpp - o.totalDibayarKeVendor);
-    const biayaOperasional = o.biayaOperasional || 0;
-    const profitBersih = totalJumlah - o.totalHpp - biayaOperasional;
-    const profitPercent = totalJumlah > 0 ? (profitBersih / totalJumlah) * 100 : 0;
-
-    let statusDpThreshold: 'belum_dp' | 'dp1_parsial' | 'dp2_siap_produksi' | 'lunas_total' = 'belum_dp';
-    let sisaMenujuDp70 = 0;
-
-    if (dpPersenCustomer >= 100) {
-      statusDpThreshold = 'lunas_total';
-    } else if (dpPersenCustomer >= 70) {
-      statusDpThreshold = 'dp2_siap_produksi';
-    } else if (dpPersenCustomer > 0) {
-      statusDpThreshold = 'dp1_parsial';
-      sisaMenujuDp70 = Math.max(0, 0.7 * totalJumlah - nominalDpCustomer);
-    }
-
-    const statusOrder =
-      o.statusOrder ||
-      (o.statusPembayaran === 'lunas' || dpPersenCustomer >= 100
-        ? 'SELESAI'
-        : dpPersenCustomer >= 70
-        ? 'PRODUKSI'
-        : 'PEMBAYARAN');
-
-    return {
-      ...o,
-      originalOrder: o,
-      id: o.id,
-      noInv: o.noInv,
-      tanggalInv: o.tanggalOrder,
-      namaCustomer: o.customerName,
-      namaProject: o.projectName || '-',
-      noWaCustomer: o.noWaCustomer,
-      totalBiayaVendor: o.totalHpp,
-      dpVendor: o.totalDibayarKeVendor,
-      sisaPembayaranVendor,
-      totalQty: o.totalQty || 1,
-      totalJumlah,
-      dpPersenCustomer,
-      nominalDpCustomer,
-      sisaPelunasanCustomer,
-      biayaOperasional,
-      biayaTambahanVendor: o.biayaTambahanVendor || 0,
-      biayaTambahanCustomer: o.biayaTambahanCustomer || 0,
-      diskon: o.diskon || 0,
-      profitBersih,
-      profitPercent,
-      statusDpThreshold,
-      sisaMenujuDp70,
-      statusOrder,
-      pembayaranList: o.pembayaranList,
-      vendorName: o.vendorName || '-',
-    };
-  });
-}
+import { formatDateTick, formatRupiah } from '@/lib/utils';
+import { exportMasterFinanceToExcel } from '@/lib/excel-export';
 
 function FinancialDashboardContent() {
+  const router = useRouter();
   const { profile, logout } = useAuth();
   const [dev] = useQueryState('dev', { defaultValue: '' });
   const isDevMode = dev === 'true';
@@ -307,7 +52,7 @@ function FinancialDashboardContent() {
   const [tab, setTab] = useQueryState<FinanceSubTab>('tab', {
     defaultValue: 'dashboard',
     parse: (v) => {
-      if (['dashboard', 'cashin', 'cashout', 'vendor'].includes(v)) return v as FinanceSubTab;
+      if (['dashboard', 'datatable', 'cashin', 'cashout', 'vendor'].includes(v)) return v as FinanceSubTab;
       if (v === 'manual') return 'manual';
       return 'dashboard';
     },
@@ -323,14 +68,11 @@ function FinancialDashboardContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const [selectedOrder, setSelectedOrder] = useState<MasterFinanceRow | null>(null);
-  const [editingOrder, setEditingOrder] = useState<MasterFinanceRow | null>(null);
   const [previewInvoiceOrder, setPreviewInvoiceOrder] = useState<MasterFinanceRow | null>(null);
-  const [isAddIncomeOpen, setIsAddIncomeOpen] = useState(false);
   const [activeMetricDrawer, setActiveMetricDrawer] = useState<MetricDrawerType | null>(null);
-  const [drawerVendorFilter, setDrawerVendorFilter] = useState<string | null>(null);
+  const [drawerVendorFilter] = useState<string | null>(null);
   const [bulan, setBulan] = useState<string>('all');
   const [tahun, setTahun] = useState<string>('all');
-  const [extraIncomes, setExtraIncomes] = useState<CashTransaction[]>([]);
   const [saldoAwal] = useState<number>(0);
 
   // Firestore live sync (seluruh koleksi orders + kas + vendors)
@@ -378,9 +120,7 @@ function FinancialDashboardContent() {
     return [...set].sort().reverse();
   }, [rawOrders, rawCashTxs]);
 
-  const allCashTransactions = useMemo(() => {
-    return [...extraIncomes, ...rawCashTxs];
-  }, [extraIncomes, rawCashTxs]);
+  const allCashTransactions = rawCashTxs;
 
   const filteredOrders = useMemo(
     () => rawOrders.filter((o) => matchPeriod(o.tanggalOrder, bulan, tahun)),
@@ -443,11 +183,14 @@ function FinancialDashboardContent() {
       if (t.tanggal) {
         const cur = map.get(t.tanggal) || { kasMasuk: 0, kasKeluar: 0 };
         if (t.tipe === 'masuk') {
-          cur.kasMasuk += t.nominal;
+          if (t.kategori !== 'Penerimaan Konsumen') {
+            cur.kasMasuk += t.nominal;
+            map.set(t.tanggal, cur);
+          }
         } else {
           cur.kasKeluar += t.nominal;
+          map.set(t.tanggal, cur);
         }
-        map.set(t.tanggal, cur);
       }
     });
 
@@ -459,7 +202,8 @@ function FinancialDashboardContent() {
       .sort((a, b) => a[0].localeCompare(b[0]))
       .slice(-14)
       .map(([date, val]) => ({
-        periode: date.slice(5),
+        periode: formatDateTick(date),
+        fullDate: date,
         kasMasuk: val.kasMasuk,
         kasKeluar: val.kasKeluar,
         netCash: val.kasMasuk - val.kasKeluar,
@@ -468,51 +212,39 @@ function FinancialDashboardContent() {
 
   const viewTitles: Record<FinanceSubTab, { title: string; subtitle: string }> = {
     dashboard: {
-      title: 'Finance Data Management VisualKain',
-      subtitle: 'Master data keuangan, arus kas riil & alokasi pokok vendor vs margin',
+      title: 'Ringkasan Finansial VisualKain',
+      subtitle: 'Master data keuangan, arus kas riil & komparasi penerimaan vs pengeluaran kas',
+    },
+    datatable: {
+      title: 'Master Data Finansial Order',
+      subtitle: 'Tabel komprehensif seluruh pesanan produksi, progres tagihan konsumen, dan HPP vendor',
     },
     cashin: {
-      title: 'Cash Inflow (Dana Masuk)',
-      subtitle: 'Pelacakan seluruh penerimaan kas masuk dari order konsumen dan mutasi kas',
+      title: 'Arus Kas Masuk (Penerimaan Kas)',
+      subtitle: 'Pelacakan seluruh penerimaan kas masuk dari order konsumen dan mutasi kas bank',
     },
     cashout: {
-      title: 'Cash Outflow (Dana Keluar)',
-      subtitle: 'Pelacakan seluruh beban operasional dan mutasi kas keluar',
+      title: 'Arus Kas Keluar (Pengeluaran Kas)',
+      subtitle: 'Pelacakan seluruh beban operasional dan mutasi pengeluaran kas konveksi',
     },
     vendor: {
-      title: 'Vendor Performance',
-      subtitle: 'Highlight mitra termurah per kategori produk & tabel efisiensi belanja',
+      title: 'Kinerja Mitra Vendor',
+      subtitle: 'Evaluasi efisiensi biaya vendor per kategori produk & histori transaksi produksi',
     },
     manual: {
-      title: 'Profit Aktual (Input Manual Finance)',
+      title: 'Realisasi Laba Bersih (Penyesuaian Manual)',
       subtitle: 'Rekonsiliasi penyesuaian HPP aktual dan realisasi laba bersih di lapangan',
     },
   };
 
-  const handleExportCsv = () => {
-    const csvData = masterRows.map((r) => ({
-      'No Inv': r.noInv,
-      'Tanggal': r.tanggalInv,
-      'Nama Customer': r.namaCustomer,
-      'Nama Project': r.namaProject,
-      'Total Biaya Vendor': r.totalBiayaVendor,
-      'DP Vendor': r.dpVendor,
-      'Sisa Bayar Vendor': r.sisaPembayaranVendor,
-      'Total Qty': r.totalQty,
-      'Total Jumlah': r.totalJumlah,
-      'DP (%)': r.dpPersenCustomer.toFixed(1) + '%',
-      'Nominal DP': r.nominalDpCustomer,
-      'Sisa Pelunasan': r.sisaPelunasanCustomer,
-      'Biaya Operasional': r.biayaOperasional,
-      'Profit Bersih': r.profitBersih,
-      'Profit (%)': r.profitPercent.toFixed(1) + '%',
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(csvData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Master Finansial');
-    XLSX.writeFile(workbook, `VisualKain_Master_Finance_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success('File Master Finansial berhasil diekspor!');
+  const handleExportExcel = async () => {
+    try {
+      await exportMasterFinanceToExcel(masterRows, selectedPeriod);
+      toast.success('Laporan Master Finansial berhasil diekspor ke Excel!');
+    } catch (err) {
+      console.error('Gagal mengekspor Excel:', err);
+      toast.error('Gagal mengekspor berkas Excel');
+    }
   };
 
   const handleSaveProfitAktual = async (orderId: string, draft: ManualFinanceDraft) => {
@@ -521,14 +253,6 @@ function FinancialDashboardContent() {
       profitAktual: draft.profitAktual ? Number(draft.profitAktual) : null,
       catatanFinance: draft.catatanFinance,
     });
-  };
-
-  const handleSaveOrderFinance = async (orderId: string, updatedData: Partial<Order>) => {
-    await updateOrderFinance(orderId, updatedData);
-  };
-
-  const handleAddIncome = (tx: CashTransaction) => {
-    setExtraIncomes((prev) => [tx, ...prev]);
   };
 
   return (
@@ -559,6 +283,10 @@ function FinancialDashboardContent() {
         order={selectedOrder}
         onClose={() => setSelectedOrder(null)}
         onPreviewInvoice={(order) => setPreviewInvoiceOrder(order)}
+        onEditFinance={(order) => {
+          setSelectedOrder(null);
+          router.push(`/orders/${order.id}/edit`);
+        }}
       />
 
       {/* 3. Slide-Over Metric Detail Drawer (VisualKainDB 6-Card Drilldown) */}
@@ -573,7 +301,11 @@ function FinancialDashboardContent() {
         initialVendorFilter={drawerVendorFilter}
         onOpenAddIncome={() => {
           setActiveMetricDrawer(null);
-          setIsAddIncomeOpen(true);
+          router.push('/cash-in/new');
+        }}
+        onOpenAddExpense={() => {
+          setActiveMetricDrawer(null);
+          router.push('/cash-out/new');
         }}
         onSelectOrder={(order) => {
           setActiveMetricDrawer(null);
@@ -581,22 +313,7 @@ function FinancialDashboardContent() {
         }}
       />
 
-      {/* 4. Modal Tambahan Pemasukan Kas Baru */}
-      <AddIncomeModal
-        isOpen={isAddIncomeOpen}
-        onClose={() => setIsAddIncomeOpen(false)}
-        onAddIncome={handleAddIncome}
-      />
-
-      {/* 4. Modal Edit Finansial Order */}
-      <EditFinanceModal
-        isOpen={!!editingOrder}
-        order={editingOrder}
-        onClose={() => setEditingOrder(null)}
-        onSave={handleSaveOrderFinance}
-      />
-
-      {/* 5. Modal Preview Invoice Resmi (SSOT VisualKainDB) */}
+      {/* 4. Modal Preview Invoice Resmi (SSOT VisualKainDB) */}
       <InvoicePreviewModal
         isOpen={!!previewInvoiceOrder}
         order={previewInvoiceOrder}
@@ -607,9 +324,13 @@ function FinancialDashboardContent() {
         }}
       />
 
-      {/* 4. Main Content View Area */}
-      <main className="flex-1 overflow-y-auto px-3.5 py-4 pb-28 sm:px-8 sm:py-8 sm:pb-8 transition-all duration-300">
-        <div className="mx-auto max-w-7xl space-y-6">
+      {/* 5. Main Content View Area */}
+      <main
+        className={`flex-1 overflow-y-auto px-3.5 py-4 pb-28 sm:px-8 sm:py-8 sm:pb-8 transition-all duration-300 ${
+          previewInvoiceOrder ? 'no-print' : ''
+        }`}
+      >
+        <div className="mx-auto w-full max-w-[1920px] space-y-6">
           {/* Top Executive Header Card (Flush to top/left/right on mobile, rounded card on desktop) */}
           <div className="-mx-3.5 -mt-4 rounded-none rounded-b-2xl border-b border-slate-200/90 border-t-0 border-x-0 bg-white/95 px-4 pt-4 pb-5 shadow-card-double backdrop-blur-md transition-all sm:mx-0 sm:mt-0 sm:rounded-2xl sm:border sm:border-slate-200/90 sm:p-6 mb-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -663,11 +384,11 @@ function FinancialDashboardContent() {
                   />
                 </div>
 
-                {/* Row 2: Tombol Aksi Utama (Tambahan Pemasukan & Export CSV) */}
-                {tab === 'dashboard' && (
+                {/* Row 2: Tombol Aksi Utama (Tambahan Pemasukan & Ekspor Excel) */}
+                {(tab === 'dashboard' || tab === 'datatable') && (
                   <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
                     <button
-                      onClick={() => setIsAddIncomeOpen(true)}
+                      onClick={() => router.push('/cash-in/new')}
                       className="flex-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer"
                     >
                       <Plus className="h-4 w-4" />
@@ -675,11 +396,11 @@ function FinancialDashboardContent() {
                     </button>
 
                     <button
-                      onClick={handleExportCsv}
+                      onClick={handleExportExcel}
                       className="flex-1 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 active:scale-[0.98] transition-transform duration-150 cursor-pointer"
                     >
                       <Download className="h-4 w-4 text-slate-500" />
-                      <span>Export CSV</span>
+                      <span>Ekspor Excel</span>
                     </button>
                   </div>
                 )}
@@ -722,12 +443,15 @@ function FinancialDashboardContent() {
           {/* Conditional Sub-Tab Rendering */}
           {tab === 'dashboard' && (
             <div className="space-y-6 animate-fadeIn">
-              {/* Escrow Liquidity Bar (Safe-to-Spend vs Locked Vendor Escrow) */}
-              <EscrowLiquidityBar
-                saldoKasRiil={summary.saldoKasRiil}
-                totalUtangVendor={summary.totalUtangVendor}
-                totalKasKeluar={summary.totalKasKeluar}
-              />
+              {/* Minimal Deficit Alert Banner (US-9.23) */}
+              {summary.saldoKasRiil < 0 && (
+                <div className="flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50/90 px-4 py-3 text-xs font-semibold text-rose-800 shadow-2xs">
+                  <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                  <span>
+                    <strong>Perhatian:</strong> Saldo Kas Bank saat ini berada pada posisi defisit (<strong>{formatRupiah(summary.saldoKasRiil)}</strong>).
+                  </span>
+                </div>
+              )}
 
               {/* Banner periode data */}
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white/70 px-3.5 py-2 text-xs text-slate-600">
@@ -735,7 +459,7 @@ function FinancialDashboardContent() {
                   Laporan Periode: <strong className="text-slate-900">{selectedPeriod}</strong>
                 </span>
                 <span className="font-semibold text-slate-500 tabular-nums">
-                  Tabel: {filteredOrders.length} dari {rawOrders.length} order
+                  Total Aktif: {filteredOrders.length} dari {rawOrders.length} order
                 </span>
               </div>
 
@@ -750,17 +474,49 @@ function FinancialDashboardContent() {
                 }}
               />
 
-              {/* Recharts Spline & Donut Escrow Allocation */}
+              {/* Recharts Bar Comparison & Donut Allocation */}
               <AnalyticsCharts
+                summary={summary}
                 donutData={dynamicDonutData}
                 trendData={dynamicTrendData.length > 0 ? dynamicTrendData : undefined}
               />
 
+              {/* Shortcut Banner ke Dedicated Tab Data Table (US-9.29) */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-teal-200/90 bg-white p-4 sm:p-5 shadow-card-double">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 border border-teal-200/80">
+                    <Table2 className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Tabel Master Data Finansial Order ({filteredOrders.length} Pesanan)
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Lihat rincian 17 kolom finansial order, progres DP 70%, utang vendor, dan cetak faktur di tab khusus Data Table.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setTab('datatable')}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.98] transition-all cursor-pointer shrink-0"
+                >
+                  <span>Buka Master Data Order (Data Table)</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Dedicated Sub-Tab Data Table (US-9.29) */}
+          {tab === 'datatable' && (
+            <div className="space-y-4 animate-fadeIn">
               {/* Master 17-Column Table with Dual-Sticky & Fullscreen Expand */}
               <MasterFinanceTable
                 rows={masterRows}
+                selectedPeriod={selectedPeriod}
                 onSelectRow={(row) => setSelectedOrder(row)}
-                onEditFinance={(row) => setEditingOrder(row)}
+                onEditFinance={(row) => router.push(`/orders/${row.id}/edit`)}
                 onPreviewInvoice={(row) => setPreviewInvoiceOrder(row)}
                 onQuickWaFollowUp={(row) => setSelectedOrder(row)}
               />
@@ -777,7 +533,7 @@ function FinancialDashboardContent() {
                 activeTahun={tahun}
                 onBulanChange={setBulan}
                 onTahunChange={setTahun}
-                onOpenAddIncome={() => setIsAddIncomeOpen(true)}
+                onOpenAddIncome={() => router.push('/cash-in/new')}
                 onSelectOrder={(order) => {
                   const row = masterRows.find((r) => r.id === order.id) || transformToMasterRows([order])[0];
                   setSelectedOrder(row);

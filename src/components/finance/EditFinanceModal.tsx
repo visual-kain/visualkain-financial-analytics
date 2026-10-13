@@ -195,14 +195,23 @@ export function EditFinanceModal({ isOpen, order, onClose, onSave }: EditFinance
         diskon,
         biayaOperasional,
         pembayaranList,
+        dpNominal: nominalDpCustomer,
         totalUangMasukCustomer: nominalDpCustomer,
         totalHpp: totalBiayaVendor,
         totalDibayarKeVendor: dpVendor,
         catatanFinance,
         statusPembayaran:
-          nominalDpCustomer >= netInvoice ? 'lunas' : nominalDpCustomer > 0 ? 'parsial' : 'belum_bayar',
+          nominalDpCustomer >= netInvoice && netInvoice > 0
+            ? 'lunas'
+            : nominalDpCustomer > 0
+            ? 'parsial'
+            : 'belum_bayar',
         statusPembayaranVendor:
-          dpVendor >= totalBiayaVendor ? 'lunas_vendor' : dpVendor > 0 ? 'dp_vendor' : 'belum_bayar',
+          dpVendor >= totalBiayaVendor && totalBiayaVendor > 0
+            ? 'lunas_vendor'
+            : dpVendor > 0
+            ? 'dp_vendor'
+            : 'belum_bayar',
       };
 
       await onSave(order.id, updatedPayload);

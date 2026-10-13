@@ -1,10 +1,16 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
-import { formatRupiah, formatCompactRupiah } from '@/lib/utils';
+import {
+  formatRupiah,
+  formatCompactRupiah,
+  formatDateTick,
+  formatIndonesianDateFull,
+  formatDateRangeBadge,
+} from '@/lib/utils';
 import type { Order, CashTransaction, CashInflowEntry, InflowCategoryType } from '@/types';
+import { exportCashInflowToExcel } from '@/lib/excel-export';
 import { CustomSelect } from '@/components/ui/custom-select';
 import {
   Coins,
@@ -21,6 +27,7 @@ import {
   RotateCcw,
   Eye,
   Receipt,
+  Calendar,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -48,24 +55,24 @@ interface CashInflowSectionProps {
 }
 
 const INFLOW_CATEGORY_COLORS: Record<InflowCategoryType, string> = {
-  dp: '#0284c7',        // Sky 600
-  termin: '#d97706',    // Amber 600
-  pelunasan: '#059669', // Emerald 600
-  kas_masuk: '#7c3aed', // Violet 600
+  dp: '#0d9488',        // Teal 600 - DP 1 Booking / Uang Muka
+  termin: '#f59e0b',    // Amber 500 - DP 2 Termin 70% Syarat Produksi
+  pelunasan: '#10b981', // Emerald 500 - Pelunasan Akhir 30% Sebelum Kirim
+  kas_masuk: '#6366f1', // Indigo 500 - Kas Masuk Non-Order
 };
 
 const INFLOW_CATEGORY_LABELS: Record<InflowCategoryType, string> = {
-  dp: 'Uang Muka (DP)',
-  termin: 'Termin Produksi',
-  pelunasan: 'Pelunasan Penuh',
-  kas_masuk: 'Kas Masuk Langsung',
+  dp: 'DP 1 Booking (Awal)',
+  termin: 'DP 2 Termin 70% (Mulai Produksi)',
+  pelunasan: 'Pelunasan 30% (Sebelum Kirim)',
+  kas_masuk: 'Kas Masuk Non-Order',
 };
 
 const INFLOW_FILTER_OPTIONS = [
   { value: 'all', label: 'Semua Jenis Pemasukan', badge: 'Semua' },
-  { value: 'dp', label: 'Uang Muka (DP)' },
-  { value: 'termin', label: 'Termin Produksi' },
-  { value: 'pelunasan', label: 'Pelunasan Penuh' },
+  { value: 'dp', label: 'DP 1 Booking (Awal)' },
+  { value: 'termin', label: 'DP 2 Termin 70% (Produksi)' },
+  { value: 'pelunasan', label: 'Pelunasan 30% (Kirim)' },
   { value: 'kas_masuk', label: 'Kas Masuk Non-Order' },
 ];
 
@@ -145,26 +152,31 @@ export function CashInflowSection({
         });
       } else if (order.totalUangMasukCustomer > 0) {
         // Fallback jika pembayaranList tidak terurai tapi total uang masuk tercatat
-        const isLunas = order.statusPembayaran === 'lunas';
+        const totalTagihan = order.totalInvoice || order.totalJumlah || 0;
+        const isLunas = order.statusPembayaran === 'lunas' || (totalTagihan > 0 && order.totalUangMasukCustomer >= totalTagihan);
+        const dpPersen = totalTagihan > 0 ? (order.totalUangMasukCustomer / totalTagihan) * 100 : (order.dpPersenCustomer || 0);
+        const isTermin70 = dpPersen >= 70;
+        const catType: InflowCategoryType = isLunas ? 'pelunasan' : isTermin70 ? 'termin' : 'dp';
+
         list.push({
           id: `pay-${order.id}-single`,
           tanggal: order.tanggalOrder || '2026-10-01',
           sumber: 'order',
-          jenis: isLunas ? 'pelunasan' : 'dp',
+          jenis: catType,
           noInv: order.noInv,
           orderId: order.id,
           customerName: order.customerName || order.namaCustomer || 'Customer',
           projectName: order.projectName || order.namaProject || '-',
-          keterangan: `Pembayaran ${isLunas ? 'Lunas' : 'DP'} Konsumen`,
+          keterangan: `Pembayaran ${catType === 'pelunasan' ? 'Pelunasan 30%' : catType === 'termin' ? 'Termin 70% Produksi' : 'DP 1 Booking'} Konsumen`,
           nominal: order.totalUangMasukCustomer,
           rawOrder: order,
         });
       }
     });
 
-    // Sumber B: Transaksi kas masuk langsung (koleksi kas Firestore)
+    // Sumber B: Transaksi kas masuk langsung non-order (koleksi kas Firestore)
     cashTransactions.forEach((tx) => {
-      if (tx.tipe === 'masuk') {
+      if (tx.tipe === 'masuk' && tx.kategori !== 'Penerimaan Konsumen') {
         list.push({
           id: tx.id,
           tanggal: tx.tanggal,
@@ -261,7 +273,7 @@ export function CashInflowSection({
 
     return Array.from(map.entries())
       .map(([tanggal, nominal]) => ({
-        tanggal: tanggal.slice(5), // MM-DD
+        tanggal: formatDateTick(tanggal),
         fullDate: tanggal,
         nominal,
       }))
@@ -269,30 +281,19 @@ export function CashInflowSection({
       .slice(-14); // Ambil maksimal 14 hari terakhir
   }, [filteredInflows]);
 
-  // Export Excel
-  const handleExportExcel = () => {
+  // Export Excel Eksekutif Standar Inzta (US-9.28)
+  const handleExportExcel = async () => {
     if (filteredInflows.length === 0) {
       toast.error('Tidak ada data pemasukan untuk diekspor!');
       return;
     }
-
-    const data = filteredInflows.map((item, idx) => ({
-      No: idx + 1,
-      Tanggal: item.tanggal,
-      'No Invoice': item.noInv || '-',
-      'Customer / Sumber': item.customerName,
-      Project: item.projectName || '-',
-      Jenis: INFLOW_CATEGORY_LABELS[item.jenis] || item.jenis,
-      Keterangan: item.keterangan,
-      'Jumlah (Rp)': item.nominal,
-      Sumber: item.sumber === 'order' ? 'Pembayaran Pesanan' : 'Kas Masuk Langsung',
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Dana Masuk');
-    XLSX.writeFile(wb, `VisualKain_Dana_Masuk_${selectedPeriod}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success('Laporan Dana Masuk berhasil diunduh!');
+    try {
+      await exportCashInflowToExcel(filteredInflows, selectedPeriod);
+      toast.success('Laporan Arus Kas Masuk berhasil diekspor ke Excel!');
+    } catch (err) {
+      console.error('Gagal mengekspor Excel:', err);
+      toast.error('Gagal mengekspor berkas Excel');
+    }
   };
 
   const handleResetFilter = () => {
@@ -448,14 +449,19 @@ export function CashInflowSection({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart A: Daily Trend Bar Chart */}
         <div className="lg:col-span-2 rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-card-double">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-4">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-emerald-600" />
               <h3 className="text-xs sm:text-sm font-bold text-slate-800">
                 Tren Penerimaan Kas Harian
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-slate-400">14 Hari Terakhir</span>
+            {dailyTrendData.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-mono font-semibold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
+                <Calendar className="h-3 w-3 text-slate-400" />
+                {formatDateRangeBadge(dailyTrendData.map((d) => d.fullDate))}
+              </span>
+            )}
           </div>
 
           <div className="h-56 w-full">
@@ -475,7 +481,10 @@ export function CashInflowSection({
                   />
                   <Tooltip
                     formatter={(val: any) => [formatRupiah(Number(val) || 0), 'Nominal Masuk']}
-                    labelFormatter={(label) => `Tanggal: ${label}`}
+                    labelFormatter={(_label, payload) => {
+                      const fullDate = payload?.[0]?.payload?.fullDate;
+                      return `Tanggal: ${fullDate ? formatIndonesianDateFull(fullDate) : _label}`;
+                    }}
                     contentStyle={{
                       backgroundColor: 'rgba(255, 255, 255, 0.95)',
                       borderRadius: '12px',
@@ -496,10 +505,15 @@ export function CashInflowSection({
           <div>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <div className="flex items-center gap-2">
-                <PieChartIcon className="h-4 w-4 text-sky-600" />
-                <h3 className="text-xs sm:text-sm font-bold text-slate-800">
-                  Komposisi Jenis Pemasukan
-                </h3>
+                <PieChartIcon className="h-4 w-4 text-teal-600" />
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-800">
+                    Komposisi Termin Pembayaran
+                  </h3>
+                  <p className="text-[10px] text-slate-400">
+                    Kesiapan pesanan masuk produksi vs pelunasan
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -631,7 +645,7 @@ export function CashInflowSection({
               className="h-9 px-3 flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold active:scale-95 transition-all shadow-2xs cursor-pointer"
             >
               <Download className="h-3.5 w-3.5 text-slate-500" />
-              <span>Export</span>
+              <span>Ekspor Excel</span>
             </button>
 
             {onOpenAddIncome && (
@@ -640,7 +654,7 @@ export function CashInflowSection({
                 className="h-9 px-3.5 flex items-center gap-1.5 rounded-xl bg-teal-600 text-white hover:bg-teal-700 text-xs font-bold active:scale-95 transition-all shadow-sm cursor-pointer"
               >
                 <Plus className="h-3.5 w-3.5" />
-                <span>+ Catat Kas</span>
+                <span>Catat Kas</span>
               </button>
             )}
           </div>

@@ -18,6 +18,7 @@ import {
   ArrowRight,
   ExternalLink,
   FileText,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,12 +26,14 @@ interface OrderInspectionDrawerProps {
   order: MasterFinanceRow | null;
   onClose: () => void;
   onPreviewInvoice?: (order: MasterFinanceRow) => void;
+  onEditFinance?: (order: MasterFinanceRow) => void;
 }
 
 export function OrderInspectionDrawer({
   order,
   onClose,
   onPreviewInvoice,
+  onEditFinance,
 }: OrderInspectionDrawerProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
 
@@ -99,7 +102,7 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-hidden">
+      <div className="fixed inset-0 z-[60] overflow-hidden">
         {/* Backdrop Overlay */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -146,16 +149,26 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
                   <span>Tanggal Invoice: {order.tanggalInv}</span>
                 </div>
 
-                {/* Tombol Lihat Faktur & Invoice Resmi */}
-                <div className="mt-3.5 pt-3 border-t border-slate-200/70">
+                {/* Tombol Lihat Faktur & Edit Finansial/DP */}
+                <div className="mt-3.5 pt-3 border-t border-slate-200/70 grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => onPreviewInvoice?.(order)}
-                    className="w-full min-h-[38px] flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50/80 px-3.5 py-2 text-xs font-bold text-blue-700 shadow-2xs hover:bg-blue-100 hover:border-blue-300 active:scale-[0.98] transition-all duration-150 cursor-pointer"
+                    className="min-h-[38px] flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/80 px-3 py-2 text-xs font-bold text-blue-700 shadow-2xs hover:bg-blue-100 hover:border-blue-300 active:scale-[0.98] transition-all duration-150 cursor-pointer"
                   >
-                    <FileText className="h-4 w-4 text-blue-600" />
-                    <span>Lihat Faktur & Invoice Resmi</span>
+                    <FileText className="h-4 w-4 text-blue-600 shrink-0" />
+                    <span>Lihat Faktur Resmi</span>
                   </button>
+                  {onEditFinance && (
+                    <button
+                      type="button"
+                      onClick={() => onEditFinance(order)}
+                      className="min-h-[38px] flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/80 px-3 py-2 text-xs font-bold text-teal-800 shadow-2xs hover:bg-teal-100 hover:border-teal-300 active:scale-[0.98] transition-all duration-150 cursor-pointer"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-teal-700 shrink-0" />
+                      <span>Edit Finansial & DP</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -175,7 +188,7 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
 
                 <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-3">
                   <span className="text-[11px] font-semibold text-teal-800 block">
-                    DP Customer ({order.dpPersenCustomer.toFixed(1)}%)
+                    DP Konsumen ({order.dpPersenCustomer.toFixed(1)}%)
                   </span>
                   <span className="text-sm font-extrabold font-mono text-teal-700 mt-0.5 block tabular-num">
                     {formatRupiah(order.nominalDpCustomer)}
@@ -216,23 +229,43 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                   <Receipt className="h-4 w-4 text-slate-400" />
-                  Timeline Cicilan Pembayaran
+                  Rincian & Timeline Cicilan Pembayaran
                 </h4>
 
                 <div className="relative pl-6 space-y-4 border-l-2 border-teal-200 ml-2">
-                  {/* Step 1: DP 1 */}
-                  <div className="relative">
-                    <span className="absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full bg-teal-600 border-2 border-white shadow-sm" />
-                    <div className="text-xs font-bold text-slate-800">
-                      DP 1 (Booking & Antrian Desain)
+                  {Array.isArray(order.pembayaranList) && order.pembayaranList.length > 0 ? (
+                    order.pembayaranList.map((p, idx) => (
+                      <div key={p.id || idx} className="relative">
+                        <span className="absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full bg-teal-600 border-2 border-white shadow-sm" />
+                        <div className="text-xs font-bold text-slate-800">
+                          {p.jenis === 'dp'
+                            ? `DP ${idx + 1} (Booking & Antrean)`
+                            : p.jenis === 'termin'
+                            ? `Termin ${idx + 1} (Progres 70%)`
+                            : `Pelunasan Akhir`}
+                        </div>
+                        <div className="text-xs font-mono font-bold text-teal-700 mt-0.5">
+                          {formatRupiah(p.nominal)}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          {p.tanggal} &bull; {p.keterangan || 'Terverifikasi masuk mutasi bank'}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="relative">
+                      <span className="absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full bg-teal-600 border-2 border-white shadow-sm" />
+                      <div className="text-xs font-bold text-slate-800">
+                        DP Awal (Booking & Antrean Desain)
+                      </div>
+                      <div className="text-xs font-mono font-bold text-teal-700 mt-0.5">
+                        {formatRupiah(order.nominalDpCustomer)}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        Terverifikasi masuk mutasi bank BCA
+                      </div>
                     </div>
-                    <div className="text-xs font-mono font-bold text-teal-700 mt-0.5">
-                      {formatRupiah(order.nominalDpCustomer)}
-                    </div>
-                    <div className="text-[10px] text-slate-400 mt-0.5">
-                      Terverifikasi masuk mutasi bank BCA
-                    </div>
-                  </div>
+                  )}
 
                   {/* Step 2: DP 2 Target 70% */}
                   <div className="relative">
@@ -327,7 +360,7 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
                 <div className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-emerald-700" />
                   <span className="text-xs font-bold text-emerald-900">
-                    1-Click WhatsApp Follow-Up
+                    Penagihan Cepat via WhatsApp
                   </span>
                 </div>
 

@@ -12,7 +12,7 @@ import {
 } from '@tanstack/react-table';
 import * as XLSX from 'xlsx';
 import { useReactToPrint } from 'react-to-print';
-import { formatRupiah } from '@/lib/utils';
+import { formatRupiah, getPeriodFilenameSuffix } from '@/lib/utils';
 import type { CashTransaction } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +58,8 @@ export function TransactionLedgerTable({
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Buku Kas Riil');
-    XLSX.writeFile(workbook, `Buku_Kas_VisualKain_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    const filename = `VisualKain_Buku_Kas_${getPeriodFilenameSuffix()}.xlsx`;
+    XLSX.writeFile(workbook, filename);
   };
 
   const filteredData = React.useMemo(() => {

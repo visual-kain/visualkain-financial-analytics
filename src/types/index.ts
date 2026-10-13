@@ -3,7 +3,7 @@
  * Sumber Spesifikasi: docs/specs/design.md & Dokumen_Konfirmasi_Fitur_Update_VisualKain.pdf
  */
 
-export type FinanceSubTab = 'dashboard' | 'cashin' | 'cashout' | 'vendor' | 'manual';
+export type FinanceSubTab = 'dashboard' | 'datatable' | 'cashin' | 'cashout' | 'vendor' | 'manual';
 
 export type InflowCategoryType = 'dp' | 'termin' | 'pelunasan' | 'kas_masuk';
 
@@ -94,6 +94,7 @@ export type MetricDrawerType =
   | 'omzet'
   | 'profit'
   | 'saldo'
+  | 'cashin'
   | 'cashout'
   | 'vendor_debt'
   | 'outstanding';
@@ -164,6 +165,8 @@ export interface CashTransaction {
   keterangan: string;
   refInvoice?: string;
   orderId?: string;
+  akun?: string;
+  [key: string]: any;
 }
 
 export interface EscrowAllocation {

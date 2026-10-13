@@ -226,7 +226,7 @@ export function FinanceStatsGrid({
             </span>
             <div className="flex items-center gap-1 sm:gap-1.5">
               <span className="rounded-full border border-rose-200 bg-rose-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-rose-700">
-                Outflow
+                Kas Keluar
               </span>
               <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-rose-600" />
             </div>
@@ -277,7 +277,7 @@ export function FinanceStatsGrid({
         </p>
       </div>
 
-      {/* 6. Outstanding Customer */}
+      {/* 6. Sisa Piutang Pelanggan */}
       <div
         role="button"
         tabIndex={0}
@@ -298,7 +298,7 @@ export function FinanceStatsGrid({
             </div>
           </div>
           <h4 className="mt-2 sm:mt-3 text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
-            Outstanding Customer
+            Sisa Piutang Pelanggan
           </h4>
           <div className="mt-0.5 sm:mt-1 text-sm sm:text-lg font-bold tracking-tight text-slate-900 tabular-nums truncate">
             {formatRupiah(summary.totalPiutangCustomer)}

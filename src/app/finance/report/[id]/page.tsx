@@ -9,13 +9,36 @@ export default function FinanceReportPage() {
   const params = useParams();
   const router = useRouter();
   const orderId = params.id as string;
-  const { orders, vendors } = useFirebaseFinance([], []);
+  const { orders, vendors } = useFirebaseFinance();
 
   const order = orders.find((o) => o.id === orderId || o.noInv === orderId);
 
   const getVendorById = (id: string) => {
     const v = vendors.find((vend) => vend.id === id);
     return v ? { nama: v.nama, pic: '-' } : undefined;
+  };
+
+  const handlePrint = () => {
+    const originalTitle = document.title;
+    const noInv = order?.noInv || 'Invoice';
+    const projectName =
+      order?.namaProject ||
+      order?.projectName ||
+      order?.namaCustomer ||
+      order?.customerName ||
+      'Laporan_Finansial';
+    const cleanTitle = `${noInv} - ${projectName}`.replace(/[/\\?%*:|"<>]/g, '-').trim();
+    document.title = cleanTitle;
+
+    const restoreTitle = () => {
+      document.title = originalTitle;
+      window.removeEventListener('afterprint', restoreTitle);
+    };
+    window.addEventListener('afterprint', restoreTitle);
+    window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1500);
   };
 
   return (
@@ -30,12 +53,12 @@ export default function FinanceReportPage() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
-            <span>Back to Finance</span>
+            <span>Kembali ke Finansial</span>
           </button>
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => window.print()}
+            onClick={handlePrint}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
               <polyline points="6 9 6 2 18 2 18 9" />

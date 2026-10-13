@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { formatRupiah, formatCompactRupiah } from '@/lib/utils';
 import type { VendorPerformanceItem, CheapestByCategory } from '@/types';
-import { Award, Crown, Tag, ArrowUpDown, BarChart2, TrendingUp, Sparkles, Building2 } from 'lucide-react';
+import { Award, Crown, Tag, ArrowUpDown, BarChart2, TrendingUp, Sparkles, Building2, Search } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -188,6 +188,8 @@ export function VendorPerformanceSection({
     }));
   }, [vendors]);
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const handleSort = (field: keyof VendorPerformanceItem) => {
     if (sortField === field) {
       setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -207,6 +209,13 @@ export function VendorPerformanceSection({
       return sortOrder === 'asc' ? Number(aVal) - Number(bVal) : Number(bVal) - Number(aVal);
     });
   }, [vendors, sortField, sortOrder]);
+
+  // US-9.21: Live search filter mitra vendor
+  const filteredVendors = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return sortedVendors;
+    return sortedVendors.filter((v) => v.vendorNama.toLowerCase().includes(q));
+  }, [sortedVendors, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -354,7 +363,7 @@ export function VendorPerformanceSection({
 
       {/* DETAILED AUDIT TABLE PER PCS (LENGAN PENDEK, PANJANG, TANPA LENGAN) */}
       <div className="rounded-2xl border border-slate-200/90 bg-white shadow-card-double overflow-hidden">
-        <div className="border-b border-slate-100 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="border-b border-slate-100 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-slate-600" />
@@ -366,54 +375,72 @@ export function VendorPerformanceSection({
               Rincian ongkos produksi rata-rata per pcs untuk bahan evaluasi negosiasi vendor
             </p>
           </div>
-          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-            {vendors.length} Vendor Terdaftar
-          </span>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari nama vendor..."
+                className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 shadow-2xs"
+              />
+            </div>
+            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full text-center shrink-0">
+              {filteredVendors.length} dari {vendors.length} Vendor
+            </span>
+          </div>
         </div>
 
         {/* Mobile View: 2-Grid Vendor Cards (< 768px) */}
         <div className="md:hidden grid grid-cols-2 gap-2 sm:gap-2.5 p-2 sm:p-3 bg-slate-50/40">
-          {sortedVendors.map((item) => (
-            <div
-              key={item.vendorId}
-              className="rounded-xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-2xs flex flex-col justify-between gap-1.5 overflow-hidden"
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 text-[8.5px] font-bold">
-                    {item.vendorNama.slice(0, 2)}
-                  </span>
-                  <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 truncate" title={item.vendorNama}>
-                    {item.vendorNama}
-                  </h4>
-                </div>
-                <p className="mt-0.5 text-[9px] sm:text-[9.5px] text-slate-500 font-semibold font-mono truncate">
-                  {item.orderCount} Order &bull; {item.pcsTotal} Pcs
-                </p>
-              </div>
-
-              <div className="rounded-lg bg-slate-50/90 p-1.5 sm:p-2 space-y-0.5 text-[9px] sm:text-[9.5px]">
-                <div className="flex justify-between items-center text-slate-500 min-w-0">
-                  <span className="truncate">HPP:</span>
-                  <span className="font-mono font-bold text-slate-800 truncate text-[9px] sm:text-[9.5px]">
-                    {formatRupiah(item.hppAktual > 0 ? item.hppAktual : item.hppQuotation)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-emerald-800 font-semibold min-w-0">
-                  <span className="truncate">Profit:</span>
-                  <span className="font-mono font-bold text-emerald-600 truncate text-[9px] sm:text-[9.5px]">
-                    {formatRupiah(item.profit)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-slate-600 pt-0.5 border-t border-slate-200/60 min-w-0">
-                  <span className="truncate">Margin:</span>
-                  <span className={`font-mono font-bold text-[9px] sm:text-[9.5px] ${item.marginPercent < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
-                    {item.marginPercent.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
+          {filteredVendors.length === 0 ? (
+            <div className="col-span-2 p-8 text-center text-xs text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
+              Tidak ada mitra vendor yang cocok dengan pencarian &quot;{searchQuery}&quot;.
             </div>
-          ))}
+          ) : (
+            filteredVendors.map((item) => (
+              <div
+                key={item.vendorId}
+                className="rounded-xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-2xs flex flex-col justify-between gap-1.5 overflow-hidden"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 text-[8.5px] font-bold">
+                      {item.vendorNama.slice(0, 2)}
+                    </span>
+                    <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 truncate" title={item.vendorNama}>
+                      {item.vendorNama}
+                    </h4>
+                  </div>
+                  <p className="mt-0.5 text-[9px] sm:text-[9.5px] text-slate-500 font-semibold font-mono truncate">
+                    {item.orderCount} Order &bull; {item.pcsTotal} Pcs
+                  </p>
+                </div>
+
+                <div className="rounded-lg bg-slate-50/90 p-1.5 sm:p-2 space-y-0.5 text-[9px] sm:text-[9.5px]">
+                  <div className="flex justify-between items-center text-slate-500 min-w-0">
+                    <span className="truncate">HPP:</span>
+                    <span className="font-mono font-bold text-slate-800 truncate text-[9px] sm:text-[9.5px]">
+                      {formatRupiah(item.hppAktual > 0 ? item.hppAktual : item.hppQuotation)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-emerald-800 font-semibold min-w-0">
+                    <span className="truncate">Profit:</span>
+                    <span className="font-mono font-bold text-emerald-600 truncate text-[9px] sm:text-[9.5px]">
+                      {formatRupiah(item.profit)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-600 pt-0.5 border-t border-slate-200/60 min-w-0">
+                    <span className="truncate">Margin:</span>
+                    <span className={`font-mono font-bold text-[9px] sm:text-[9.5px] ${item.marginPercent < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                      {item.marginPercent.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Desktop View: Wide Spreadsheet Table (>= 768px) */}
@@ -453,8 +480,15 @@ export function VendorPerformanceSection({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {sortedVendors.map((item) => (
-                <tr key={item.vendorId} className="hover:bg-slate-50/80 transition-colors">
+              {filteredVendors.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="p-8 text-center text-xs text-slate-400">
+                    Tidak ada mitra vendor yang cocok dengan pencarian &quot;{searchQuery}&quot;.
+                  </td>
+                </tr>
+              ) : (
+                filteredVendors.map((item) => (
+                  <tr key={item.vendorId} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-4 py-3.5 font-bold text-slate-900 flex items-center gap-2">
                     <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-teal-50 text-teal-700 text-[10px] font-bold">
                       {item.vendorNama.slice(0, 2)}
@@ -533,7 +567,7 @@ export function VendorPerformanceSection({
                     )}
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

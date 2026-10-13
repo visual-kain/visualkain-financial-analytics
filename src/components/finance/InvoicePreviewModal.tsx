@@ -21,9 +21,32 @@ export function InvoicePreviewModal({
 
   const targetOrder = order.originalOrder || order;
 
+  const handlePrint = () => {
+    const originalTitle = document.title;
+    const noInv = targetOrder.noInv || 'Invoice';
+    const projectName =
+      targetOrder.namaProject ||
+      targetOrder.projectName ||
+      targetOrder.namaCustomer ||
+      targetOrder.customerName ||
+      'Laporan_Finansial';
+    const cleanTitle = `${noInv} - ${projectName}`.replace(/[/\\?%*:|"<>]/g, '-').trim();
+    document.title = cleanTitle;
+
+    const restoreTitle = () => {
+      document.title = originalTitle;
+      window.removeEventListener('afterprint', restoreTitle);
+    };
+    window.addEventListener('afterprint', restoreTitle);
+    window.print();
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1500);
+  };
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-center p-2 sm:p-6 overflow-y-auto bg-slate-900/60 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[70] flex items-start justify-center p-2 sm:p-6 overflow-y-auto bg-slate-900/60 backdrop-blur-sm">
         {/* Backdrop Click-to-Close */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -51,13 +74,13 @@ export function InvoicePreviewModal({
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
-              <span>Back to Finance</span>
+              <span>Kembali ke Finansial</span>
             </button>
 
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => window.print()}
+              onClick={handlePrint}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                 <polyline points="6 9 6 2 18 2 18 9" />
