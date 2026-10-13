@@ -464,7 +464,7 @@ export function PaymentLedgerPanel({
               <button
                 type="button"
                 onClick={resetForm}
-                className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
                 Batal edit
               </button>
@@ -474,7 +474,7 @@ export function PaymentLedgerPanel({
               onClick={handleSubmit}
               disabled={!canSubmit}
               className={cn(
-                'inline-flex h-10 items-center rounded-xl px-4 text-xs font-bold text-white active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed',
+                'flex-1 sm:flex-none inline-flex h-10 items-center justify-center rounded-xl px-4 text-xs font-bold text-white active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed',
                 tone.solid
               )}
             >

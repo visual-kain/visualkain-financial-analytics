@@ -120,53 +120,57 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between overflow-y-auto"
+            className="w-screen max-w-md h-full bg-white shadow-2xl flex flex-col justify-between overflow-hidden"
           >
             {/* Header Section */}
-            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 border border-teal-200">
-                  {order.noInv}
-                </span>
+            <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 shrink-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 border border-teal-200 shrink-0">
+                    {order.noInv}
+                  </span>
+                  <span className="flex items-center gap-1 text-[11px] text-slate-400 font-medium truncate">
+                    <Calendar className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{order.tanggalInv}</span>
+                  </span>
+                </div>
                 <button
                   onClick={onClose}
-                  className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 active:scale-95 transition-all"
+                  className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 active:scale-95 transition-all shrink-0 cursor-pointer"
                   title="Tutup (Esc)"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="mt-3">
-                <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
+              <div className="mt-2">
+                <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight truncate">
                   {order.namaCustomer}
                 </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">
                   {order.namaProject} &bull; {order.totalQty} pcs
                 </p>
-                <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
-                  <Calendar className="h-3.5 w-3.5" />
-                  <span>Tanggal Invoice: {order.tanggalInv}</span>
-                </div>
 
                 {/* Tombol Lihat Faktur & Edit Finansial/DP */}
-                <div className="mt-3.5 pt-3 border-t border-slate-200/70 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="mt-3 pt-2.5 border-t border-slate-200/70 grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => onPreviewInvoice?.(order)}
-                    className="min-h-[38px] flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/80 px-3 py-2 text-xs font-bold text-blue-700 shadow-2xs hover:bg-blue-100 hover:border-blue-300 active:scale-[0.98] transition-all duration-150 cursor-pointer"
+                    className="h-10 flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/80 px-2.5 text-xs font-bold text-blue-700 shadow-2xs hover:bg-blue-100 hover:border-blue-300 active:scale-[0.98] transition-all duration-150 cursor-pointer whitespace-nowrap"
                   >
-                    <FileText className="h-4 w-4 text-blue-600 shrink-0" />
-                    <span>Lihat Faktur Resmi</span>
+                    <FileText className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                    <span className="sm:hidden">Lihat Faktur</span>
+                    <span className="hidden sm:inline">Lihat Faktur Resmi</span>
                   </button>
                   {onEditFinance && (
                     <button
                       type="button"
                       onClick={() => onEditFinance(order)}
-                      className="min-h-[38px] flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/80 px-3 py-2 text-xs font-bold text-teal-800 shadow-2xs hover:bg-teal-100 hover:border-teal-300 active:scale-[0.98] transition-all duration-150 cursor-pointer"
+                      className="h-10 flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/80 px-2.5 text-xs font-bold text-teal-800 shadow-2xs hover:bg-teal-100 hover:border-teal-300 active:scale-[0.98] transition-all duration-150 cursor-pointer whitespace-nowrap"
                     >
                       <Pencil className="h-3.5 w-3.5 text-teal-700 shrink-0" />
-                      <span>Edit Finansial & DP</span>
+                      <span className="sm:hidden">Edit &amp; DP</span>
+                      <span className="hidden sm:inline">Edit Finansial &amp; DP</span>
                     </button>
                   )}
                 </div>
@@ -174,9 +178,9 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
             </div>
 
             {/* Content Body */}
-            <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 flex-1 overflow-y-auto">
               {/* Financial Snapshot Cards */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <span className="text-[11px] font-semibold text-slate-500 block">
                     Total Invoice
@@ -206,9 +210,9 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
               >
                 <div className="flex items-center gap-2 font-bold">
                   {order.dpPersenCustomer >= 70 ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                   ) : (
-                    <Clock className="h-4 w-4 text-amber-600" />
+                    <Clock className="h-4 w-4 text-amber-600 shrink-0" />
                   )}
                   <span>
                     {order.dpPersenCustomer >= 100
@@ -229,7 +233,7 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
               <div className="space-y-3">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                   <Receipt className="h-4 w-4 text-slate-400" />
-                  Rincian & Timeline Cicilan Pembayaran
+                  Rincian &amp; Timeline Cicilan Pembayaran
                 </h4>
 
                 <div className="relative pl-6 space-y-4 border-l-2 border-teal-200 ml-2">
@@ -238,11 +242,13 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
                       <div key={p.id || idx} className="relative">
                         <span className="absolute -left-[31px] top-0.5 h-3.5 w-3.5 rounded-full bg-teal-600 border-2 border-white shadow-sm" />
                         <div className="text-xs font-bold text-slate-800">
-                          {p.jenis === 'dp'
+                          {p.label
+                            ? `${idx + 1}. ${p.label}`
+                            : p.jenis === 'dp'
                             ? `DP ${idx + 1} (Booking & Antrean)`
                             : p.jenis === 'termin'
                             ? `Termin ${idx + 1} (Progres 70%)`
-                            : `Pelunasan Akhir`}
+                            : 'Pelunasan Akhir'}
                         </div>
                         <div className="text-xs font-mono font-bold text-teal-700 mt-0.5">
                           {formatRupiah(p.nominal)}

@@ -336,9 +336,9 @@ export default function OrderEditFinancePage() {
     <div className="min-h-screen bg-[#E8ECF2] text-slate-900 pb-12">
       <Toaster richColors position="top-right" />
 
-      <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 backdrop-blur-md px-4 sm:px-6 lg:px-10 py-3.5 shadow-2xs">
-        <div className="w-full max-w-[1920px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+      <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 backdrop-blur-md px-3.5 sm:px-6 lg:px-10 py-2.5 sm:py-3.5 shadow-2xs">
+        <div className="w-full max-w-[1920px] mx-auto flex items-center justify-between gap-2.5 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
             <button
               type="button"
               onClick={handleBackToFinance}
@@ -349,26 +349,26 @@ export default function OrderEditFinancePage() {
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs font-black text-teal-900 bg-teal-50 px-2.5 py-0.5 rounded-lg border border-teal-200">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-mono text-[10.5px] sm:text-xs font-black text-teal-900 bg-teal-50 px-2 py-0.5 rounded-lg border border-teal-200 shrink-0">
                   {currentOrder.noInv}
                 </span>
                 <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
-                <h1 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
-                  Edit Finansial Order &amp; Termin DP
+                <h1 className="text-xs sm:text-base font-extrabold text-slate-900 truncate">
+                  Edit Finansial &amp; Termin DP
                 </h1>
               </div>
-              <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate mt-0.5">
                 {currentOrder.customerName} &bull; {currentOrder.projectName || 'Proyek Garmen'}
                 {currentOrder.totalQty ? ` • ${currentOrder.totalQty} Pcs` : ''}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t border-slate-100 sm:border-t-0">
+          <div className="flex items-center gap-2 shrink-0">
             <span
               className={cn(
-                'rounded-lg px-2.5 py-1 text-[11px] font-bold border shrink-0',
+                'hidden md:inline-flex rounded-lg px-2.5 py-1 text-[11px] font-bold border shrink-0',
                 isDirty
                   ? 'bg-amber-50 text-amber-800 border-amber-200'
                   : 'bg-slate-100 text-slate-600 border-slate-200'
@@ -377,24 +377,23 @@ export default function OrderEditFinancePage() {
               {isDirty ? 'Belum Disimpan' : 'Tersinkron'}
             </span>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleBackToFinance}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmit()}
-                disabled={isSaveDisabled}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 sm:px-5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save className="h-3.5 w-3.5 shrink-0" />
-                <span>{isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleBackToFinance}
+              className="hidden sm:inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={isSaveDisabled}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 sm:px-5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
+            >
+              <Save className="h-3.5 w-3.5 shrink-0" />
+              <span className="sm:hidden">{isSaving ? 'Proses...' : 'Simpan'}</span>
+              <span className="hidden sm:inline">{isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}</span>
+            </button>
           </div>
         </div>
       </header>
@@ -677,7 +676,7 @@ export default function OrderEditFinancePage() {
                 <button
                   type="button"
                   onClick={handleBackToFinance}
-                  className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                  className="w-full sm:w-auto inline-flex min-h-11 h-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
                 >
                   Batal &amp; Kembali
                 </button>
@@ -685,7 +684,7 @@ export default function OrderEditFinancePage() {
                   type="button"
                   onClick={() => handleSubmit()}
                   disabled={isSaveDisabled}
-                  className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto sm:flex-1 inline-flex min-h-11 h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="h-4 w-4 shrink-0" />
                   <span>{isSaving ? 'Menyimpan...' : 'Simpan Perubahan Finansial'}</span>

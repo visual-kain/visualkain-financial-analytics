@@ -35,15 +35,17 @@ export function CustomSelect({
     <SelectPrimitive.Root value={value} onValueChange={onValueChange}>
       <SelectPrimitive.Trigger
         className={cn(
-          'group inline-flex h-9 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 active:scale-[0.98] cursor-pointer',
+          'group inline-flex h-9 min-w-0 items-center justify-between gap-1.5 sm:gap-2 rounded-xl border border-slate-200 bg-white px-2.5 sm:px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 active:scale-[0.98] cursor-pointer',
           className
         )}
       >
-        <div className="flex items-center gap-2 truncate">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 truncate">
           {icon && <span className="text-slate-400 group-hover:text-slate-600 shrink-0">{icon}</span>}
-          <SelectPrimitive.Value placeholder={placeholder}>
-            {selectedOption?.label || placeholder}
-          </SelectPrimitive.Value>
+          <span className="truncate">
+            <SelectPrimitive.Value placeholder={placeholder}>
+              {selectedOption?.label || placeholder}
+            </SelectPrimitive.Value>
+          </span>
         </div>
         <SelectPrimitive.Icon asChild>
           <ChevronDown className="h-3.5 w-3.5 text-slate-400 transition-transform duration-200 group-data-[state=open]:rotate-180 shrink-0" />

@@ -427,48 +427,48 @@ export function VendorPerformanceSection({
           </div>
         </div>
 
-        {/* Mobile View: 2-Grid Vendor Cards (< 768px) */}
-        <div className="md:hidden grid grid-cols-2 gap-2 sm:gap-2.5 p-2 sm:p-3 bg-slate-50/40">
+        {/* Mobile View: 1-Col on Phone, 2-Col on Tablet (< 768px) */}
+        <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 bg-slate-50/40">
           {filteredVendors.length === 0 ? (
-            <div className="col-span-2 p-8 text-center text-xs text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
+            <div className="col-span-full p-8 text-center text-xs text-slate-400 bg-white rounded-xl border border-dashed border-slate-200">
               Tidak ada mitra vendor yang cocok dengan pencarian &quot;{searchQuery}&quot;.
             </div>
           ) : (
             filteredVendors.map((item) => (
               <div
                 key={item.vendorId}
-                className="rounded-xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-2xs flex flex-col justify-between gap-1.5 overflow-hidden"
+                className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs flex flex-col justify-between gap-2.5 overflow-hidden"
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md bg-teal-50 text-teal-700 text-[8.5px] font-bold">
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 text-[10px] font-bold border border-teal-100">
                       {item.vendorNama.slice(0, 2)}
                     </span>
-                    <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 truncate" title={item.vendorNama}>
+                    <h4 className="text-xs font-extrabold text-slate-900 truncate" title={item.vendorNama}>
                       {item.vendorNama}
                     </h4>
                   </div>
-                  <p className="mt-0.5 text-[9px] sm:text-[9.5px] text-slate-500 font-semibold font-mono truncate">
+                  <span className="text-[10.5px] text-slate-500 font-semibold font-mono shrink-0 bg-slate-100 px-2 py-0.5 rounded-md">
                     {item.orderCount} Order &bull; {item.pcsTotal} Pcs
-                  </p>
+                  </span>
                 </div>
 
-                <div className="rounded-lg bg-slate-50/90 p-1.5 sm:p-2 space-y-0.5 text-[9px] sm:text-[9.5px]">
-                  <div className="flex justify-between items-center text-slate-500 min-w-0">
-                    <span className="truncate">HPP:</span>
-                    <span className="font-mono font-bold text-slate-800 truncate text-[9px] sm:text-[9.5px]">
-                      {formatRupiah(item.hppAktual > 0 ? item.hppAktual : item.hppQuotation)}
+                <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50/90 p-2.5 text-[10.5px] border border-slate-100">
+                  <div className="min-w-0">
+                    <span className="text-slate-500 block text-[9.5px] truncate">Total HPP</span>
+                    <span className="font-mono font-bold text-slate-800 truncate block mt-0.5">
+                      {formatCompactRupiah(item.hppAktual > 0 ? item.hppAktual : item.hppQuotation)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-emerald-800 font-semibold min-w-0">
-                    <span className="truncate">Profit:</span>
-                    <span className="font-mono font-bold text-emerald-600 truncate text-[9px] sm:text-[9.5px]">
-                      {formatRupiah(item.profit)}
+                  <div className="min-w-0">
+                    <span className="text-emerald-800 block text-[9.5px] truncate">Profit Bersih</span>
+                    <span className="font-mono font-bold text-emerald-700 truncate block mt-0.5">
+                      {formatCompactRupiah(item.profit)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-slate-600 pt-0.5 border-t border-slate-200/60 min-w-0">
-                    <span className="truncate">Margin:</span>
-                    <span className={`font-mono font-bold text-[9px] sm:text-[9.5px] ${item.marginPercent < 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                  <div className="min-w-0">
+                    <span className="text-slate-500 block text-[9.5px] truncate">Margin</span>
+                    <span className={`font-mono font-extrabold block mt-0.5 ${item.marginPercent < 0 ? 'text-rose-600' : 'text-slate-900'}`}>
                       {item.marginPercent.toFixed(1)}%
                     </span>
                   </div>

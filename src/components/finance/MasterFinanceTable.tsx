@@ -255,9 +255,9 @@ export function MasterFinanceTable({
   };
 
   const renderMobileCardContent = () => (
-    <div className="p-2.5 sm:p-3.5 grid grid-cols-2 gap-2.5 sm:gap-3 bg-slate-50/40">
+    <div className="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/40">
       {paginatedRows.length === 0 ? (
-        <div className="col-span-2 py-12 text-center text-slate-500 text-xs">
+        <div className="col-span-full py-12 text-center text-slate-500 text-xs">
           Tidak ada order yang cocok dengan kriteria pencarian / filter.
         </div>
       ) : (
@@ -267,67 +267,84 @@ export function MasterFinanceTable({
             <div
               key={row.id}
               onClick={() => onSelectRow?.(row)}
-              className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-2.5 sm:p-3.5 shadow-card-double hover:border-teal-300 transition-colors duration-150 gap-2 overflow-hidden cursor-pointer"
+              className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-card-double hover:border-teal-300 transition-colors duration-150 gap-2.5 overflow-hidden cursor-pointer"
             >
-              <div className="flex items-center justify-between gap-1 border-b border-slate-100 pb-1.5 min-w-0">
-                <span className="font-mono text-[9.5px] sm:text-[10px] font-black tracking-tight text-teal-900 bg-teal-50 px-1.5 py-0.5 rounded-md border border-teal-200/90 whitespace-nowrap shrink-0">
-                  {row.noInv}
-                </span>
+              <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="font-mono text-[10.5px] font-black tracking-tight text-teal-900 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200/90 whitespace-nowrap shrink-0">
+                    {row.noInv}
+                  </span>
+                  {row.tanggalInv && (
+                    <span className="font-mono text-[10px] text-slate-400 font-medium truncate">
+                      {row.tanggalInv}
+                    </span>
+                  )}
+                </div>
                 <div className="shrink-0">{renderStatusBadge(row.statusOrder, true)}</div>
               </div>
 
               <div className="space-y-0.5 min-w-0">
-                <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 leading-snug truncate" title={row.namaCustomer}>
+                <h4 className="text-xs sm:text-[13px] font-extrabold text-slate-900 leading-snug truncate" title={row.namaCustomer}>
                   {row.namaCustomer}
                 </h4>
-                <p className="text-[9.5px] sm:text-[10px] text-slate-500 font-medium truncate" title={row.namaProject}>
+                <p className="text-[11px] text-slate-500 font-medium truncate" title={row.namaProject}>
                   {row.namaProject} &bull; <span className="font-bold text-slate-700">{row.totalQty} pcs</span>
+                  {row.vendorName && row.vendorName !== '-' ? (
+                    <> &bull; <span className="text-slate-600">{row.vendorName}</span></>
+                  ) : null}
                 </p>
               </div>
 
-              <div className="min-w-0">
-                <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400 block leading-tight">
-                  Total Omzet
-                </span>
-                <div className="font-mono text-xs sm:text-sm font-extrabold text-slate-900 tracking-tight tabular-nums truncate">
-                  {formatRupiah(row.totalJumlah)}
+              <div className="grid grid-cols-3 gap-2 text-[10px] min-w-0">
+                <div className="rounded-xl bg-slate-50 p-2 border border-slate-200/80 min-w-0">
+                  <span className="text-slate-500 block text-[9.5px] font-semibold leading-none mb-1 truncate">
+                    Total Omzet
+                  </span>
+                  <span className="font-mono font-extrabold text-slate-900 tabular-nums truncate block text-[11px]">
+                    {formatCompactRupiah(row.totalJumlah)}
+                  </span>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-1.5 text-[9px] min-w-0">
-                <div className="rounded-lg bg-teal-50/70 p-1.5 border border-teal-100/90 min-w-0">
-                  <span className="text-teal-800 block text-[8.5px] font-medium leading-none mb-0.5 truncate">Terbayar</span>
-                  <span className="font-mono font-bold text-teal-900 tabular-nums truncate block text-[9.5px] sm:text-[10px]">
+                <div className="rounded-xl bg-teal-50/70 p-2 border border-teal-100/90 min-w-0">
+                  <span className="text-teal-800 block text-[9.5px] font-semibold leading-none mb-1 truncate">
+                    DP ({row.dpPersenCustomer.toFixed(0)}%)
+                  </span>
+                  <span className="font-mono font-extrabold text-teal-900 tabular-nums truncate block text-[11px]">
                     {formatCompactRupiah(row.nominalDpCustomer)}
                   </span>
                 </div>
+
                 <div
                   className={cn(
-                    'rounded-lg p-1.5 border min-w-0',
+                    'rounded-xl p-2 border min-w-0',
                     row.sisaPelunasanCustomer > 0
                       ? 'bg-amber-50/70 border-amber-100/90 text-amber-900'
                       : 'bg-emerald-50/70 border-emerald-100/90 text-emerald-900'
                   )}
                 >
-                  <span className="block text-[8.5px] font-medium opacity-85 leading-none mb-0.5 truncate">
+                  <span className="block text-[9.5px] font-semibold opacity-85 leading-none mb-1 truncate">
                     {row.sisaPelunasanCustomer > 0 ? 'Sisa Piutang' : 'Status'}
                   </span>
-                  <span className="font-mono font-bold tabular-nums truncate block text-[9.5px] sm:text-[10px]">
+                  <span className="font-mono font-extrabold tabular-nums truncate block text-[11px]">
                     {row.sisaPelunasanCustomer > 0 ? formatCompactRupiah(row.sisaPelunasanCustomer) : 'LUNAS'}
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-[9px] sm:text-[10px] px-0.5 text-slate-500 min-w-0">
-                <span className="font-medium truncate">Profit ({row.profitPercent.toFixed(0)}%):</span>
-                <span className="font-mono font-bold text-emerald-600 shrink-0">
-                  +{formatCompactRupiah(row.profitBersih)}
+              <div className="flex items-center justify-between gap-2 text-[10.5px] px-1 text-slate-500 min-w-0">
+                <span className="font-medium truncate">
+                  Utang Vendor:{' '}
+                  <strong className={cn('font-mono', row.sisaPembayaranVendor > 0 ? 'text-rose-600' : 'text-emerald-700')}>
+                    {row.sisaPembayaranVendor > 0 ? formatCompactRupiah(row.sisaPembayaranVendor) : 'Lunas'}
+                  </strong>
+                </span>
+                <span className="font-mono font-bold text-emerald-700 shrink-0">
+                  Profit +{formatCompactRupiah(row.profitBersih)} ({row.profitPercent.toFixed(0)}%)
                 </span>
               </div>
 
-              {/* Asymmetric Proportional Action Row: [👁️] [✏️] + Full-Width [💬 WA Action] */}
               <div
-                className="pt-2 flex items-center gap-1.5 border-t border-slate-100"
+                className="pt-2 flex items-center gap-2 border-t border-slate-100"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
@@ -335,9 +352,10 @@ export function MasterFinanceTable({
                   onClick={() => onSelectRow?.(row)}
                   title="Inspeksi Detail Order & Faktur"
                   aria-label="Inspeksi Detail Order"
-                  className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                  className="h-10 px-2.5 shrink-0 inline-flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-700 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
                 >
-                  <Eye className="h-3.5 w-3.5" />
+                  <Eye className="h-3.5 w-3.5 shrink-0" />
+                  <span>Detail</span>
                 </button>
 
                 <button
@@ -345,9 +363,10 @@ export function MasterFinanceTable({
                   onClick={() => onEditFinance?.(row)}
                   title="Edit Finansial & Termin DP"
                   aria-label="Edit Finansial Order"
-                  className="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                  className="h-10 px-2.5 shrink-0 inline-flex items-center justify-center gap-1 rounded-xl border border-teal-200 bg-teal-50 text-[11px] font-bold text-teal-800 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  <Pencil className="h-3.5 w-3.5 shrink-0" />
+                  <span>Edit &amp; DP</span>
                 </button>
 
                 <button
@@ -355,13 +374,12 @@ export function MasterFinanceTable({
                   onClick={(e) => handleOpenWhatsApp(e, row)}
                   title={waConfig.title}
                   className={cn(
-                    'flex-1 h-8 inline-flex items-center justify-center gap-1 rounded-lg px-2 text-[10px] sm:text-[11px] font-bold shadow-2xs active:scale-[0.96] transition-transform duration-150 cursor-pointer whitespace-nowrap',
+                    'flex-1 h-10 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 text-[11px] font-bold shadow-2xs active:scale-[0.96] transition-transform duration-150 cursor-pointer whitespace-nowrap min-w-0',
                     waConfig.bgClass
                   )}
                 >
                   <MessageCircle className="h-3.5 w-3.5 shrink-0" />
-                  <span className="sm:hidden">{waConfig.shortLabel}</span>
-                  <span className="hidden sm:inline">{waConfig.label}</span>
+                  <span className="truncate">{waConfig.label}</span>
                 </button>
               </div>
             </div>
@@ -682,22 +700,22 @@ export function MasterFinanceTable({
       {/* 1. STANDARD CARD VIEW */}
       <div className="rounded-2xl border border-slate-200/90 bg-white shadow-card-double overflow-hidden">
         {/* Table Header Action Bar */}
-        <div className="border-b border-slate-100 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+        <div className="border-b border-slate-100 px-3.5 py-3.5 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
               <TableProperties className="h-5 w-5" />
             </span>
-            <div>
-              <h3 className="text-sm font-bold text-slate-800">
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-800 truncate">
                 Master Data Finansial Order VisualKain
               </h3>
-              <p className="text-xs text-slate-400">
-                Kolom NO INV & Customer terkunci di kiri. Klik baris mana saja untuk membuka drawer inspeksi cicilan & WA
+              <p className="text-[11px] sm:text-xs text-slate-400 line-clamp-1 sm:line-clamp-none">
+                Klik kartu atau baris untuk membuka rincian cicilan &amp; penagihan WA
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2">
             {/* Mobile View Toggle: Kartu vs Tabel */}
             <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 md:hidden">
               <button
@@ -728,38 +746,40 @@ export function MasterFinanceTable({
               </button>
             </div>
 
-            <button
-              onClick={() => setIsExpanded(true)}
-              title="Perluas Tabel ke Seluruh Layar (Fullscreen)"
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-teal-700 active:scale-95 transition-all cursor-pointer"
-            >
-              <Maximize2 className="h-3.5 w-3.5 text-teal-600" />
-              <span className="hidden sm:inline">Expand Layar Penuh</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsExpanded(true)}
+                title="Perluas Tabel ke Seluruh Layar (Fullscreen)"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-teal-700 active:scale-95 transition-all cursor-pointer"
+              >
+                <Maximize2 className="h-3.5 w-3.5 text-teal-600" />
+                <span className="hidden sm:inline">Expand Layar Penuh</span>
+              </button>
 
-            <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700 border border-teal-200">
-              Total {filteredRows.length} Order
-            </span>
+              <span className="rounded-full bg-teal-50 px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-bold text-teal-700 border border-teal-200">
+                Total {filteredRows.length} Order
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Dedicated Standard Search & Filter Toolbar (Feedback Client #5: Kasih kolom search) */}
+        {/* Dedicated Standard Search & Filter Toolbar */}
         <div className="border-b border-slate-100 bg-slate-50/70 p-3 sm:px-6 sm:py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2.5">
           {/* Search Box */}
           <div className="relative flex-1 max-w-full md:max-w-md">
-            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-slate-400" />
             <input
               type="text"
               placeholder="Cari No Invoice, Customer, atau Project..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-8 text-xs text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-8 text-xs text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="absolute right-2.5 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -767,7 +787,7 @@ export function MasterFinanceTable({
           </div>
 
           {/* Status & Debt Filters */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:flex items-center gap-2 w-full md:w-auto">
             <CustomSelect
               value={statusFilter}
               onValueChange={(val) => setStatusFilter(val as typeof statusFilter)}
@@ -778,7 +798,7 @@ export function MasterFinanceTable({
                 { value: 'dp2_siap_produksi', label: 'DP 2 (>= 70% Siap Produksi)' },
                 { value: 'lunas_total', label: '100% Lunas Penuh' },
               ]}
-              className="h-9 text-xs w-full sm:w-auto"
+              className="h-10 text-xs w-full md:w-auto"
             />
 
             <CustomSelect
@@ -790,7 +810,7 @@ export function MasterFinanceTable({
                 { value: 'has_debt', label: 'Hanya Utang Vendor' },
                 { value: 'settled', label: 'Vendor Lunas' },
               ]}
-              className="h-9 text-xs w-full sm:w-auto"
+              className="h-10 text-xs w-full md:w-auto"
             />
 
             {(searchQuery || statusFilter !== 'all' || vendorDebtFilter !== 'all') && (
@@ -801,9 +821,9 @@ export function MasterFinanceTable({
                   setStatusFilter('all');
                   setVendorDebtFilter('all');
                 }}
-                className="h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer"
+                className="h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-rose-600 hover:bg-rose-50 active:scale-95 transition-all cursor-pointer sm:col-span-2 md:col-span-1"
               >
-                Reset
+                Reset Filter
               </button>
             )}
           </div>
@@ -835,7 +855,7 @@ export function MasterFinanceTable({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-extrabold text-slate-900">
-                    Master Finansial Order — Tampilan Layar Penuh
+                    Master Finansial Order - Tampilan Layar Penuh
                   </h2>
                   <span className="rounded-lg bg-teal-50 px-2 py-0.5 text-xs font-bold text-teal-700 border border-teal-200">
                     {filteredRows.length} dari {rows.length} Order

@@ -667,23 +667,23 @@ export function CashInflowSection({
       </div>
 
       {/* 3. Interactive Filter Toolbar & Actions */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double space-y-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-5 shadow-card-double space-y-3.5 sm:space-y-4">
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
           {/* Search Box & Type Filter */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari no invoice, customer, atau keterangan..."
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all placeholder:text-slate-400"
+                className="h-10 w-full pl-9 pr-8 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all placeholder:text-slate-400"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs"
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
                 >
                   &times;
                 </button>
@@ -695,66 +695,70 @@ export function CashInflowSection({
               onValueChange={setCategoryFilter}
               options={INFLOW_FILTER_OPTIONS}
               icon={<Filter className="h-3.5 w-3.5" />}
-              className="w-full sm:w-56 h-9"
+              className="w-full sm:w-56 h-10"
             />
           </div>
 
           {/* Date Filters & Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
-            <CustomSelect
-              value={bulanFilter}
-              onValueChange={(val) => {
-                setBulanFilter(val);
-                onBulanChange?.(val);
-              }}
-              options={bulanOptions}
-              className="w-32 h-9"
-            />
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
+            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+              <CustomSelect
+                value={bulanFilter}
+                onValueChange={(val) => {
+                  setBulanFilter(val);
+                  onBulanChange?.(val);
+                }}
+                options={bulanOptions}
+                className="w-full sm:w-36 h-10"
+              />
 
-            <CustomSelect
-              value={tahunFilter}
-              onValueChange={(val) => {
-                setTahunFilter(val);
-                onTahunChange?.(val);
-              }}
-              options={yearOptions}
-              className="w-28 h-9"
-            />
+              <CustomSelect
+                value={tahunFilter}
+                onValueChange={(val) => {
+                  setTahunFilter(val);
+                  onTahunChange?.(val);
+                }}
+                options={yearOptions}
+                className="w-full sm:w-32 h-10"
+              />
+            </div>
 
-            {(searchQuery || categoryFilter !== 'all' || bulanFilter !== 'all' || tahunFilter !== 'all') && (
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {(searchQuery || categoryFilter !== 'all' || bulanFilter !== 'all' || tahunFilter !== 'all') && (
+                <button
+                  onClick={handleResetFilter}
+                  title="Reset Semua Filter"
+                  className="h-10 px-3 flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 text-xs font-semibold active:scale-95 transition-all cursor-pointer shrink-0"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Reset</span>
+                </button>
+              )}
+
               <button
-                onClick={handleResetFilter}
-                title="Reset Semua Filter"
-                className="h-9 px-2.5 flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 text-xs font-semibold active:scale-95 transition-all cursor-pointer"
+                onClick={handleExportExcel}
+                title="Unduh Laporan Excel"
+                className="flex-1 sm:flex-none h-10 px-3 flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold active:scale-95 transition-all shadow-2xs cursor-pointer whitespace-nowrap"
               >
-                <RotateCcw className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Reset</span>
+                <Download className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                <span>Ekspor Excel</span>
               </button>
-            )}
 
-            <button
-              onClick={handleExportExcel}
-              title="Unduh Laporan Excel"
-              className="h-9 px-3 flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold active:scale-95 transition-all shadow-2xs cursor-pointer"
-            >
-              <Download className="h-3.5 w-3.5 text-slate-500" />
-              <span>Ekspor Excel</span>
-            </button>
-
-            {onOpenAddIncome && (
-              <button
-                onClick={onOpenAddIncome}
-                className="h-9 px-3.5 flex items-center gap-1.5 rounded-xl bg-teal-600 text-white hover:bg-teal-700 text-xs font-bold active:scale-95 transition-all shadow-sm cursor-pointer"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Catat Kas</span>
-              </button>
-            )}
+              {onOpenAddIncome && (
+                <button
+                  onClick={onOpenAddIncome}
+                  className="flex-1 sm:flex-none h-10 px-3.5 flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 text-white hover:bg-teal-700 text-xs font-bold active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                >
+                  <Plus className="h-3.5 w-3.5 shrink-0" />
+                  <span>Catat Kas</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Counter Pill */}
-        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+        <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-slate-500 pt-1.5 border-t border-slate-100">
           <span>
             Menampilkan <strong className="text-slate-800">{filteredInflows.length}</strong> dari {rawInflows.length} transaksi pemasukan
           </span>
@@ -779,46 +783,48 @@ export function CashInflowSection({
           </span>
         </div>
 
-        {/* Mobile View: 2-Grid Adaptive Ergonomic Cards (< 768px) */}
-        <div className="md:hidden grid grid-cols-2 gap-2 sm:gap-2.5 p-2 sm:p-3 bg-slate-50/40">
+        {/* Mobile View: 1-Col on Phone, 2-Col on Tablet (< 768px) */}
+        <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 bg-slate-50/40">
           {paginatedInflows.length === 0 ? (
-            <div className="col-span-2 py-12 text-center text-slate-400 text-xs">
+            <div className="col-span-full py-12 text-center text-slate-400 text-xs">
               Tidak ada riwayat pemasukan yang cocok dengan kriteria filter.
             </div>
           ) : (
             paginatedInflows.map((item) => (
               <div
                 key={item.id}
-                className="rounded-xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-2xs flex flex-col justify-between gap-1.5 overflow-hidden hover:border-emerald-300 transition-all"
+                className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs flex flex-col justify-between gap-2.5 overflow-hidden hover:border-emerald-300 transition-all"
               >
-                <div className="min-w-0">
-                  {/* Top Bar: Tanggal & Badge Jenis */}
-                  <div className="flex items-center justify-between gap-1 min-w-0 pb-1 border-b border-slate-100">
-                    <span className="font-mono text-slate-400 text-[9px] sm:text-[9.5px] font-medium truncate">
-                      {item.tanggal}
-                    </span>
-                    {renderBadge(item.jenis)}
+                <div className="min-w-0 space-y-1.5">
+                  {/* Top Bar: Tanggal, No Inv & Badge Jenis */}
+                  <div className="flex items-center justify-between gap-2 min-w-0 pb-1.5 border-b border-slate-100">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {item.noInv && item.noInv !== '-' && (
+                        <span className="font-mono text-[10px] font-black tracking-tight text-teal-900 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200/80 shrink-0">
+                          {item.noInv}
+                        </span>
+                      )}
+                      <span className="font-mono text-slate-400 text-[10px] font-medium truncate">
+                        {item.tanggal}
+                      </span>
+                    </div>
+                    <div className="shrink-0">{renderBadge(item.jenis)}</div>
                   </div>
 
-                  {/* Identity: No Inv & Customer */}
-                  <div className="mt-1 space-y-0.5 min-w-0">
-                    {item.noInv && item.noInv !== '-' && (
-                      <span className="font-mono text-[9px] sm:text-[9.5px] font-black tracking-tight text-teal-900 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200/80 inline-block w-fit">
-                        {item.noInv}
-                      </span>
-                    )}
-                    <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 leading-snug truncate" title={item.customerName}>
+                  {/* Identity: Customer & Project/Keterangan */}
+                  <div className="space-y-0.5 min-w-0">
+                    <h4 className="text-xs font-extrabold text-slate-900 leading-snug truncate" title={item.customerName}>
                       {item.customerName}
                     </h4>
-                    <p className="text-[9px] sm:text-[9.5px] text-slate-400 font-medium line-clamp-1" title={item.keterangan}>
+                    <p className="text-[11px] text-slate-500 font-medium line-clamp-2" title={item.keterangan}>
                       {item.projectName !== '-' ? `${item.projectName} • ` : ''}{item.keterangan}
                     </p>
                   </div>
                 </div>
 
                 {/* Bottom Row: Nominal & Action */}
-                <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 min-w-0">
-                  <span className="font-mono font-bold text-[10.5px] sm:text-xs text-emerald-600 truncate">
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 min-w-0">
+                  <span className="font-mono font-extrabold text-xs sm:text-sm text-emerald-700 tabular-nums truncate">
                     +{formatRupiah(item.nominal)}
                   </span>
 
@@ -827,19 +833,20 @@ export function CashInflowSection({
                       type="button"
                       onClick={() => onSelectOrder?.(item.rawOrder!)}
                       title="Inspeksi Detail Order"
-                      className="h-7 px-2 flex items-center justify-center gap-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 text-[10px] font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
+                      className="h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-[11px] font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
                     >
-                      <Eye className="h-3 w-3" />
-                      <span>Detail</span>
+                      <Eye className="h-3.5 w-3.5 shrink-0" />
+                      <span>Detail Order</span>
                     </button>
                   ) : item.sumber === 'manual' ? (
                     <button
                       type="button"
                       onClick={() => handleDelete(item.id)}
                       title="Hapus Transaksi Kas Masuk"
-                      className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
+                      className="h-9 px-2.5 inline-flex items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                      <span>Hapus</span>
                     </button>
                   ) : null}
                 </div>

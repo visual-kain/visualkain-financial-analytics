@@ -458,32 +458,32 @@ export function MetricDetailDrawer({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="flex w-screen max-w-xl md:max-w-2xl flex-col bg-white shadow-2xl"
+            className="flex w-screen max-w-xl md:max-w-2xl h-full flex-col bg-white shadow-2xl overflow-hidden"
           >
             {/* Top Bar Header */}
-            <div className="flex items-center justify-between border-b border-slate-200/90 px-6 py-4 bg-slate-50/70">
-              <div className="flex items-center gap-3">
-                <span className={`rounded-xl p-2.5 bg-white border border-slate-200 shadow-sm ${meta.accentColor}`}>
-                  <Icon className="h-5 w-5" />
+            <div className="flex items-center justify-between border-b border-slate-200/90 px-4 py-3.5 sm:px-6 sm:py-4 bg-slate-50/70 shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <span className={`rounded-xl p-2 sm:p-2.5 bg-white border border-slate-200 shadow-sm shrink-0 ${meta.accentColor}`}>
+                  <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-slate-900">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
                       {meta.title}
                     </h3>
-                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${meta.badgeColor}`}>
+                    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold shrink-0 ${meta.badgeColor}`}>
                       {meta.badge}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    VisualKain Realtime Traceability & Audit Engine
+                  <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
+                    VisualKain Realtime Traceability &amp; Audit Engine
                   </p>
                 </div>
               </div>
 
               <button
                 onClick={onClose}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 active:scale-95 transition-all"
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700 active:scale-95 transition-all shrink-0 cursor-pointer"
                 title="Tutup (ESC)"
               >
                 <X className="h-5 w-5" />
@@ -491,18 +491,18 @@ export function MetricDetailDrawer({
             </div>
 
             {/* Scrollable Body Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 space-y-4 sm:space-y-6">
               {/* 1. Hero Nominal Display Banner */}
-              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50 via-white to-slate-50/50 p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider font-mono">
+              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50 via-white to-slate-50/50 p-4 sm:p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider font-mono">
                     Nominal Akumulasi Saat Ini
                   </span>
-                  <span className="text-[11px] font-medium text-slate-400">
+                  <span className="text-[10px] sm:text-[11px] font-medium text-slate-400 shrink-0">
                     Sinkron Periode Aktif
                   </span>
                 </div>
-                <div className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900 tabular-nums">
+                <div className="mt-1.5 sm:mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 tabular-nums">
                   {formatRupiah(meta.totalValue)}
                 </div>
                 <p className="mt-1 text-xs text-slate-500 font-medium">

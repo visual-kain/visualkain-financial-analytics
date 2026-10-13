@@ -362,9 +362,9 @@ export default function CashOutNewPage() {
     <div className="min-h-screen bg-[#E8ECF2] pb-12 text-slate-900 antialiased">
       <Toaster position="top-right" richColors />
 
-      <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 backdrop-blur-md px-4 sm:px-6 lg:px-10 py-3.5 shadow-2xs">
-        <div className="w-full max-w-[1920px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+      <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 backdrop-blur-md px-3.5 sm:px-6 lg:px-10 py-2.5 sm:py-3.5 shadow-2xs">
+        <div className="w-full max-w-[1920px] mx-auto flex items-center justify-between gap-2.5 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
             <button
               type="button"
               onClick={handleBack}
@@ -375,23 +375,23 @@ export default function CashOutNewPage() {
               <ArrowLeft className="h-4 w-4" />
             </button>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
-                <span>Finansial</span>
-                <span>/</span>
+              <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-slate-500 truncate">
+                <span className="hidden sm:inline">Finansial</span>
+                <span className="hidden sm:inline">/</span>
                 <span>Kas Keluar</span>
                 <span>/</span>
                 <span className="text-rose-700">Pencatatan Baru</span>
               </div>
-              <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 truncate">
+              <h1 className="text-xs sm:text-base font-extrabold tracking-tight text-slate-900 truncate">
                 Catat Pengeluaran Kas &amp; Bayar Vendor
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-2 sm:pt-0 border-t border-slate-100 sm:border-t-0">
+          <div className="flex items-center gap-2 shrink-0">
             <span
               className={cn(
-                'rounded-lg px-2.5 py-1 text-[11px] font-bold border shrink-0',
+                'hidden md:inline-flex rounded-lg px-2.5 py-1 text-[11px] font-bold border shrink-0',
                 isDirty
                   ? 'bg-amber-50 text-amber-800 border-amber-200'
                   : 'bg-rose-50 text-rose-800 border-rose-200'
@@ -400,24 +400,23 @@ export default function CashOutNewPage() {
               {isDirty ? 'Belum Disimpan' : 'Arus Kas Keluar'}
             </span>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleBack}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSubmit()}
-                disabled={isSaveDisabled}
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-4 sm:px-5 text-xs font-bold text-white shadow-sm hover:bg-rose-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save className="h-3.5 w-3.5 shrink-0" />
-                <span>{isSaving ? 'Menyimpan...' : 'Simpan Pengeluaran'}</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleBack}
+              className="hidden sm:inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={isSaveDisabled}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3.5 sm:px-5 text-xs font-bold text-white shadow-sm hover:bg-rose-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap shrink-0"
+            >
+              <Save className="h-3.5 w-3.5 shrink-0" />
+              <span className="sm:hidden">{isSaving ? 'Proses...' : 'Simpan'}</span>
+              <span className="hidden sm:inline">{isSaving ? 'Menyimpan...' : 'Simpan Pengeluaran'}</span>
+            </button>
           </div>
         </div>
       </header>
@@ -828,14 +827,14 @@ export default function CashOutNewPage() {
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                  className="w-full sm:w-auto inline-flex min-h-11 h-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
                 >
                   Batal &amp; Kembali
                 </button>
                 <button
                   type="submit"
                   disabled={isSaveDisabled}
-                  className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-rose-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto sm:flex-1 inline-flex min-h-11 h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-rose-700 active:scale-[0.96] transition-transform duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="h-4 w-4 shrink-0" />
                   <span>{isSaving ? 'Menyimpan...' : 'Simpan Pengeluaran Kas'}</span>

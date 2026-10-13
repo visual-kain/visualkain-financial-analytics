@@ -668,36 +668,38 @@ export function CashOutflowSection({
           </div>
         </div>
 
-        {/* Mobile View: Outflow Transaction Cards (< 768px, 2-Grid Layout) */}
-        <div className="md:hidden grid grid-cols-2 gap-2 sm:gap-2.5 p-2 sm:p-3 bg-slate-50/40">
+        {/* Mobile View: Outflow Transaction Cards (< 768px, 1-Col on Phone, 2-Col on Tablet) */}
+        <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 bg-slate-50/40">
           {paginatedEntries.length === 0 ? (
-            <div className="col-span-2 py-8 text-center text-slate-400 text-xs">
+            <div className="col-span-full py-8 text-center text-slate-400 text-xs">
               Tidak ada transaksi pengeluaran yang cocok dengan filter
             </div>
           ) : (
             paginatedEntries.map((item) => (
-              <div key={item.id} className="rounded-xl border border-slate-200/90 bg-white p-2 sm:p-2.5 shadow-2xs flex flex-col justify-between gap-1.5 overflow-hidden">
-                <div className="min-w-0">
-                  <div className="flex items-center justify-between text-xs gap-1 min-w-0">
-                    <span className="font-mono text-slate-400 text-[9.5px] font-medium truncate">{item.tanggal}</span>
-                    <span className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[8px] sm:text-[8.5px] font-bold text-slate-700 border border-slate-200 truncate shrink-0">
+              <div key={item.id} className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs flex flex-col justify-between gap-2.5 overflow-hidden">
+                <div className="min-w-0 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs gap-2 min-w-0 pb-1.5 border-b border-slate-100">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-mono text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200/80 rounded-md px-2 py-0.5 shrink-0">
+                        {item.noInv || 'KAS'}
+                      </span>
+                      <span className="font-mono text-slate-400 text-[10px] font-medium truncate">{item.tanggal}</span>
+                    </div>
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[9.5px] font-bold text-slate-700 border border-slate-200 truncate shrink-0">
                       {item.kategori}
                     </span>
                   </div>
-                  <div className="mt-1 flex items-center gap-1 min-w-0">
-                    <span className="font-mono text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200/80 rounded px-1 py-0.5 shrink-0">
-                      {item.noInv || 'KAS'}
-                    </span>
-                    <span className="text-[10px] font-semibold text-slate-500 truncate">
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="text-xs font-extrabold text-slate-900 truncate">
                       {item.vendorOrTargetName}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-[11px] sm:text-xs font-semibold text-slate-800 leading-snug line-clamp-2" title={item.keterangan}>
-                    {item.keterangan}
+                    </div>
+                    <div className="text-[11px] font-medium text-slate-600 leading-snug line-clamp-2" title={item.keterangan}>
+                      {item.keterangan}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 min-w-0">
-                  <span className="font-mono font-bold text-[11px] sm:text-xs text-rose-600 truncate">
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 min-w-0">
+                  <span className="font-mono font-extrabold text-xs sm:text-sm text-rose-600 tabular-nums truncate">
                     -{formatRupiah(item.nominal)}
                   </span>
                   {item.sumber === 'order' && item.rawOrder ? (
@@ -711,18 +713,20 @@ export function CashOutflowSection({
                         }
                       }}
                       title="Lihat Detail Order"
-                      className="h-7 w-7 flex items-center justify-center rounded-lg text-teal-600 hover:bg-teal-50 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
+                      className="h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-[11px] font-bold active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
                     >
-                      <Eye className="h-3.5 w-3.5" />
+                      <Eye className="h-3.5 w-3.5 shrink-0" />
+                      <span>Detail Order</span>
                     </button>
                   ) : (
                     <button
                       type="button"
                       onClick={() => handleDelete(item.id)}
                       title="Hapus Transaksi"
-                      className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
+                      className="h-9 px-2.5 inline-flex items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold hover:bg-rose-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer shrink-0"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                      <span>Hapus</span>
                     </button>
                   )}
                 </div>
