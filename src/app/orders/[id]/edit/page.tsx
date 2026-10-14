@@ -3,11 +3,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
+import { useFirebaseFinance, FinanceWriteError } from '@/hooks/useFirebaseFinance';
 import { useInitOnce } from '@/hooks/useInitOnce';
 import { useBeforeUnloadGuard } from '@/hooks/useBeforeUnloadGuard';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { BiayaTambahanSection } from '@/components/finance/BiayaTambahanSection';
+import { ManageActions, type ManageMode } from '@/components/finance/ManageActions';
+import { VendorFormDialog, useRekeningManager } from '@/components/finance/MasterDataDialogs';
 import {
   PaymentLedgerPanel,
   type LedgerRow,
@@ -19,14 +22,14 @@ import {
 } from '@/lib/payment-ledger';
 import { formatRupiah, cn } from '@/lib/utils';
 import { deriveEditableInvoice, computeEditableNet, deriveVendorPaid } from '@/lib/calculations';
+import { deriveBiayaTambahanItems, deriveCostBase, summarizeBiayaTambahan } from '@/lib/biaya-tambahan';
 import { resolveVendorRef, isPlaceholderVendorName } from '@/lib/vendor-ref';
 import {
   DEFAULT_VENDOR_OPTIONS,
-  DEFAULT_PAYMENT_CHANNELS,
   isFromFinanceStartDate,
   getDefaultFinanceDate,
 } from '@/lib/constants';
-import type { Order, CustomerPayment } from '@/types';
+import type { Order, CustomerPayment, BiayaTambahanItem } from '@/types';
 import { toast, Toaster } from 'sonner';
 import {
   ArrowLeft,
@@ -45,7 +48,9 @@ export default function OrderEditFinancePage() {
   const router = useRouter();
   const orderId = params.id as string;
 
-  const { orders, vendors, syncState, updateOrderFinance } = useFirebaseFinance();
+  const { orders, vendors, syncState, updateOrderFinance, addVendor, renameVendor } = useFirebaseFinance();
+  const rekening = useRekeningManager();
+  const [vendorDialog, setVendorDialog] = useState<ManageMode | null>(null);
 
   const currentOrder = useMemo(() => {
     return orders.find((o) => o.id === orderId || o.noInv === orderId);
@@ -53,12 +58,14 @@ export default function OrderEditFinancePage() {
 
   const [totalInvoice, setTotalInvoice] = useState<number>(0);
   const [diskon, setDiskon] = useState<number>(0);
-  const [biayaTambahanCustomer, setBiayaTambahanCustomer] = useState<number>(0);
+  const [biayaTambahanItems, setBiayaTambahanItems] = useState<BiayaTambahanItem[]>([]);
+  const [biayaTambahanPending, setBiayaTambahanPending] = useState<boolean>(false);
+  // Biaya operasional dan HPP disimpan sebagai dasar + biaya tambahan; dasar HPP terkunci (hanya preview).
   const [biayaOperasional, setBiayaOperasional] = useState<number>(0);
+  const [hppDasar, setHppDasar] = useState<number>(0);
 
   const [vendorNama, setVendorNama] = useState<string>('');
   const [vendorTouched, setVendorTouched] = useState<boolean>(false);
-  const [totalBiayaVendor, setTotalBiayaVendor] = useState<number>(0);
   const [dpVendor, setDpVendor] = useState<number>(0);
   const [catatanFinance, setCatatanFinance] = useState<string>('');
 
@@ -78,13 +85,15 @@ export default function OrderEditFinancePage() {
     if (currentOrder) {
       const editable = deriveEditableInvoice(currentOrder);
       const netTagihan = computeEditableNet(editable.gross, editable.diskon, editable.biayaTambahanCustomer);
+      const items = deriveBiayaTambahanItems(currentOrder);
+      const base = deriveCostBase(currentOrder, items);
 
       setTotalInvoice(editable.gross);
       setDiskon(editable.diskon);
-      setBiayaTambahanCustomer(editable.biayaTambahanCustomer);
-      setBiayaOperasional(currentOrder.biayaOperasional || 0);
+      setBiayaTambahanItems(items);
+      setBiayaOperasional(base.opexDasar);
+      setHppDasar(base.hppDasar);
       setVendorNama(isPlaceholderVendorName(currentOrder.vendorName) ? '' : currentOrder.vendorName || '');
-      setTotalBiayaVendor(currentOrder.totalHpp || 0);
       setDpVendor(deriveVendorPaid(currentOrder));
       setCatatanFinance(currentOrder.catatanFinance || '');
 
@@ -136,15 +145,7 @@ export default function OrderEditFinancePage() {
     }
   }, { skip: isDirty });
 
-  const accountOptions = useMemo(
-    () =>
-      DEFAULT_PAYMENT_CHANNELS.map((ch) => ({
-        value: ch.value,
-        label: ch.label,
-        badge: 'badge' in ch ? (ch as { badge: string }).badge : undefined,
-      })),
-    []
-  );
+  const accountOptions = rekening.options;
 
   const vendorOptions = useMemo<Array<{ value: string; label: string; badge?: string }>>(() => {
     const list: Array<{ value: string; label: string; badge?: string }> = DEFAULT_VENDOR_OPTIONS.map((v) => ({
@@ -193,6 +194,10 @@ export default function OrderEditFinancePage() {
     return ledgerRows;
   }, [ledgerDraft, ledgerRows]);
 
+  const biayaTambahan = summarizeBiayaTambahan(biayaTambahanItems);
+  const biayaTambahanCustomer = biayaTambahan.customer;
+  const totalBiayaVendor = hppDasar + biayaTambahan.vendor;
+  const biayaOperasionalTotal = biayaOperasional + biayaTambahan.lainnya;
   const netInvoice = computeEditableNet(totalInvoice, diskon, biayaTambahanCustomer);
   const nominalDpCustomer = useMemo(() => {
     return effectiveEntries.reduce((acc, p) => acc + (Number(p.nominal) || 0), 0);
@@ -205,7 +210,27 @@ export default function OrderEditFinancePage() {
   const sisaPelunasanCustomer = Math.max(0, netInvoice - nominalDpCustomer);
 
   const sisaPembayaranVendor = Math.max(0, totalBiayaVendor - dpVendor);
-  const netProfit = netInvoice - totalBiayaVendor - biayaOperasional;
+  const netProfit = netInvoice - totalBiayaVendor - biayaOperasionalTotal;
+  const masterVendor = vendors.find((v) => v.nama.trim().toLowerCase() === vendorNama.trim().toLowerCase());
+
+  const handleVendorDialogSubmit = async (nama: string) => {
+    try {
+      if (vendorDialog === 'edit' && masterVendor) {
+        await renameVendor(masterVendor.id, nama);
+        setVendorNama(nama.trim().replace(/\s+/g, ' '));
+        toast.success('Nama vendor berhasil diperbarui');
+      } else {
+        const created = await addVendor(nama);
+        setVendorNama(created.nama);
+        setVendorTouched(true);
+        setIsDirty(true);
+        toast.success(`Vendor ${created.nama} ditambahkan dan dipilih untuk pesanan ini`);
+      }
+      setVendorDialog(null);
+    } catch (err: unknown) {
+      throw err instanceof FinanceWriteError ? new Error('Gagal menyimpan vendor ke database') : err;
+    }
+  };
   const marginPercent = netInvoice > 0 ? (netProfit / netInvoice) * 100 : 0;
 
   const isSaveDisabled = isSaving || Boolean(ledgerDraft.error);
@@ -229,6 +254,11 @@ export default function OrderEditFinancePage() {
 
     if (ledgerDraft.error) {
       toast.error(ledgerDraft.error);
+      return;
+    }
+
+    if (biayaTambahanPending) {
+      toast.error('Ada biaya tambahan yang belum ditambahkan. Tekan Tambahkan biaya atau kosongkan isiannya.');
       return;
     }
 
@@ -275,7 +305,14 @@ export default function OrderEditFinancePage() {
         jumlahSemua: netInvoice,
         diskon,
         diskonHarga: diskon,
-        biayaOperasional,
+        biayaOperasional: biayaOperasionalTotal,
+        biayaOperasionalDasar: biayaOperasional,
+        // Field skalar ditulis bersama nama field VisualKainDB agar kedua aplikasi membaca angka yang sama.
+        biayaTambahanList: biayaTambahanItems,
+        biayaTambahanCustomer: biayaTambahan.customer,
+        biayaTambahanCust: biayaTambahan.customer,
+        biayaTambahanVendor: biayaTambahan.vendor,
+        biayaLainnya: biayaTambahan.vendor,
         pembayaranList: updatedPayments,
         dpNominal: nominalDpCustomer,
         totalUangMasukCustomer: nominalDpCustomer,
@@ -475,10 +512,23 @@ export default function OrderEditFinancePage() {
                     }}
                     className="h-11 text-xs font-semibold"
                   />
-                  <span className="text-[11px] text-slate-500 mt-1 block">Ongkir sample, bordir film, packing</span>
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    {biayaTambahan.lainnya > 0
+                      ? `Total ${formatRupiah(biayaOperasionalTotal)} termasuk biaya tambahan lainnya ${formatRupiah(biayaTambahan.lainnya)}`
+                      : 'Ongkir sample, bordir film, packing'}
+                  </span>
                 </div>
               </div>
             </section>
+
+            <BiayaTambahanSection
+              items={biayaTambahanItems}
+              onChange={(next) => {
+                setBiayaTambahanItems(next);
+                setIsDirty(true);
+              }}
+              onPendingChange={setBiayaTambahanPending}
+            />
 
             <PaymentLedgerPanel
               variant="customer"
@@ -493,6 +543,7 @@ export default function OrderEditFinancePage() {
               defaultTanggal={getDefaultFinanceDate()}
               defaultRekening="Transfer BCA"
               onDraftChange={handleDraftChange}
+              onManageAccount={rekening.open}
             />
 
             <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-card-double space-y-5">
@@ -508,7 +559,15 @@ export default function OrderEditFinancePage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Mitra Vendor Konveksi</label>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Mitra Vendor Konveksi</label>
+                    <ManageActions
+                      noun="vendor"
+                      onAdd={() => setVendorDialog('add')}
+                      onEdit={() => setVendorDialog('edit')}
+                      editDisabled={!vendorNama.trim()}
+                    />
+                  </div>
                   <CustomSelect
                     value={vendorNama}
                     onValueChange={(val) => {
@@ -524,15 +583,12 @@ export default function OrderEditFinancePage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Total Biaya HPP Vendor (Rp)</label>
-                  <CurrencyInput
-                    value={totalBiayaVendor}
-                    onValueChange={(val: number) => {
-                      setTotalBiayaVendor(val);
-                      setIsDirty(true);
-                    }}
-                    className="h-11 text-xs font-semibold"
-                  />
-                  <span className="text-[11px] text-slate-500 mt-1 block">Pokok tagihan konveksi</span>
+                  <CurrencyInput value={totalBiayaVendor} onValueChange={() => undefined} disabled className="h-11 text-xs font-semibold" />
+                  <span className="text-[11px] text-slate-500 mt-1 block">
+                    {biayaTambahan.vendor > 0
+                      ? `Terkunci: HPP order ${formatRupiah(hppDasar)} + biaya tambahan vendor ${formatRupiah(biayaTambahan.vendor)}`
+                      : 'Terkunci dari data order. Tambahan HPP dicatat di Rincian Biaya Tambahan (asal Vendor)'}
+                  </span>
                 </div>
 
                 <div>
@@ -713,6 +769,16 @@ export default function OrderEditFinancePage() {
           </div>
         </div>
       </main>
+
+      {rekening.dialog}
+      <VendorFormDialog
+        open={vendorDialog !== null}
+        mode={vendorDialog ?? 'add'}
+        initialNama={vendorNama}
+        isMasterVendor={Boolean(masterVendor)}
+        onClose={() => setVendorDialog(null)}
+        onSubmit={handleVendorDialogSubmit}
+      />
 
       {showExitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">

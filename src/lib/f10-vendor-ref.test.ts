@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveVendorRef, isPlaceholderVendorName } from './vendor-ref';
+import { resolveVendorRef, isPlaceholderVendorName, validateVendorName } from './vendor-ref';
 
 const vendors = [
   { id: 'v-amrin', nama: 'AMRIN' },
@@ -25,5 +25,18 @@ describe('isPlaceholderVendorName', () => {
     expect(isPlaceholderVendorName('Tanpa Vendor')).toBe(true);
     expect(isPlaceholderVendorName('vendor mitra')).toBe(true);
     expect(isPlaceholderVendorName('AMRIN')).toBe(false);
+  });
+});
+
+describe('F-12 validateVendorName', () => {
+  const vendors = [{ id: 'v-1', nama: 'Vendor Wisnu' }];
+  it('menolak nama kosong, placeholder, dan duplikat', () => {
+    expect(validateVendorName('  ', vendors)).toMatch(/wajib/);
+    expect(validateVendorName('Tanpa Vendor', vendors)).toMatch(/tidak valid/);
+    expect(validateVendorName('vendor wisnu', vendors)).toMatch(/sudah terdaftar/);
+  });
+  it('mengizinkan nama baru dan rename ke nama sendiri', () => {
+    expect(validateVendorName('LAJUWARNA', vendors)).toBeNull();
+    expect(validateVendorName('Vendor Wisnu', vendors, 'v-1')).toBeNull();
   });
 });

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatRupiah, normalizeWaNumber } from '@/lib/utils';
 import type { MasterFinanceRow } from '@/types';
+import { BIAYA_TAMBAHAN_SUMBER_OPTIONS, deriveBiayaTambahanItems, summarizeBiayaTambahan } from '@/lib/biaya-tambahan';
 import {
   X,
   Send,
@@ -58,6 +59,8 @@ export function OrderInspectionDrawer({
   if (!order) return null;
 
   const cleanPhone = normalizeWaNumber(phoneNumber);
+  const biayaTambahanItems = order ? deriveBiayaTambahanItems(order) : [];
+  const biayaTambahanSum = summarizeBiayaTambahan(biayaTambahanItems);
 
   // Template Pesan WhatsApp Penagihan (Dokumen Konfirmasi Fitur Update Bagian 3.D)
   const waTemplate = (() => {
@@ -329,7 +332,7 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
                 </div>
 
                 <div className="flex items-center justify-between text-xs pt-1 text-slate-600">
-                  <span>DP Vendor Disetor:</span>
+                  <span>Pembayaran Vendor:</span>
                   <span className="font-mono">{formatRupiah(order.dpVendor)}</span>
                 </div>
 
@@ -351,6 +354,31 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
                   </span>
                 </div>
               </div>
+
+              {biayaTambahanItems.length > 0 && (
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
+                    <span className="font-bold text-slate-600">Rincian Biaya Tambahan</span>
+                    <span className="font-mono font-bold text-slate-900">{formatRupiah(biayaTambahanSum.total)}</span>
+                  </div>
+                  {biayaTambahanItems.map((item) => (
+                    <div key={item.id} className="flex items-start justify-between gap-2 text-xs">
+                      <span className="min-w-0 text-slate-600">
+                        {item.keterangan}{' '}
+                        <span className="text-[10px] font-semibold text-slate-400">
+                          ({BIAYA_TAMBAHAN_SUMBER_OPTIONS.find((o) => o.value === item.sumber)?.label})
+                        </span>
+                      </span>
+                      <span className="font-mono shrink-0">{formatRupiah(item.nominal)}</span>
+                    </div>
+                  ))}
+                  <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100 text-[10px]">
+                    <span className="text-teal-700">Customer <strong className="font-mono block">{formatRupiah(biayaTambahanSum.customer)}</strong></span>
+                    <span className="text-blue-700">Vendor <strong className="font-mono block">{formatRupiah(biayaTambahanSum.vendor)}</strong></span>
+                    <span className="text-amber-700">Lainnya <strong className="font-mono block">{formatRupiah(biayaTambahanSum.lainnya)}</strong></span>
+                  </div>
+                </div>
+              )}
 
               {/* WhatsApp Follow-Up Generator Box */}
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-3">

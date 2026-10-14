@@ -6,6 +6,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { formatRupiah, cn } from '@/lib/utils';
 import { FINANCE_START_DATE, isFromFinanceStartDate } from '@/lib/constants';
+import { ManageActions, type ManageMode } from '@/components/finance/ManageActions';
 import {
   type LedgerEntry,
   type LedgerKind,
@@ -52,6 +53,8 @@ interface PaymentLedgerPanelProps {
   onPendingChange?: (hasPending: boolean) => void;
   onDraftChange?: (draft: LedgerDraftState) => void;
   disabled?: boolean;
+  /** Membuka dialog master rekening; `onSaved` memilih rekening hasil tambah/edit di form ini. */
+  onManageAccount?: (mode: ManageMode, kode: string, onSaved: (kode: string) => void) => void;
 }
 
 const COPY = {
@@ -110,6 +113,7 @@ export function PaymentLedgerPanel({
   onPendingChange,
   onDraftChange,
   disabled = false,
+  onManageAccount,
 }: PaymentLedgerPanelProps) {
   const copy = COPY[variant];
   const uid = useId();
@@ -393,7 +397,11 @@ export function PaymentLedgerPanel({
         <div onKeyDown={handleFormKeyDown} className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3.5">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-xs font-bold text-slate-900">
-              {editingRow ? `Edit ${copy.rowNoun} ke-${terminKe}` : `${copy.rowNoun === 'termin' ? 'Termin' : 'Pembayaran'} ke-${terminKe}`}
+              {editingRow
+                ? `${isCustomer ? 'Edit status pembayaran' : 'Edit pembayaran vendor'} ke-${terminKe}`
+                : isCustomer
+                ? 'Tambah Status Pembayaran'
+                : 'Tambah Pembayaran Vendor'}
             </h3>
             {(entries.length > 0 || editingRow) && (
               <button
@@ -463,7 +471,7 @@ export function PaymentLedgerPanel({
             </div>
 
             <div>
-              <label htmlFor={`${uid}-lbl`} className="block text-[11px] font-bold text-slate-700 mb-1">Nama {copy.rowNoun}</label>
+              <label htmlFor={`${uid}-lbl`} className="block text-[11px] font-bold text-slate-700 mb-1">Judul Pembayaran</label>
               <input
                 id={`${uid}-lbl`}
                 type="text"
@@ -495,7 +503,17 @@ export function PaymentLedgerPanel({
             </div>
 
             <div>
-              <span className="block text-[11px] font-bold text-slate-700 mb-1">{copy.accountLabel}</span>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="block text-[11px] font-bold text-slate-700">{copy.accountLabel}</span>
+                {onManageAccount && (
+                  <ManageActions
+                    noun="rekening"
+                    onAdd={() => onManageAccount('add', '', setRekening)}
+                    onEdit={() => onManageAccount('edit', rekening, setRekening)}
+                    editDisabled={!rekening}
+                  />
+                )}
+              </div>
               <CustomSelect
                 value={rekening}
                 onValueChange={(val) => {
@@ -600,7 +618,7 @@ export function PaymentLedgerPanel({
             <tr>
               <th scope="col" className="px-4 py-3 font-bold w-14">No</th>
               <th scope="col" className="px-4 py-3 font-bold">Tanggal</th>
-              <th scope="col" className="px-4 py-3 font-bold">Nama {copy.rowNoun}</th>
+              <th scope="col" className="px-4 py-3 font-bold">Judul Pembayaran</th>
               <th scope="col" className="px-4 py-3 font-bold">Rekening dan catatan</th>
               <th scope="col" className="px-4 py-3 font-bold text-right">Nominal (Rp)</th>
               {!disabled && <th scope="col" className="px-4 py-3 font-bold text-center w-28">Aksi</th>}

@@ -9,6 +9,8 @@ import { useBeforeUnloadGuard } from '@/hooks/useBeforeUnloadGuard';
 import { EditKasStatusNotice, resolveEditKasStatus } from '@/components/finance/EditKasStatusNotice';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { ManageActions } from '@/components/finance/ManageActions';
+import { useRekeningManager } from '@/components/finance/MasterDataDialogs';
 import {
   PaymentLedgerPanel,
   type LedgerRow,
@@ -21,12 +23,12 @@ import {
 } from '@/lib/payment-ledger';
 import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
 import {
-  DEFAULT_PAYMENT_CHANNELS,
   FINANCE_START_DATE,
   isFromFinanceStartDate,
   getDefaultFinanceDate,
   KATEGORI_KAS_KELUAR_OPTIONS,
 } from '@/lib/constants';
+import { KATEGORI_INVESTOR, investorKey, investorRemaining, summarizeInvestors } from '@/lib/investor-ledger';
 import type { Order, VendorPayment, CashOutflowCategory } from '@/types';
 import { toast, Toaster } from 'sonner';
 import {
@@ -39,6 +41,7 @@ import {
   Layers,
   AlertTriangle,
   ExternalLink,
+  Landmark,
 } from 'lucide-react';
 
 function buildInitialVendorRows(order: Order | undefined): LedgerRow[] {
@@ -111,6 +114,7 @@ function CashOutNewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { orders, cashTransactions, kasReady, updateOrderFinance, addKas, updateKas } = useFirebaseFinance();
+  const rekeningMaster = useRekeningManager();
 
   const modeParam = searchParams.get('mode');
   const orderIdParam = searchParams.get('orderId') || '';
@@ -118,8 +122,8 @@ function CashOutNewContent() {
   const editKasIdParam = searchParams.get('editKasId');
   const isEditMode = Boolean(editPaymentIdParam || editKasIdParam);
 
-  const [entryMode, setEntryMode] = useState<'operasional' | 'vendor'>(
-    modeParam === 'vendor' || editPaymentIdParam ? 'vendor' : 'operasional'
+  const [entryMode, setEntryMode] = useState<'operasional' | 'vendor' | 'investor'>(
+    modeParam === 'vendor' || editPaymentIdParam ? 'vendor' : modeParam === 'investor' ? 'investor' : 'operasional'
   );
   const [kategori, setKategori] = useState<CashOutflowCategory>('Operasional');
   const [selectedOrderId, setSelectedOrderId] = useState<string>(orderIdParam);
@@ -128,8 +132,11 @@ function CashOutNewContent() {
   const [tanggal, setTanggal] = useState<string>(getDefaultFinanceDate);
   const [nominal, setNominal] = useState<number>(0);
   const [sumberRekening, setSumberRekening] = useState<string>('Transfer BCA');
-  const [noVoucher, setNoVoucher] = useState<string>('');
   const [keterangan, setKeterangan] = useState<string>('');
+
+  // State khusus mode Investor: pengembalian pokok mengurangi kewajiban, bagi hasil adalah beban
+  const [investorJenis, setInvestorJenis] = useState<'pengembalian' | 'bagiHasil'>('pengembalian');
+  const [investorNama, setInvestorNama] = useState<string>('');
 
   // State khusus mode Pembayaran Mitra Vendor (berbasis pesanan)
   const [vendorLedgerRows, setVendorLedgerRows] = useState<LedgerRow[]>([]);
@@ -168,16 +175,33 @@ function CashOutNewContent() {
   });
 
   const accountOptions = useMemo(
-    () => [
-      ...DEFAULT_PAYMENT_CHANNELS.map((ch) => ({
-        value: ch.value,
-        label: ch.label,
-        badge: 'badge' in ch ? (ch as { badge: string }).badge : undefined,
-      })),
-      { value: '', label: 'Kas Operasional (Tanpa Prefix Rekening)' },
-    ],
-    []
+    () => [...rekeningMaster.options, { value: '', label: 'Kas Operasional (Tanpa Prefix Rekening)' }],
+    [rekeningMaster.options]
   );
+
+  const investorSummaries = useMemo(() => summarizeInvestors(cashTransactions), [cashTransactions]);
+  const investorOptions = useMemo(
+    () => [
+      { value: '', label: '-- Pilih Investor --' },
+      ...investorSummaries.map((i) => ({
+        value: i.nama,
+        label: `${i.nama} [Sisa: ${formatCompactRupiah(i.sisaKewajiban)}]`,
+      })),
+      ...(investorNama && !investorSummaries.some((i) => i.key === investorKey(investorNama))
+        ? [{ value: investorNama, label: investorNama }]
+        : []),
+    ],
+    [investorSummaries, investorNama]
+  );
+  const sisaKewajibanInvestor = investorNama ? investorRemaining(cashTransactions, investorNama, editKasIdParam) : 0;
+  const investorError =
+    entryMode !== 'investor'
+      ? null
+      : !investorNama
+      ? 'Pilih investor terlebih dahulu'
+      : investorJenis === 'pengembalian' && nominal > sisaKewajibanInvestor
+      ? `Pengembalian melebihi sisa kewajiban ${formatRupiah(sisaKewajibanInvestor)}`
+      : null;
 
   // Pre-fill form jika sedang mengedit transaksi Kas Keluar Non-Order (editKasIdParam)
   const editKasTarget = editKasIdParam ? cashTransactions.find((t) => t.id === editKasIdParam) : undefined;
@@ -186,32 +210,35 @@ function CashOutNewContent() {
   useInitOnce(editKasTarget ? editKasIdParam : null, () => {
     const targetTx = editKasTarget;
     if (!targetTx) return;
-    setEntryMode('operasional');
+    const isPengembalian = targetTx.kategori === KATEGORI_INVESTOR.pengembalian;
+    const isBagiHasil = targetTx.kategori === KATEGORI_INVESTOR.bagiHasil;
+    if (isPengembalian || isBagiHasil) {
+      setEntryMode('investor');
+      setInvestorJenis(isPengembalian ? 'pengembalian' : 'bagiHasil');
+      setInvestorNama(targetTx.investorNama || '');
+    } else {
+      setEntryMode('operasional');
+      setKategori((targetTx.kategori as CashOutflowCategory) || 'Operasional');
+    }
     setTanggal(targetTx.tanggal || getDefaultFinanceDate());
     setNominal(Number(targetTx.nominal) || 0);
-    setKategori((targetTx.kategori as CashOutflowCategory) || 'Operasional');
 
+    // Field voucher sudah dihapus dari form; teks voucher transaksi lama dipindah ke keterangan agar tidak hilang.
     const rawKet = (targetTx.keterangan || '').trim();
-    let parsedVoucher = '';
+    let voucherText = '';
     let restText = rawKet;
-
-    const voucherMatch = rawKet.match(/^\[Voucher:\s*([^\]]+)\]\s*(.*)$/);
+    const voucherMatch = rawKet.match(/^(\[Voucher:\s*[^\]]+\])\s*(.*)$/);
     if (voucherMatch) {
-      parsedVoucher = voucherMatch[1].trim();
+      voucherText = voucherMatch[1];
       restText = voucherMatch[2].trim();
     }
-    setNoVoucher(parsedVoucher);
 
-    const matchedCh = DEFAULT_PAYMENT_CHANNELS.find(
-      (ch) => restText === ch.value || restText.startsWith(`${ch.value} - `)
+    const matchedCh = rekeningMaster.accounts.find(
+      (ch) => restText === ch.kode || restText.startsWith(`${ch.kode} - `)
     );
-    if (matchedCh) {
-      setSumberRekening(matchedCh.value);
-      setKeterangan(restText === matchedCh.value ? '' : restText.slice(matchedCh.value.length + 3).trim());
-    } else {
-      setSumberRekening('');
-      setKeterangan(restText);
-    }
+    const catatan = matchedCh ? (restText === matchedCh.kode ? '' : restText.slice(matchedCh.kode.length + 3).trim()) : restText;
+    setSumberRekening(matchedCh ? matchedCh.kode : '');
+    setKeterangan([voucherText, catatan].filter(Boolean).join(' '));
   });
 
   const orderSelectOptions = useMemo(() => {
@@ -266,7 +293,8 @@ function CashOutNewContent() {
 
   const isSaveDisabled =
     isSaving ||
-    (entryMode === 'operasional' && editKasStatus !== 'none' && editKasStatus !== 'ready') ||
+    (entryMode !== 'vendor' && editKasStatus !== 'none' && editKasStatus !== 'ready') ||
+    (entryMode === 'investor' && Boolean(investorError)) ||
     (entryMode === 'vendor' &&
       (!selectedOrder || !hasValidVendor || Boolean(ledgerDraft.error)));
 
@@ -357,7 +385,7 @@ function CashOutNewContent() {
       return;
     }
 
-    // Mode Beban Operasional
+    // Mode Beban Operasional dan Investor
     if (nominal <= 0) {
       toast.error('Nominal pengeluaran kas harus lebih dari Rp 0');
       return;
@@ -368,16 +396,32 @@ function CashOutNewContent() {
       return;
     }
 
-    if (!keterangan.trim()) {
+    const isInvestorMode = entryMode === 'investor';
+    if (isInvestorMode && investorError) {
+      toast.error(investorError);
+      return;
+    }
+
+    if (!isInvestorMode && !keterangan.trim()) {
       toast.error('Keterangan pengeluaran wajib diisi');
       return;
     }
 
+    const kategoriFinal = isInvestorMode
+      ? investorJenis === 'pengembalian'
+        ? KATEGORI_INVESTOR.pengembalian
+        : KATEGORI_INVESTOR.bagiHasil
+      : kategori;
+    const defaultKet = isInvestorMode
+      ? `${investorJenis === 'pengembalian' ? 'Pengembalian dana' : 'Bagi hasil'} investor ${investorNama}`
+      : '';
+    // Transaksi investor tersimpan di koleksi terpisah, jadi jenisnya tidak bisa diganti saat edit (tombol mode dikunci).
+    const investorFields = isInvestorMode ? { investorNama } : {};
+
     try {
       setIsSaving(true);
-      const voucherText = noVoucher.trim() ? `[Voucher: ${noVoucher.trim()}] ` : '';
       const accountPrefix = sumberRekening.trim() ? `${sumberRekening.trim()} - ` : '';
-      const ketFull = `${voucherText}${accountPrefix}${keterangan.trim()}`;
+      const ketFull = `${accountPrefix}${keterangan.trim() || defaultKet}`;
 
       if (editKasIdParam) {
         if (!editKasTarget) throw new Error('Transaksi kas tidak ditemukan');
@@ -385,19 +429,21 @@ function CashOutNewContent() {
           tanggal,
           tipe: 'keluar',
           nominal,
-          kategori,
+          kategori: kategoriFinal,
           keterangan: ketFull,
+          ...investorFields,
         });
-        toast.success(`Perubahan pengeluaran ${kategori} berhasil disimpan!`);
+        toast.success(`Perubahan pengeluaran ${kategoriFinal} berhasil disimpan!`);
       } else {
         await addKas({
           tanggal,
           tipe: 'keluar',
           nominal,
-          kategori,
+          kategori: kategoriFinal,
           keterangan: ketFull,
+          ...investorFields,
         });
-        toast.success(`Pengeluaran operasional ${kategori} berhasil dicatat!`);
+        toast.success(`Pengeluaran ${kategoriFinal} berhasil dicatat!`);
       }
 
       setIsDirty(false);
@@ -496,14 +542,15 @@ function CashOutNewContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => {
                     setEntryMode('operasional');
                   }}
+                  disabled={Boolean(editKasIdParam) && entryMode !== 'operasional'}
                   className={cn(
-                    'flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.98] transition-transform duration-150 cursor-pointer',
+                    'flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.98] transition-transform duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed',
                     entryMode === 'operasional'
                       ? 'border-rose-500 bg-rose-50/60 shadow-xs'
                       : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -528,8 +575,9 @@ function CashOutNewContent() {
                   onClick={() => {
                     setEntryMode('vendor');
                   }}
+                  disabled={Boolean(editKasIdParam) && entryMode !== 'vendor'}
                   className={cn(
-                    'flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.98] transition-transform duration-150 cursor-pointer',
+                    'flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.98] transition-transform duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed',
                     entryMode === 'vendor'
                       ? 'border-rose-500 bg-rose-50/60 shadow-xs'
                       : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -548,11 +596,96 @@ function CashOutNewContent() {
                     <div className="text-[11px] text-slate-500">DP vendor, cicilan jahit, atau pelunasan HPP pesanan</div>
                   </div>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEntryMode('investor');
+                  }}
+                  disabled={Boolean(editKasIdParam) && entryMode !== 'investor'}
+                  className={cn(
+                    'flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.98] transition-transform duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed',
+                    entryMode === 'investor'
+                      ? 'border-violet-500 bg-violet-50/60 shadow-xs'
+                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-bold text-sm',
+                      entryMode === 'investor' ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-500'
+                    )}
+                  >
+                    <Landmark className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900">Investor</div>
+                    <div className="text-[11px] text-slate-500">Pengembalian pokok atau bagi hasil</div>
+                  </div>
+                </button>
               </div>
 
-              {entryMode === 'operasional' && <EditKasStatusNotice status={editKasStatus} />}
+              {entryMode !== 'vendor' && <EditKasStatusNotice status={editKasStatus} />}
 
-              {entryMode === 'operasional' ? (
+              {entryMode === 'investor' ? (
+                <div className="pt-3 border-t border-slate-100 space-y-3.5">
+                  <div>
+                    <span className="text-xs font-bold text-slate-700 block mb-1.5">
+                      Jenis Pengeluaran Investor <span className="text-rose-500">*</span>
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(
+                        [
+                          { value: 'pengembalian', label: 'Pengembalian Pokok', hint: 'Mengurangi sisa kewajiban, bukan beban' },
+                          { value: 'bagiHasil', label: 'Bagi Hasil / Imbal Hasil', hint: 'Beban, mengurangi laba bersih' },
+                        ] as const
+                      ).map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setInvestorJenis(opt.value);
+                            setIsDirty(true);
+                          }}
+                          aria-pressed={investorJenis === opt.value}
+                          className={cn(
+                            'rounded-xl border p-3 text-left cursor-pointer',
+                            investorJenis === opt.value ? 'border-violet-500 bg-violet-50/60' : 'border-slate-200 bg-white hover:bg-slate-50'
+                          )}
+                        >
+                          <div className="text-xs font-bold text-slate-900">{opt.label}</div>
+                          <div className="text-[11px] text-slate-500">{opt.hint}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                      Investor <span className="text-rose-500">*</span>
+                    </label>
+                    <CustomSelect
+                      value={investorNama}
+                      onValueChange={(val) => {
+                        setInvestorNama(val);
+                        setIsDirty(true);
+                      }}
+                      options={investorOptions}
+                      className="w-full h-11"
+                    />
+                    {investorSummaries.length === 0 && (
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        Belum ada dana investor tercatat. Catat dulu lewat Dana Masuk, mode Dana Investor.
+                      </p>
+                    )}
+                    {investorNama && (
+                      <p className="text-[11px] text-violet-800 mt-1">
+                        Sisa kewajiban ke {investorNama}:{' '}
+                        <span className="font-mono font-bold tabular-nums">{formatRupiah(sisaKewajibanInvestor)}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : entryMode === 'operasional' ? (
                 <div className="pt-3 border-t border-slate-100">
                   <label className="text-xs font-bold text-slate-700 block mb-1.5">
                     Kategori Beban Operasional <span className="text-rose-500">*</span>
@@ -650,6 +783,7 @@ function CashOutNewContent() {
                   initialEditId={editPaymentIdParam}
                   onDraftChange={handleDraftChange}
                   disabled={!hasValidVendor}
+                  onManageAccount={rekeningMaster.open}
                 />
               ) : (
                 <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center space-y-2">
@@ -707,9 +841,17 @@ function CashOutNewContent() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Sumber Rekening Pencairan <span className="text-rose-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">
+                        Sumber Rekening Pencairan <span className="text-rose-500">*</span>
+                      </label>
+                      <ManageActions
+                        noun="rekening"
+                        onAdd={() => rekeningMaster.open('add', '', setSumberRekening)}
+                        onEdit={() => rekeningMaster.open('edit', sumberRekening, setSumberRekening)}
+                        editDisabled={!sumberRekening}
+                      />
+                    </div>
                     <CustomSelect
                       value={sumberRekening}
                       onValueChange={(val) => {
@@ -721,26 +863,11 @@ function CashOutNewContent() {
                     />
                   </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Nomor Voucher / Ref Bukti (Opsional)
-                    </label>
-                    <input
-                      type="text"
-                      value={noVoucher}
-                      onChange={(e) => {
-                        setNoVoucher(e.target.value);
-                        setIsDirty(true);
-                      }}
-                      placeholder="Contoh: VCR-2026-10-092"
-                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-                    />
-                  </div>
                 </div>
 
                 <div className="pt-1">
                   <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                    Keterangan / Rincian Pengeluaran <span className="text-rose-500">*</span>
+                    Keterangan / Rincian Pengeluaran {entryMode === 'investor' ? '(Opsional)' : <span className="text-rose-500">*</span>}
                   </label>
                   <textarea
                     rows={3}
@@ -861,8 +988,20 @@ function CashOutNewContent() {
                 <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-4 space-y-2.5 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">Jenis Pengeluaran:</span>
-                    <span className="font-bold text-slate-800">Operasional ({kategori})</span>
+                    <span className="font-bold text-slate-800">
+                      {entryMode === 'investor'
+                        ? investorJenis === 'pengembalian'
+                          ? 'Pengembalian Dana Investor'
+                          : 'Bagi Hasil Investor'
+                        : `Operasional (${kategori})`}
+                    </span>
                   </div>
+                  {entryMode === 'investor' && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-slate-500">Investor:</span>
+                      <span className="font-bold text-slate-800 truncate">{investorNama || '-'}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">Tanggal Keluar:</span>
                     <span className="font-mono font-bold text-slate-800">{tanggal}</span>
@@ -871,11 +1010,8 @@ function CashOutNewContent() {
                     <span className="text-slate-500">Sumber Rekening:</span>
                     <span className="font-bold text-slate-800">{sumberRekening}</span>
                   </div>
-                  {noVoucher.trim() && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-500">No. Voucher:</span>
-                      <span className="font-mono font-bold text-slate-800">{noVoucher.trim()}</span>
-                    </div>
+                  {investorError && entryMode === 'investor' && (
+                    <p role="alert" className="text-[11px] font-semibold text-rose-700">{investorError}</p>
                   )}
                   <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
                     <span className="font-bold text-slate-700">Nominal Keluar:</span>
@@ -907,6 +1043,8 @@ function CashOutNewContent() {
           </div>
         </form>
       </main>
+
+      {rekeningMaster.dialog}
 
       {showExitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">

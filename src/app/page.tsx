@@ -353,21 +353,7 @@ function FinancialDashboardContent() {
                 )}
 
                 <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-                  {syncState === 'live' ? (
-                    <div className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-emerald-300/90 bg-emerald-50/80 px-2.5 sm:px-3.5 text-xs font-bold text-emerald-900 shadow-2xs min-w-0">
-                      <span className="relative flex h-2 w-2 shrink-0">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                      </span>
-                      <span className="truncate font-semibold">
-                        <span className="sm:hidden">Live</span>
-                        <span className="hidden sm:inline">Live Firestore</span>
-                      </span>
-                      <span className="rounded-md bg-emerald-100/90 px-1.5 py-0.5 text-[10px] font-mono font-extrabold text-emerald-800 shrink-0">
-                        {rawOrders.length} Order
-                      </span>
-                    </div>
-                  ) : syncState === 'error' ? (
+                  {syncState === 'error' ? (
                     <button
                       type="button"
                       onClick={retrySync}
@@ -376,12 +362,12 @@ function FinancialDashboardContent() {
                       <RefreshCw className="h-4 w-4 shrink-0" />
                       <span className="truncate">Gagal sinkron, coba lagi</span>
                     </button>
-                  ) : (
+                  ) : syncState === 'connecting' ? (
                     <div className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 sm:px-3.5 text-xs font-semibold text-slate-600 shadow-2xs min-w-0">
                       <ShieldCheck className="h-4 w-4 shrink-0" />
                       <span className="truncate">Menghubungkan...</span>
                     </div>
-                  )}
+                  ) : null}
 
                   {(tab === 'dashboard' || tab === 'datatable') && (
                     <button

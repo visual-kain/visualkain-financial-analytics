@@ -40,12 +40,12 @@ function Harness({
 describe('PaymentLedgerPanel: edit dari tabel', () => {
   it('membuka form edit target sekali dan tidak membukanya lagi setelah baris diperbarui', () => {
     render(<Harness initialEditId="pay-2" />);
-    expect(screen.getByText('Edit termin ke-2')).toBeTruthy();
+    expect(screen.getByText('Edit status pembayaran ke-2')).toBeTruthy();
 
     fireEvent.click(screen.getByText('Perbarui baris'));
 
-    expect(screen.queryByText('Edit termin ke-2')).toBeNull();
-    expect(screen.getByText('Termin ke-3')).toBeTruthy();
+    expect(screen.queryByText('Edit status pembayaran ke-2')).toBeNull();
+    expect(screen.getByText('Tambah Status Pembayaran')).toBeTruthy();
   });
 
   it('tidak membuka ulang form edit setelah baris lain dihapus', () => {
@@ -53,12 +53,12 @@ describe('PaymentLedgerPanel: edit dari tabel', () => {
     fireEvent.click(screen.getByText('Batal edit'));
     fireEvent.click(screen.getAllByLabelText('Hapus DP 1')[0]);
 
-    expect(screen.queryByText(/^Edit termin/)).toBeNull();
+    expect(screen.queryByText(/^Edit status pembayaran/)).toBeNull();
   });
 
   it('menampilkan pemberitahuan dan tidak membuka baris lain bila ID target tidak ditemukan', () => {
     render(<Harness initialEditId="ord-9-p-1" />);
-    expect(screen.queryByText(/^Edit termin/)).toBeNull();
+    expect(screen.queryByText(/^Edit status pembayaran/)).toBeNull();
     expect(screen.getByText(/Transaksi tidak ditemukan/)).toBeTruthy();
   });
 });

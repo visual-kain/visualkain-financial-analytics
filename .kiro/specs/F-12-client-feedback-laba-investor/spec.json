@@ -1,0 +1,10 @@
+{
+  "id": "F-12",
+  "slug": "F-12-client-feedback-laba-investor",
+  "title": "Feedback Klien 14 Okt 2026: Laba Bersih, Biaya Tambahan, Master Vendor & Rekening, Dana Investor",
+  "status": "in_progress",
+  "category": "feature",
+  "createdAt": "2026-10-14T10:00:00+07:00",
+  "baseCommit": "3a79adc",
+  "note": "F-11 direservasi untuk spec security (F-10 K-7)."
+}

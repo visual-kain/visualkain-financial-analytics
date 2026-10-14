@@ -103,7 +103,7 @@ export async function exportMasterFinanceToExcel(
     { col: 'J', label: 'SISA PIUTANG', val: totalPiutang, numFmt: '"Rp" #,##0' },
     { col: 'L', label: 'MODAL VENDOR (HPP)', val: totalBiayaVendor, numFmt: '"Rp" #,##0' },
     { col: 'N', label: 'SISA UTANG VENDOR', val: totalUtangVendor, numFmt: '"Rp" #,##0' },
-    { col: 'P', label: 'LABA BERSIH (PROFIT)', val: totalProfit, numFmt: '"Rp" #,##0' },
+    { col: 'P', label: 'LABA KOTOR (ORDER)', val: totalProfit, numFmt: '"Rp" #,##0' },
   ];
 
   kpiHeaders.forEach((kpi) => {
@@ -150,7 +150,7 @@ export async function exportMasterFinanceToExcel(
     { key: 'dpNominal', header: 'DP DITERIMA', width: 18, align: 'right', numFmt: '"Rp" #,##0' },
     { key: 'sisaPiutang', header: 'SISA PIUTANG', width: 18, align: 'right', numFmt: '"Rp" #,##0' },
     { key: 'biayaVendor', header: 'TOTAL BIAYA VENDOR', width: 20, align: 'right', numFmt: '"Rp" #,##0' },
-    { key: 'dpVendor', header: 'DP VENDOR', width: 16, align: 'right', numFmt: '"Rp" #,##0' },
+    { key: 'dpVendor', header: 'PEMBAYARAN VENDOR', width: 16, align: 'right', numFmt: '"Rp" #,##0' },
     { key: 'sisaVendor', header: 'SISA UTANG VENDOR', width: 18, align: 'right', numFmt: '"Rp" #,##0' },
     { key: 'biayaOpex', header: 'BIAYA OPERASIONAL', width: 18, align: 'right', numFmt: '"Rp" #,##0' },
     { key: 'diskon', header: 'DISKON', width: 14, align: 'right', numFmt: '"Rp" #,##0' },

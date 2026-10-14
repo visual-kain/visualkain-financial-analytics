@@ -3,8 +3,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatRupiah, formatCompactRupiah, cn, normalizeWaNumber } from '@/lib/utils';
-import { buildCashOutflowEntries } from '@/lib/financial-calculator';
-import { matchPeriod, type CashPeriod } from '@/lib/cash-ledger';
+import { buildCashOutflowEntries, aggregateOrders } from '@/lib/financial-calculator';
+import {
+  matchPeriod,
+  periodEnd,
+  buildCashEntries,
+  groupBebanKasByKategori,
+  type CashPeriod,
+} from '@/lib/cash-ledger';
+import { isInvestorInflow, summarizeInvestors } from '@/lib/investor-ledger';
 import type {
   Order,
   CashTransaction,
@@ -30,6 +37,8 @@ import {
   AlertCircle,
   Plus,
   Filter,
+  Landmark,
+  PiggyBank,
 } from 'lucide-react';
 import { CustomSelect } from '@/components/ui/custom-select';
 
@@ -70,7 +79,7 @@ export function MetricDetailDrawer({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVendorFilter, setSelectedVendorFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'lunas' | 'berjalan'>('all');
-  const [inflowFilter, setInflowFilter] = useState<'all' | 'dp' | 'termin' | 'pelunasan' | 'kas_masuk'>('all');
+  const [inflowFilter, setInflowFilter] = useState<'all' | 'dp' | 'termin' | 'pelunasan' | 'kas_masuk' | 'investor'>('all');
   const [saldoSubView, setSaldoSubView] = useState<'komponen' | 'inflow' | 'outflow'>('komponen');
 
   useEffect(() => {
@@ -148,10 +157,32 @@ export function MetricDetailDrawer({
     });
   }, [orders, searchQuery, selectedVendorFilter, statusFilter, metricType]);
 
+  const vendorAggregate = useMemo(
+    () =>
+      metricType === 'vendor_debt' && selectedVendorFilter !== 'all'
+        ? aggregateOrders(orders.filter((o) => o.vendorName === selectedVendorFilter))
+        : null,
+    [metricType, selectedVendorFilter, orders]
+  );
+
   const inPeriod = (tanggal: string | undefined) =>
     !cashPeriod || matchPeriod(tanggal, cashPeriod.bulan, cashPeriod.tahun);
   const flowOrders = cashOrders ?? orders;
   const flowTransactions = cashTransactions ?? transactions;
+
+  const activePeriod: CashPeriod = cashPeriod ?? { bulan: 'all', tahun: 'all' };
+
+  const bebanKasGroups = useMemo(
+    () => groupBebanKasByKategori(buildCashEntries(flowOrders, flowTransactions), activePeriod),
+    [flowOrders, flowTransactions, activePeriod.bulan, activePeriod.tahun]
+  );
+
+  const investorList = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return summarizeInvestors(flowTransactions, periodEnd(activePeriod)).filter(
+      (i) => !q || i.nama.toLowerCase().includes(q)
+    );
+  }, [flowTransactions, activePeriod.bulan, activePeriod.tahun, searchQuery]);
 
   const allOutflowEntries: CashOutflowEntry[] = useMemo(() => {
     return buildCashOutflowEntries(flowOrders, flowTransactions).filter((e) => inPeriod(e.tanggal));
@@ -196,7 +227,7 @@ export function MetricDetailDrawer({
       namaProject: string;
       tanggal: string;
       nominal: number;
-      kategori: 'dp' | 'termin' | 'pelunasan' | 'kas_masuk';
+      kategori: 'dp' | 'termin' | 'pelunasan' | 'kas_masuk' | 'investor';
       kategoriLabel: string;
       rekening: string;
       keterangan: string;
@@ -247,6 +278,21 @@ export function MetricDetailDrawer({
     });
 
     flowTransactions.forEach((tx) => {
+      if (isInvestorInflow(tx)) {
+        list.push({
+          id: tx.id,
+          noInv: tx.refInvoice || 'INVESTOR',
+          namaCustomer: tx.investorNama || 'Investor',
+          namaProject: tx.jatuhTempo ? `Target kembali ${tx.jatuhTempo}` : 'Dana Investor',
+          tanggal: tx.tanggal,
+          nominal: tx.nominal,
+          kategori: 'investor',
+          kategoriLabel: 'Dana Investor',
+          rekening: 'Kas / Bank',
+          keterangan: tx.keterangan,
+        });
+        return;
+      }
       if (tx.tipe === 'masuk' && tx.kategori !== 'Penerimaan Konsumen') {
         list.push({
           id: tx.id,
@@ -278,10 +324,12 @@ export function MetricDetailDrawer({
         item.rekening.toLowerCase().includes(q);
 
       if (!matchSearch) return false;
+      // Kartu Dana Masuk hanya pemasukan usaha; dana investor tampil di drawer Saldo dan Dana Investor.
+      if (metricType === 'cashin' && item.kategori === 'investor') return false;
       if (inflowFilter !== 'all' && item.kategori !== inflowFilter) return false;
       return true;
     });
-  }, [allInflowEntries, searchQuery, inflowFilter]);
+  }, [allInflowEntries, searchQuery, inflowFilter, metricType]);
 
   if (!isOpen || !metricType) return null;
 
@@ -300,16 +348,40 @@ export function MetricDetailDrawer({
       accentColor: 'text-sky-600',
     },
     profit: {
-      title: 'Detail Estimasi Profit Realtime',
-      badge: `Net Margin ${summary.profitMarginPercent.toFixed(1)}%`,
-      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      title: 'Detail Laba Kotor',
+      badge: `Margin Kotor ${summary.profitMarginPercent.toFixed(1)}%`,
+      badgeColor: 'bg-sky-50 text-sky-700 border-sky-200',
       totalValue: summary.totalProfitRealtime,
-      subtitle: `Estimasi laba bersih: ${formatRupiah(summary.estimasiProfitBersih)}`,
-      formula: 'Profit Realtime = ∑ (Total Invoice - HPP Vendor - Biaya Operasional Order)',
+      subtitle: `Laba bersih setelah beban kas: ${formatRupiah(summary.labaBersih)}`,
+      formula: 'Laba Kotor = ∑ (Total Invoice - HPP Vendor - Biaya Operasional Order)',
       formulaDesc:
-        'Hak margin bersih VisualKain atas seluruh pesanan. Angka ini mencerminkan surplus komersial sebelum dikurangi beban kas umum di luar proyek.',
+        'Selisih nilai pesanan dengan modal vendor dan biaya operasional order. Belum dikurangi beban kas umum (gaji, sewa, marketing, dll).',
       icon: TrendingUp,
-      accentColor: 'text-emerald-600',
+      accentColor: 'text-sky-600',
+    },
+    net_profit: {
+      title: 'Detail Laba Bersih (Profit Riil)',
+      badge: `Margin Bersih ${summary.labaBersihMarginPercent.toFixed(1)}%`,
+      badgeColor: summary.labaBersih < 0 ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      totalValue: summary.labaBersih,
+      subtitle: `Laba kotor ${formatCompactRupiah(summary.totalProfitRealtime)} - beban kas ${formatCompactRupiah(summary.bebanOperasionalKas ?? 0)}`,
+      formula: 'Laba Bersih = Laba Kotor - Beban Operasional Kas',
+      formulaDesc:
+        'Laba kotor pesanan dipotong seluruh dana keluar operasional pada periode (gaji, sewa, marketing, bagi hasil investor, dll). Pembayaran vendor pesanan sudah termasuk di HPP, dan pengembalian pokok investor bukan beban.',
+      icon: PiggyBank,
+      accentColor: summary.labaBersih < 0 ? 'text-rose-600' : 'text-emerald-600',
+    },
+    investor: {
+      title: 'Detail Dana Investor',
+      badge: 'Kewajiban Wajib Kembali',
+      badgeColor: 'bg-violet-50 text-violet-700 border-violet-200',
+      totalValue: summary.kewajibanInvestor,
+      subtitle: `Periode ini: masuk ${formatCompactRupiah(summary.danaInvestorMasuk)} • dikembalikan ${formatCompactRupiah(summary.danaInvestorKembali)}`,
+      formula: 'Sisa Kewajiban = ∑ Dana Investor Masuk - ∑ Pengembalian Pokok',
+      formulaDesc:
+        'Dana investor menambah saldo kas tetapi bukan pendapatan, sehingga tidak masuk laba. Pengembalian pokok mengurangi kewajiban; bagi hasil dicatat sebagai beban.',
+      icon: Landmark,
+      accentColor: 'text-violet-600',
     },
     saldo: {
       title: 'Detail Saldo Periode Rekening',
@@ -363,9 +435,9 @@ export function MetricDetailDrawer({
       title: 'Detail Arus Kas Masuk (Penerimaan Kas)',
       badge: 'Pemasukan Kas Riil',
       badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      totalValue: summary.totalKasMasuk,
-      subtitle: `Akumulasi seluruh pembayaran customer & kas masuk non-order`,
-      formula: 'Total Kas Masuk = ∑ DP 1 + ∑ DP 2 (70%) + ∑ Pelunasan Konsumen + ∑ Kas Masuk Non-Order',
+      totalValue: summary.totalKasMasukUsaha,
+      subtitle: `Pemasukan usaha: pembayaran customer & kas masuk non-order (tanpa dana investor)`,
+      formula: 'Pemasukan Usaha = ∑ DP + ∑ Termin + ∑ Pelunasan Konsumen + ∑ Kas Masuk Non-Order',
       formulaDesc:
         'Rincian seluruh arus kas masuk yang telah berhasil diterima ke rekening bank VisualKain. Menampilkan breakdown per invoice, customer, dan kategori termin.',
       icon: HandCoins,
@@ -645,6 +717,7 @@ export function MetricDetailDrawer({
                           { value: 'termin', label: 'DP 2 (70% Produksi)' },
                           { value: 'pelunasan', label: 'Pelunasan (30%)' },
                           { value: 'kas_masuk', label: 'Kas Masuk Non-Order' },
+                          ...(metricType === 'saldo' ? [{ value: 'investor', label: 'Dana Investor' }] : []),
                         ]}
                       />
                     </div>
@@ -669,6 +742,8 @@ export function MetricDetailDrawer({
                   <span>
                     {metricType === 'saldo' && saldoSubView === 'komponen'
                       ? 'Komponen Akuntansi Saldo Kas & Status Cover Hutang'
+                      : metricType === 'investor'
+                      ? `Posisi per Investor (${investorList.length} investor)`
                       : `Rincian Transaksi Pembentuk (${
                           metricType === 'cashin' || (metricType === 'saldo' && saldoSubView === 'inflow')
                             ? `${filteredInflows.length} mutasi masuk`
@@ -739,6 +814,8 @@ export function MetricDetailDrawer({
                                     ? 'bg-amber-50 text-amber-700 border-amber-200'
                                     : item.kategori === 'pelunasan'
                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : item.kategori === 'investor'
+                                    ? 'bg-violet-50 text-violet-700 border-violet-200'
                                     : 'bg-purple-50 text-purple-700 border-purple-200'
                                 }`}
                               >
@@ -836,34 +913,50 @@ export function MetricDetailDrawer({
                   <div className="space-y-3">
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2 text-xs">
                       <div className="flex justify-between items-center text-slate-600">
-                        <span>1. Saldo Awal Periode (akumulasi sejak 1 Okt 2026)</span>
+                        <span>Saldo Awal Periode (akumulasi sejak 1 Okt 2026)</span>
                         <span className="font-bold text-slate-900 tabular-nums font-mono">
                           {formatRupiah(saldoAwal)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-emerald-700">
-                        <span>2. Total Dana Masuk (+)</span>
+                        <span>Pemasukan Usaha (+)</span>
                         <span className="font-bold tabular-nums font-mono">
-                          +{formatRupiah(summary.totalKasMasuk)}
+                          +{formatRupiah(summary.totalKasMasukUsaha)}
                         </span>
                       </div>
+                      {summary.danaInvestorMasuk > 0 && (
+                        <div className="flex justify-between items-center text-violet-700">
+                          <span>Dana Investor Masuk (+)</span>
+                          <span className="font-bold tabular-nums font-mono">
+                            +{formatRupiah(summary.danaInvestorMasuk)}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between items-center text-rose-700">
-                        <span>3. Dana Keluar Pembayaran Vendor (-)</span>
+                        <span>Dana Keluar Pembayaran Vendor (-)</span>
                         <span className="font-bold tabular-nums font-mono">
                           -{formatRupiah(summary.totalDibayarKeVendor)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-rose-700">
-                        <span>4. Beban Operasional Kas (-)</span>
+                        <span>Beban Operasional Kas (-)</span>
                         <span className="font-bold tabular-nums font-mono">
                           -{formatRupiah(summary.bebanOperasionalKas ?? summary.totalKasKeluar)}
                         </span>
                       </div>
                       {(summary.bebanOperasionalOrders ?? 0) > 0 && (
                         <div className="flex justify-between items-center text-rose-700">
-                          <span>5. Biaya Operasional Order (-)</span>
+                          <span>Biaya Operasional Order (-)</span>
                           <span className="font-bold tabular-nums font-mono">
                             -{formatRupiah(summary.bebanOperasionalOrders || 0)}
+                          </span>
+                        </div>
+                      )}
+                      {summary.danaInvestorKembali > 0 && (
+                        <div className="flex justify-between items-center text-violet-700">
+                          <span>Pengembalian Dana Investor (-)</span>
+                          <span className="font-bold tabular-nums font-mono">
+                            -{formatRupiah(summary.danaInvestorKembali)}
                           </span>
                         </div>
                       )}
@@ -986,9 +1079,134 @@ export function MetricDetailDrawer({
                   </div>
                 )}
 
+                {/* E. KOMPONEN LABA BERSIH */}
+                {metricType === 'net_profit' && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2 text-xs">
+                    <div className="flex justify-between items-center text-slate-700">
+                      <span>Omzet (Net Invoice)</span>
+                      <span className="font-bold tabular-nums font-mono">{formatRupiah(summary.omzetTotal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-600">
+                      <span>HPP Vendor &amp; Biaya Operasional Order (-)</span>
+                      <span className="font-bold tabular-nums font-mono">
+                        -{formatRupiah(summary.omzetTotal - summary.totalProfitRealtime)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-slate-200 pt-2 font-bold text-sky-800">
+                      <span>Laba Kotor</span>
+                      <span className="tabular-nums font-mono">{formatRupiah(summary.totalProfitRealtime)}</span>
+                    </div>
+                    {bebanKasGroups.length === 0 ? (
+                      <div className="text-slate-500">Tidak ada beban operasional kas pada periode ini.</div>
+                    ) : (
+                      bebanKasGroups.map((g) => (
+                        <div key={g.kategori} className="flex justify-between items-center text-rose-700">
+                          <span>
+                            {g.kategori} ({g.count}x) (-)
+                          </span>
+                          <span className="font-bold tabular-nums font-mono">-{formatRupiah(g.total)}</span>
+                        </div>
+                      ))
+                    )}
+                    <div className="flex justify-between items-center border-t border-slate-200 pt-2 text-sm font-extrabold">
+                      <span className={summary.labaBersih < 0 ? 'text-rose-700' : 'text-emerald-800'}>Laba Bersih</span>
+                      <span className={cn('tabular-nums font-mono', summary.labaBersih < 0 ? 'text-rose-600' : 'text-emerald-700')}>
+                        {formatRupiah(summary.labaBersih)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* F. POSISI DANA INVESTOR */}
+                {metricType === 'investor' && (
+                  <div className="space-y-2.5">
+                    {investorList.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
+                        Belum ada dana investor tercatat. Catat lewat Dana Masuk, pilih mode Dana Investor.
+                      </div>
+                    ) : (
+                      investorList.map((inv) => (
+                        <div key={inv.key} className="rounded-2xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-card-double space-y-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">{inv.nama}</h4>
+                              <p className="text-[11px] text-slate-500">
+                                {inv.transaksi.length} transaksi
+                                {inv.jatuhTempoTerdekat && inv.sisaKewajiban > 0 ? ` • target kembali ${inv.jatuhTempoTerdekat}` : ''}
+                              </p>
+                            </div>
+                            <span
+                              className={cn(
+                                'rounded-full border px-2 py-0.5 text-[10px] font-bold shrink-0',
+                                inv.sisaKewajiban > 0
+                                  ? 'border-violet-200 bg-violet-50 text-violet-700'
+                                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                              )}
+                            >
+                              {inv.sisaKewajiban > 0 ? 'Belum Lunas' : 'Lunas'}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                            <div className="rounded-lg bg-slate-50/80 p-2 border border-slate-100">
+                              <span className="text-slate-400 block text-[9.5px] font-medium">Dana Masuk</span>
+                              <span className="font-bold text-slate-900 tabular-nums font-mono text-xs">{formatRupiah(inv.totalMasuk)}</span>
+                            </div>
+                            <div className="rounded-lg bg-slate-50/80 p-2 border border-slate-100">
+                              <span className="text-slate-400 block text-[9.5px] font-medium">Dikembalikan</span>
+                              <span className="font-bold text-slate-700 tabular-nums font-mono text-xs">{formatRupiah(inv.totalKembali)}</span>
+                            </div>
+                            <div className="rounded-lg bg-slate-50/80 p-2 border border-slate-100">
+                              <span className="text-slate-400 block text-[9.5px] font-medium">Bagi Hasil</span>
+                              <span className="font-bold text-slate-700 tabular-nums font-mono text-xs">{formatRupiah(inv.totalBagiHasil)}</span>
+                            </div>
+                            <div className="rounded-lg bg-violet-50/80 p-2 border border-violet-100">
+                              <span className="text-violet-700 block text-[9.5px] font-medium">Sisa Kewajiban</span>
+                              <span className="font-bold text-violet-800 tabular-nums font-mono text-xs">{formatRupiah(inv.sisaKewajiban)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* G. TOTAL GABUNGAN SAAT DIFILTER KE SATU VENDOR */}
+                {vendorAggregate && vendorAggregate.count > 0 && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3.5 sm:p-4 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs font-bold text-amber-900 truncate">
+                        Total Semua Pesanan {selectedVendorFilter} ({vendorAggregate.count} pesanan)
+                      </h4>
+                      <Building2 className="h-4 w-4 text-amber-700 shrink-0" />
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[11px]">
+                      <div className="rounded-lg bg-white p-2 border border-amber-100">
+                        <span className="text-slate-400 block text-[9.5px] font-medium">Total Nilai Invoice</span>
+                        <span className="font-bold text-slate-900 tabular-nums font-mono text-xs">{formatRupiah(vendorAggregate.totalInvoice)}</span>
+                      </div>
+                      <div className="rounded-lg bg-white p-2 border border-amber-100">
+                        <span className="text-slate-400 block text-[9.5px] font-medium">Total HPP Vendor</span>
+                        <span className="font-bold text-slate-700 tabular-nums font-mono text-xs">{formatRupiah(vendorAggregate.totalHpp)}</span>
+                      </div>
+                      <div className="rounded-lg bg-white p-2 border border-amber-100">
+                        <span className="text-slate-400 block text-[9.5px] font-medium">Sudah Diserahkan</span>
+                        <span className="font-bold text-slate-700 tabular-nums font-mono text-xs">{formatRupiah(vendorAggregate.totalDibayarVendor)}</span>
+                      </div>
+                      <div className="rounded-lg bg-white p-2 border border-rose-100">
+                        <span className="text-rose-600 block text-[9.5px] font-medium">Sisa Utang</span>
+                        <span className="font-bold text-rose-700 tabular-nums font-mono text-xs">{formatRupiah(vendorAggregate.sisaUtangVendor)}</span>
+                      </div>
+                      <div className="rounded-lg bg-white p-2 border border-emerald-100 col-span-2 sm:col-span-1">
+                        <span className="text-emerald-700 block text-[9.5px] font-medium">Net Profit</span>
+                        <span className="font-bold text-emerald-800 tabular-nums font-mono text-xs">{formatRupiah(vendorAggregate.netProfit)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* D. TAMPILAN ORDER BREAKDOWN (OMZET, PROFIT, UTANG VENDOR, OUTSTANDING) */}
                 {/* Redesain Kartu Sesuai US-9.11: No Inv, Customer, Tanggal, Status, Vendor, Revenue, Modal HPP, Biaya Op, Net Margin, Margin % (TANPA PROFIT AKTUAL) */}
-                {['omzet', 'profit', 'vendor_debt', 'outstanding'].includes(metricType) && (
+                {['omzet', 'profit', 'net_profit', 'vendor_debt', 'outstanding'].includes(metricType) && (
                   <div className="space-y-3">
                     {filteredOrders.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">

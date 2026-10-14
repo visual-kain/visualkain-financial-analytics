@@ -95,12 +95,29 @@ export const KATEGORI_KAS_KELUAR_OPTIONS: ReadonlyArray<{ value: CashOutflowCate
   { value: 'Biaya Lain', label: 'Beban Pengeluaran Lainnya' },
 ];
 
+export const KATEGORI_PENDAPATAN_LAIN = 'Pendapatan Lain';
+
+// Data lama menyimpan pendapatan lain sebagai 'Biaya Lain', nilai yang sama dengan kategori beban di kas keluar.
+const KATEGORI_PENDAPATAN_LAIN_LAMA = 'Biaya Lain';
+
+export const KATEGORI_KAS_MASUK_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: 'Saldo Awal', label: 'Setoran Modal / Saldo Awal Rekening' },
+  { value: KATEGORI_PENDAPATAN_LAIN, label: 'Pendapatan Lain / Non-Operasional' },
+];
+
+export function normalizeKategoriKasMasuk(kategori: string | undefined | null): string {
+  if (!kategori || kategori === KATEGORI_PENDAPATAN_LAIN_LAMA) return KATEGORI_PENDAPATAN_LAIN;
+  return kategori;
+}
+
 export function buildOutflowCategoryOptions(dataCategories: ReadonlyArray<string>): Array<{ value: string; label: string; badge?: string }> {
   const options: Array<{ value: string; label: string; badge?: string }> = [
     { value: 'all', label: 'Semua Kategori Beban', badge: 'Semua' },
     { value: 'Pembayaran Vendor', label: 'Pembayaran Vendor (Order)' },
     { value: 'Biaya Operasional Order', label: 'Biaya Operasional Order' },
     ...KATEGORI_KAS_KELUAR_OPTIONS,
+    { value: 'Pengembalian Dana Investor', label: 'Pengembalian Dana Investor (Pokok)' },
+    { value: 'Bagi Hasil Investor', label: 'Bagi Hasil Investor' },
   ];
   const known = new Set(options.map((o) => o.value));
   for (const kategori of dataCategories) {

@@ -8,6 +8,8 @@ import { useBeforeUnloadGuard } from '@/hooks/useBeforeUnloadGuard';
 import { EditKasStatusNotice, resolveEditKasStatus } from '@/components/finance/EditKasStatusNotice';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { ManageActions } from '@/components/finance/ManageActions';
+import { useRekeningManager } from '@/components/finance/MasterDataDialogs';
 import {
   PaymentLedgerPanel,
   type LedgerRow,
@@ -20,11 +22,12 @@ import {
 } from '@/lib/payment-ledger';
 import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
 import {
-  DEFAULT_PAYMENT_CHANNELS,
   FINANCE_START_DATE,
   isFromFinanceStartDate,
   getDefaultFinanceDate,
+  KATEGORI_KAS_MASUK_OPTIONS,
 } from '@/lib/constants';
+import { KATEGORI_INVESTOR, investorKey, summarizeInvestors, validateInvestorInflowChange } from '@/lib/investor-ledger';
 import type { CustomerPayment, Order, CashOutflowCategory } from '@/types';
 import { toast, Toaster } from 'sonner';
 import {
@@ -37,12 +40,8 @@ import {
   CreditCard,
   Layers,
   Percent,
+  Landmark,
 } from 'lucide-react';
-
-const KATEGORI_KAS_MASUK_OPTIONS = [
-  { value: 'Saldo Awal', label: 'Setoran Modal / Saldo Awal Rekening' },
-  { value: 'Biaya Lain', label: 'Pendapatan Lain / Non-Operasional' },
-];
 
 function buildInitialCustomerRows(order: Order | undefined): LedgerRow[] {
   if (!order) return [];
@@ -90,6 +89,7 @@ function CashInNewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { orders, cashTransactions, kasReady, updateOrderFinance, addKas, updateKas } = useFirebaseFinance();
+  const rekeningMaster = useRekeningManager();
 
   const modeParam = searchParams.get('mode');
   const orderIdParam = searchParams.get('orderId') || '';
@@ -97,8 +97,8 @@ function CashInNewContent() {
   const editKasIdParam = searchParams.get('editKasId');
   const isEditMode = Boolean(editPaymentIdParam || editKasIdParam);
 
-  const [entryMode, setEntryMode] = useState<'order' | 'direct'>(
-    modeParam === 'direct' || editKasIdParam ? 'direct' : 'order'
+  const [entryMode, setEntryMode] = useState<'order' | 'direct' | 'investor'>(
+    modeParam === 'investor' ? 'investor' : modeParam === 'direct' || editKasIdParam ? 'direct' : 'order'
   );
   const [selectedOrderId, setSelectedOrderId] = useState<string>(orderIdParam);
 
@@ -108,6 +108,9 @@ function CashInNewContent() {
   const [rekening, setRekening] = useState<string>('Transfer BCA');
   const [kategori, setKategori] = useState<string>('Saldo Awal');
   const [keterangan, setKeterangan] = useState<string>('');
+  // State khusus mode Dana Investor
+  const [investorNama, setInvestorNama] = useState<string>('');
+  const [jatuhTempo, setJatuhTempo] = useState<string>('');
 
   // State khusus mode Termin Pesanan
   const [ledgerRows, setLedgerRows] = useState<LedgerRow[]>([]);
@@ -139,16 +142,12 @@ function CashInNewContent() {
   });
 
   const accountOptions = useMemo(
-    () => [
-      ...DEFAULT_PAYMENT_CHANNELS.map((ch) => ({
-        value: ch.value,
-        label: ch.label,
-        badge: 'badge' in ch ? (ch as { badge: string }).badge : undefined,
-      })),
-      { value: '', label: 'Tanpa Prefix Rekening (Langsung)' },
-    ],
-    []
+    () => [...rekeningMaster.options, { value: '', label: 'Tanpa Prefix Rekening (Langsung)' }],
+    [rekeningMaster.options]
   );
+
+  const investorSummaries = useMemo(() => summarizeInvestors(cashTransactions), [cashTransactions]);
+  const selectedInvestor = investorSummaries.find((i) => i.key === investorKey(investorNama));
 
   // Pre-fill form jika sedang mengedit transaksi Kas Masuk Non-Order (editKasIdParam)
   const editKasTarget = editKasIdParam ? cashTransactions.find((t) => t.id === editKasIdParam) : undefined;
@@ -157,18 +156,24 @@ function CashInNewContent() {
   useInitOnce(editKasTarget ? editKasIdParam : null, () => {
     const targetTx = editKasTarget;
     if (!targetTx) return;
-    setEntryMode('direct');
+    const isInvestor = targetTx.kategori === KATEGORI_INVESTOR.masuk;
+    setEntryMode(isInvestor ? 'investor' : 'direct');
     setTanggal(targetTx.tanggal || getDefaultFinanceDate());
     setNominal(Number(targetTx.nominal) || 0);
-    setKategori((targetTx.kategori as CashOutflowCategory) || 'Saldo Awal');
+    if (isInvestor) {
+      setInvestorNama(targetTx.investorNama || '');
+      setJatuhTempo(targetTx.jatuhTempo || '');
+    } else {
+      setKategori((targetTx.kategori as CashOutflowCategory) || 'Saldo Awal');
+    }
 
     const rawKet = (targetTx.keterangan || '').trim();
-    const matchedCh = DEFAULT_PAYMENT_CHANNELS.find(
-      (ch) => rawKet === ch.value || rawKet.startsWith(`${ch.value} - `)
+    const matchedCh = rekeningMaster.accounts.find(
+      (ch) => rawKet === ch.kode || rawKet.startsWith(`${ch.kode} - `)
     );
     if (matchedCh) {
-      setRekening(matchedCh.value);
-      setKeterangan(rawKet === matchedCh.value ? '' : rawKet.slice(matchedCh.value.length + 3).trim());
+      setRekening(matchedCh.kode);
+      setKeterangan(rawKet === matchedCh.kode ? '' : rawKet.slice(matchedCh.kode.length + 3).trim());
     } else {
       setRekening('');
       setKeterangan(rawKet);
@@ -230,7 +235,7 @@ function CashInNewContent() {
 
   const isSaveDisabled =
     isSaving ||
-    (entryMode === 'direct' && editKasStatus !== 'none' && editKasStatus !== 'ready') ||
+    (entryMode !== 'order' && editKasStatus !== 'none' && editKasStatus !== 'ready') ||
     (entryMode === 'order' && Boolean(ledgerDraft.error));
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -312,7 +317,7 @@ function CashInNewContent() {
       return;
     }
 
-    // Mode Kas Masuk Langsung (non-order)
+    // Mode Kas Masuk Langsung (non-order) dan Dana Investor
     if (nominal <= 0) {
       toast.error('Nominal penerimaan kas harus lebih dari Rp 0');
       return;
@@ -323,13 +328,38 @@ function CashInNewContent() {
       return;
     }
 
+    const isInvestorMode = entryMode === 'investor';
+    if (isInvestorMode && !investorNama.trim()) {
+      toast.error('Nama investor wajib diisi');
+      return;
+    }
+    if (isInvestorMode && jatuhTempo && jatuhTempo < tanggal) {
+      toast.error('Target tanggal pengembalian tidak boleh sebelum tanggal dana masuk');
+      return;
+    }
+    if (editKasIdParam && isInvestorMode) {
+      const guard = validateInvestorInflowChange(cashTransactions, editKasIdParam, {
+        investorNama: investorNama.trim(),
+        nominal,
+      });
+      if (guard) {
+        toast.error(guard);
+        return;
+      }
+    }
+    const kategoriFinal = isInvestorMode ? KATEGORI_INVESTOR.masuk : kategori;
+    // Transaksi investor tersimpan di koleksi terpisah, jadi jenisnya tidak bisa diganti saat edit (tombol mode dikunci).
+    const investorFields = isInvestorMode
+      ? { investorNama: investorNama.trim().replace(/\s+/g, ' '), jatuhTempo }
+      : {};
+
     try {
       setIsSaving(true);
       const ketText = rekening
         ? keterangan.trim()
           ? `${rekening} - ${keterangan.trim()}`
           : rekening
-        : keterangan.trim() || 'Kas Masuk Non-Order';
+        : keterangan.trim() || (entryMode === 'investor' ? 'Dana Investor' : 'Kas Masuk Non-Order');
 
       if (editKasIdParam) {
         if (!editKasTarget) throw new Error('Transaksi kas tidak ditemukan');
@@ -337,8 +367,9 @@ function CashInNewContent() {
           tanggal,
           tipe: 'masuk',
           nominal,
-          kategori,
+          kategori: kategoriFinal,
           keterangan: ketText,
+          ...investorFields,
         });
         toast.success('Perubahan transaksi kas masuk berhasil disimpan!');
       } else {
@@ -346,10 +377,13 @@ function CashInNewContent() {
           tanggal,
           tipe: 'masuk',
           nominal,
-          kategori,
+          kategori: kategoriFinal,
           keterangan: ketText,
+          ...investorFields,
         });
-        toast.success('Penerimaan kas masuk berhasil dicatat ke pembukuan!');
+        toast.success(
+          isInvestorMode ? 'Dana investor berhasil dicatat sebagai kewajiban' : 'Penerimaan kas masuk berhasil dicatat ke pembukuan!'
+        );
       }
 
       setIsDirty(false);
@@ -448,14 +482,15 @@ function CashInNewContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => {
                     setEntryMode('order');
                   }}
+                  disabled={Boolean(editKasIdParam) && entryMode !== 'order'}
                   className={cn(
-                    'flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.98] transition-transform duration-150 cursor-pointer',
+                    'flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.98] transition-transform duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed',
                     entryMode === 'order'
                       ? 'border-teal-500 bg-teal-50/60 shadow-xs'
                       : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -480,8 +515,9 @@ function CashInNewContent() {
                   onClick={() => {
                     setEntryMode('direct');
                   }}
+                  disabled={Boolean(editKasIdParam) && entryMode !== 'direct'}
                   className={cn(
-                    'flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.98] transition-transform duration-150 cursor-pointer',
+                    'flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.98] transition-transform duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed',
                     entryMode === 'direct'
                       ? 'border-teal-500 bg-teal-50/60 shadow-xs'
                       : 'border-slate-200 bg-white hover:bg-slate-50'
@@ -498,6 +534,33 @@ function CashInNewContent() {
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-slate-900">Kas Masuk Langsung / Non-Order</div>
                     <div className="text-[11px] text-slate-500">Modal pemilik, pendapatan lain, atau selisih kas</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEntryMode('investor');
+                  }}
+                  disabled={Boolean(editKasIdParam) && entryMode !== 'investor'}
+                  className={cn(
+                    'flex items-center gap-3 p-3.5 rounded-xl border text-left active:scale-[0.98] transition-transform duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed',
+                    entryMode === 'investor'
+                      ? 'border-violet-500 bg-violet-50/60 shadow-xs'
+                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                  )}
+                >
+                  <div
+                    className={cn(
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-bold text-sm',
+                      entryMode === 'investor' ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-500'
+                    )}
+                  >
+                    <Landmark className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900">Dana Investor</div>
+                    <div className="text-[11px] text-slate-500">Wajib dikembalikan, bukan pendapatan</div>
                   </div>
                 </button>
               </div>
@@ -539,7 +602,7 @@ function CashInNewContent() {
               )}
             </section>
 
-            {entryMode === 'direct' && <EditKasStatusNotice status={editKasStatus} />}
+            {entryMode !== 'order' && <EditKasStatusNotice status={editKasStatus} />}
 
             {entryMode === 'order' ? (
               selectedOrder ? (
@@ -558,6 +621,7 @@ function CashInNewContent() {
                   defaultRekening="Transfer BCA"
                   initialEditId={editPaymentIdParam}
                   onDraftChange={handleDraftChange}
+                  onManageAccount={rekeningMaster.open}
                 />
               ) : (
                 <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center space-y-2">
@@ -577,8 +641,14 @@ function CashInNewContent() {
                     <CreditCard className="h-4 w-4" />
                   </span>
                   <div>
-                    <h2 className="text-sm font-bold text-slate-900">2. Rincian Nominal &amp; Rekening Penerima</h2>
-                    <p className="text-xs text-slate-500">Masukkan nilai uang masuk dan rekening tujuan mutasi</p>
+                    <h2 className="text-sm font-bold text-slate-900">
+                      {entryMode === 'investor' ? '2. Rincian Dana Investor' : '2. Rincian Nominal & Rekening Penerima'}
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      {entryMode === 'investor'
+                        ? 'Dana ini menambah saldo kas dan dicatat sebagai kewajiban yang harus dikembalikan'
+                        : 'Masukkan nilai uang masuk dan rekening tujuan mutasi'}
+                    </p>
                   </div>
                 </div>
 
@@ -615,9 +685,17 @@ function CashInNewContent() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Rekening / Akun Penerima <span className="text-rose-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">
+                        Rekening / Akun Penerima <span className="text-rose-500">*</span>
+                      </label>
+                      <ManageActions
+                        noun="rekening"
+                        onAdd={() => rekeningMaster.open('add', '', setRekening)}
+                        onEdit={() => rekeningMaster.open('edit', rekening, setRekening)}
+                        editDisabled={!rekening}
+                      />
+                    </div>
                     <CustomSelect
                       value={rekening}
                       onValueChange={(val) => {
@@ -629,20 +707,64 @@ function CashInNewContent() {
                     />
                   </div>
 
-                  <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                      Kategori Kas Masuk <span className="text-rose-500">*</span>
-                    </label>
-                    <CustomSelect
-                      value={kategori}
-                      onValueChange={(val) => {
-                        setKategori(val as CashOutflowCategory);
-                        setIsDirty(true);
-                      }}
-                      options={kategoriKasMasukOptions}
-                      className="h-11 w-full"
-                    />
-                  </div>
+                  {entryMode === 'investor' ? (
+                    <div>
+                      <label htmlFor="investor-nama" className="text-xs font-bold text-slate-700 block mb-1.5">
+                        Nama Investor <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        id="investor-nama"
+                        type="text"
+                        list="investor-nama-list"
+                        value={investorNama}
+                        onChange={(e) => {
+                          setInvestorNama(e.target.value);
+                          setIsDirty(true);
+                        }}
+                        placeholder="Contoh: Pak Budi"
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 placeholder-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                      />
+                      <datalist id="investor-nama-list">
+                        {investorSummaries.map((i) => (
+                          <option key={i.key} value={i.nama} />
+                        ))}
+                      </datalist>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 block mb-1.5">
+                        Kategori Kas Masuk <span className="text-rose-500">*</span>
+                      </label>
+                      <CustomSelect
+                        value={kategori}
+                        onValueChange={(val) => {
+                          setKategori(val as CashOutflowCategory);
+                          setIsDirty(true);
+                        }}
+                        options={kategoriKasMasukOptions}
+                        className="h-11 w-full"
+                      />
+                    </div>
+                  )}
+
+                  {entryMode === 'investor' && (
+                    <div>
+                      <label htmlFor="investor-jatuh-tempo" className="text-xs font-bold text-slate-700 block mb-1.5">
+                        Target Tanggal Pengembalian (Opsional)
+                      </label>
+                      <input
+                        id="investor-jatuh-tempo"
+                        type="date"
+                        min={tanggal}
+                        value={jatuhTempo}
+                        onChange={(e) => {
+                          setJatuhTempo(e.target.value);
+                          setIsDirty(true);
+                        }}
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-800 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-1">
@@ -783,6 +905,38 @@ function CashInNewContent() {
                     </span>
                   </div>
                 </div>
+              ) : entryMode === 'investor' ? (
+                <div className="rounded-xl bg-violet-50/60 border border-violet-200/80 p-4 space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Mode Pencatatan:</span>
+                    <span className="font-bold text-violet-800">Dana Investor (Kewajiban)</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Investor:</span>
+                    <span className="font-bold text-slate-800 truncate">{investorNama.trim() || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Tanggal Masuk:</span>
+                    <span className="font-mono font-bold text-slate-800">{tanggal}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Target Kembali:</span>
+                    <span className="font-mono font-bold text-slate-800">{jatuhTempo || 'Belum ditentukan'}</span>
+                  </div>
+                  {selectedInvestor && (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-slate-500">Sisa Kewajiban Saat Ini:</span>
+                      <span className="font-mono font-bold text-violet-800 tabular-nums">{formatRupiah(selectedInvestor.sisaKewajiban)}</span>
+                    </div>
+                  )}
+                  <div className="pt-2 border-t border-violet-200 flex items-center justify-between">
+                    <span className="font-bold text-slate-700">Nominal Diterima:</span>
+                    <span className="font-mono text-base font-extrabold text-violet-700 tabular-nums">{formatRupiah(nominal)}</span>
+                  </div>
+                  <p className="text-[11px] text-violet-800 leading-relaxed">
+                    Dana investor tidak dihitung sebagai pendapatan atau laba. Saldo kas bertambah, dan kewajiban kembali tercatat di kartu Dana Investor.
+                  </p>
+                </div>
               ) : (
                 <div className="rounded-xl bg-slate-50 border border-slate-200/80 p-4 space-y-2.5 text-xs">
                   <div className="flex items-center justify-between">
@@ -827,6 +981,8 @@ function CashInNewContent() {
           </div>
         </form>
       </main>
+
+      {rekeningMaster.dialog}
 
       {showExitConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">

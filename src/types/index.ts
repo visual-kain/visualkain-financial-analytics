@@ -5,7 +5,17 @@
 
 export type FinanceSubTab = 'dashboard' | 'datatable' | 'cashin' | 'cashout' | 'vendor' | 'manual';
 
-export type InflowCategoryType = 'dp' | 'termin' | 'pelunasan' | 'kas_masuk';
+export type InflowCategoryType = 'dp' | 'termin' | 'pelunasan' | 'kas_masuk' | 'investor';
+
+export type BiayaTambahanSumber = 'customer' | 'vendor' | 'lainnya';
+
+/** Rincian biaya tambahan per order; total per sumber wajib sama dengan field skalar order. */
+export interface BiayaTambahanItem {
+  id: string;
+  keterangan: string;
+  nominal: number;
+  sumber: BiayaTambahanSumber;
+}
 
 export interface CashInflowEntry {
   id: string;
@@ -63,6 +73,8 @@ export interface Order {
   biayaOperasional?: number;
   biayaTambahanVendor?: number;
   biayaTambahanCustomer?: number;
+  biayaTambahanList?: BiayaTambahanItem[];
+  biayaOperasionalDasar?: number;
   diskon?: number;
 
   noWaCustomer?: string;     // Nomor WhatsApp Customer (format 08... atau 62...)
@@ -102,7 +114,9 @@ export type MetricDrawerType =
   | 'cashin'
   | 'cashout'
   | 'vendor_debt'
-  | 'outstanding';
+  | 'outstanding'
+  | 'net_profit'
+  | 'investor';
 
 export interface VendorDebtBreakdown {
   vendorName: string;
@@ -168,7 +182,9 @@ export type CashOutflowCategory =
   | 'Logistik'
   | 'Keuangan'
   | 'Lainnya'
-  | 'Biaya Lain';
+  | 'Biaya Lain'
+  | 'Pengembalian Dana Investor'
+  | 'Bagi Hasil Investor';
 
 export interface CashOutflowEntry {
   id: string;
@@ -190,11 +206,15 @@ export interface CashTransaction {
   tanggal: string;
   tipe: 'masuk' | 'keluar';
   nominal: number;
-  kategori: CashOutflowCategory | 'Penerimaan Konsumen' | 'Saldo Awal';
+  kategori: CashOutflowCategory | 'Penerimaan Konsumen' | 'Saldo Awal' | 'Pendapatan Lain' | 'Dana Investor';
   keterangan: string;
   refInvoice?: string;
   orderId?: string;
   akun?: string;
+  investorNama?: string;
+  jatuhTempo?: string;      // Target tanggal pengembalian dana investor (YYYY-MM-DD)
+  /** Koleksi Firestore asal; kosong berarti `kas`. Transaksi investor disimpan di `finance_investor`. */
+  koleksi?: 'kas' | 'investor';
   [key: string]: any;
 }
 
@@ -243,6 +263,14 @@ export interface FinancialSummary {
   bebanOperasionalOrders?: number;
   bebanOperasionalKas?: number;
   saldoAwalPeriode?: number;    // Akumulasi arus kas sejak 1 Okt 2026 sampai sebelum periode terpilih
+
+  // F-12: pemasukan usaha dipisah dari dana investor, laba bersih setelah beban kas
+  totalKasMasukUsaha: number;
+  danaInvestorMasuk: number;
+  danaInvestorKembali: number;
+  kewajibanInvestor: number;
+  labaBersih: number;
+  labaBersihMarginPercent: number;
 }
 
 export interface VendorPerformanceItem {

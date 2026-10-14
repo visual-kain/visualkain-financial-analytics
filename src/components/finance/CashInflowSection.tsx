@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { buildCashInflowEntries, collectYearOptions } from '@/lib/cash-ledger';
+import { validateInvestorInflowChange } from '@/lib/investor-ledger';
 import {
   cn,
   formatRupiah,
@@ -20,6 +21,7 @@ import {
   ArrowDownLeft,
   CheckCircle2,
   Wallet,
+  Landmark,
   Plus,
   Download,
   Trash2,
@@ -66,6 +68,7 @@ const INFLOW_FILTER_OPTIONS = [
   { value: 'termin', label: 'DP 2 Termin 70% (Produksi)' },
   { value: 'pelunasan', label: 'Pelunasan 30% (Kirim)' },
   { value: 'kas_masuk', label: 'Kas Masuk Non-Order' },
+  { value: 'investor', label: 'Dana Investor (Wajib Kembali)' },
 ];
 
 const BULAN_FILTER_OPTIONS_ALL = [
@@ -108,7 +111,8 @@ export function CashInflowSection({
         `/cash-in/new?mode=order&orderId=${encodeURIComponent(item.orderId)}&editPaymentId=${encodeURIComponent(item.id)}`
       );
     } else if (item.sumber === 'manual') {
-      router.push(`/cash-in/new?mode=direct&editKasId=${encodeURIComponent(item.id)}`);
+      const mode = item.jenis === 'investor' ? 'investor' : 'direct';
+      router.push(`/cash-in/new?mode=${mode}&editKasId=${encodeURIComponent(item.id)}`);
     }
   };
 
@@ -174,25 +178,31 @@ export function CashInflowSection({
 
   // 2. KPI Metrics Calculation
   const metrics = useMemo(() => {
-    const totalDanaMasuk = filteredInflows.reduce((acc, curr) => acc + curr.nominal, 0);
+    // Pemasukan usaha dipisah dari dana investor karena dana investor wajib dikembalikan.
+    const usahaInflows = filteredInflows.filter((i) => i.jenis !== 'investor');
+    const totalDanaMasuk = usahaInflows.reduce((acc, curr) => acc + curr.nominal, 0);
+    const investorInflows = filteredInflows.filter((i) => i.jenis === 'investor');
+    const totalInvestor = investorInflows.reduce((acc, curr) => acc + curr.nominal, 0);
     const totalDpDanTermin = filteredInflows
       .filter((i) => i.sumber === 'order' && i.jenis !== 'pelunasan')
       .reduce((acc, curr) => acc + curr.nominal, 0);
     const totalPelunasan = filteredInflows
       .filter((i) => i.sumber === 'order' && i.jenis === 'pelunasan')
       .reduce((acc, curr) => acc + curr.nominal, 0);
-    const totalKasNonOrder = filteredInflows
+    const totalKasNonOrder = usahaInflows
       .filter((i) => i.sumber === 'manual')
       .reduce((acc, curr) => acc + curr.nominal, 0);
-    const rataRataMasuk = filteredInflows.length > 0 ? totalDanaMasuk / filteredInflows.length : 0;
+    const rataRataMasuk = usahaInflows.length > 0 ? totalDanaMasuk / usahaInflows.length : 0;
 
     return {
       totalDanaMasuk,
       totalDpDanTermin,
       totalPelunasan,
       totalKasNonOrder,
+      totalInvestor,
+      investorCount: investorInflows.length,
       rataRataMasuk,
-      count: filteredInflows.length,
+      count: usahaInflows.length,
     };
   }, [filteredInflows]);
 
@@ -315,6 +325,11 @@ export function CashInflowSection({
 
   const handleDelete = async (id: string) => {
     if (!onDeleteTransaction) return;
+    const guard = validateInvestorInflowChange(cashTransactions, id, null);
+    if (guard) {
+      toast.error(guard);
+      return;
+    }
     if (confirm('Apakah Anda yakin ingin menghapus catatan kas masuk ini?')) {
       try {
         await onDeleteTransaction(id);
@@ -345,6 +360,12 @@ export function CashInflowSection({
             100% Pelunasan
           </span>
         );
+      case 'investor':
+        return (
+          <span className="inline-flex items-center rounded-full bg-violet-50 px-1.5 py-0.5 text-[8px] sm:text-[8.5px] font-bold text-violet-700 border border-violet-200 truncate shrink-0">
+            Dana Investor
+          </span>
+        );
       case 'kas_masuk':
       default:
         return (
@@ -357,8 +378,8 @@ export function CashInflowSection({
 
   return (
     <div className="space-y-6">
-      {/* 1. 4 KPI Summary Cards */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* 1. KPI: pemasukan usaha dan dana investor dipisah */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {/* Card 1: Total Dana Masuk */}
         <div className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 shadow-card-double transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300">
           <div>
@@ -367,11 +388,11 @@ export function CashInflowSection({
                 <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </span>
               <span className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-emerald-700">
-                Pemasukan
+                Usaha
               </span>
             </div>
             <h4 className="mt-2 sm:mt-3 text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
-              Total Dana Masuk
+              Pemasukan Usaha
             </h4>
             <div className="mt-0.5 sm:mt-1 text-sm sm:text-lg font-bold tracking-tight text-emerald-700 tabular-nums truncate">
               {formatRupiah(metrics.totalDanaMasuk)}
@@ -448,6 +469,29 @@ export function CashInflowSection({
           </div>
           <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
             Rata-rata: {formatCompactRupiah(metrics.rataRataMasuk)}/transaksi
+          </p>
+        </div>
+
+        {/* Card 5: Dana Investor (bukan pendapatan) */}
+        <div className="group relative col-span-2 sm:col-span-1 flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 shadow-card-double transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-300">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center rounded-lg p-1.5 sm:p-2 bg-violet-50 text-violet-600">
+                <Landmark className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </span>
+              <span className="rounded-full border border-violet-200 bg-violet-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-violet-700">
+                Wajib Kembali
+              </span>
+            </div>
+            <h4 className="mt-2 sm:mt-3 text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
+              Dana Investor
+            </h4>
+            <div className="mt-0.5 sm:mt-1 text-sm sm:text-lg font-bold tracking-tight text-violet-700 tabular-nums truncate">
+              {formatRupiah(metrics.totalInvestor)}
+            </div>
+          </div>
+          <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
+            {metrics.investorCount} transaksi, tidak dihitung pendapatan
           </p>
         </div>
       </div>

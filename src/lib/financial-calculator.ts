@@ -10,6 +10,7 @@ import type {
   MasterFinanceRow,
 } from '@/types';
 import type { CashPeriodSummary } from './cash-ledger';
+import { isInvestorInflow, isInvestorRepayment, isInvestorTransaction } from './investor-ledger';
 
 function isDuplicateOrderVendorTx(tx: CashTransaction, orders: Order[]): boolean {
   if (tx.kategori !== 'Pembayaran Vendor') return false;
@@ -132,10 +133,11 @@ export function buildCashOutflowEntries(
       keterangan: tx.keterangan || 'Pengeluaran Kas Operasional',
       sumber: 'manual',
       noInv: tx.refInvoice || 'KAS-KELUAR',
-      vendorOrTargetName:
-        tx.kategori === 'Pembayaran Vendor' || tx.kategori === 'Pembayaran Vendor Lainnya'
-          ? 'Mitra Vendor (Non-Order)'
-          : 'Kas Operasional',
+      vendorOrTargetName: isInvestorTransaction(tx)
+        ? tx.investorNama?.trim() || 'Investor'
+        : tx.kategori === 'Pembayaran Vendor' || tx.kategori === 'Pembayaran Vendor Lainnya'
+        ? 'Mitra Vendor (Non-Order)'
+        : 'Kas Operasional',
       rawTransaction: tx,
     });
   }
@@ -259,14 +261,20 @@ export function calculateFinancialSummary(
   let kasMasukNonOrder = 0;
   let bebanOperasional = 0;
   let manualVendorPayments = 0;
+  let danaInvestorMasuk = 0;
+  let danaInvestorKembali = 0;
 
   for (const tx of transactions) {
     if (tx.tipe === 'masuk') {
-      if (tx.kategori !== 'Penerimaan Konsumen') {
+      if (isInvestorInflow(tx)) {
+        danaInvestorMasuk += tx.nominal;
+      } else if (tx.kategori !== 'Penerimaan Konsumen') {
         kasMasukNonOrder += tx.nominal;
       }
     } else {
-      if (tx.kategori === 'Pembayaran Vendor') {
+      if (isInvestorRepayment(tx)) {
+        danaInvestorKembali += tx.nominal;
+      } else if (tx.kategori === 'Pembayaran Vendor') {
         if (!isDuplicateOrderVendorTx(tx, orders)) {
           manualVendorPayments += tx.nominal;
         }
@@ -326,13 +334,15 @@ export function calculateFinancialSummary(
   }
 
   const outflowEntries = buildCashOutflowEntries(orders, transactions);
-  const totalKasMasuk = totalUangMasukOrders + kasMasukNonOrder;
+  const totalKasMasukUsaha = totalUangMasukOrders + kasMasukNonOrder;
+  const totalKasMasuk = totalKasMasukUsaha + danaInvestorMasuk;
   const totalBebanOperasional = bebanOperasional + totalBiayaOperasionalOrders;
-  const totalKasKeluar = totalDibayarKeVendor + totalBebanOperasional;
+  const totalKasKeluar = totalDibayarKeVendor + totalBebanOperasional + danaInvestorKembali;
   const kasKeluarCount = outflowEntries.length;
   const saldoKasRiil = saldoAwal + totalKasMasuk - totalKasKeluar;
   const profitMarginPercent = omzetTotal > 0 ? (totalProfitRealtime / omzetTotal) * 100 : 0;
   const estimasiProfitBersih = totalMarginTerealisasi - totalBebanOperasional;
+  const labaBersih = totalProfitRealtime - bebanOperasional;
 
   return {
     saldoKasRiil,
@@ -353,12 +363,19 @@ export function calculateFinancialSummary(
     bebanOperasionalNonVendor: totalBebanOperasional,
     bebanOperasionalOrders: totalBiayaOperasionalOrders,
     bebanOperasionalKas: bebanOperasional,
+    totalKasMasukUsaha,
+    danaInvestorMasuk,
+    danaInvestorKembali,
+    kewajibanInvestor: danaInvestorMasuk - danaInvestorKembali,
+    labaBersih,
+    labaBersihMarginPercent: omzetTotal > 0 ? (labaBersih / omzetTotal) * 100 : 0,
   };
 }
 
 
 /** Metrik kas memakai cash basis per tanggal entri (F-10 K-1/K-2); metrik omzet, piutang, utang, dan laba tetap berbasis order. */
 export function applyCashPeriod(summary: FinancialSummary, cash: CashPeriodSummary): FinancialSummary {
+  const labaBersih = summary.totalProfitRealtime - cash.keluarKas;
   return {
     ...summary,
     saldoKasRiil: cash.saldoKas,
@@ -370,7 +387,41 @@ export function applyCashPeriod(summary: FinancialSummary, cash: CashPeriodSumma
     bebanOperasionalOrders: cash.keluarOpexOrder,
     bebanOperasionalKas: cash.keluarKas,
     kasKeluarCount: cash.keluarCount,
+    totalKasMasukUsaha: cash.masukOrder + cash.masukNonOrder,
+    danaInvestorMasuk: cash.masukInvestor,
+    danaInvestorKembali: cash.keluarInvestor,
+    kewajibanInvestor: cash.kewajibanInvestor,
+    labaBersih,
+    labaBersihMarginPercent: summary.omzetTotal > 0 ? (labaBersih / summary.omzetTotal) * 100 : 0,
   };
+}
+
+export interface OrderAggregate {
+  count: number;
+  totalInvoice: number;
+  totalHpp: number;
+  totalBiayaOperasional: number;
+  totalDibayarVendor: number;
+  sisaUtangVendor: number;
+  netProfit: number;
+}
+
+/** Total gabungan beberapa pesanan, dipakai saat drawer difilter ke satu vendor. */
+export function aggregateOrders(orders: ReadonlyArray<Order>): OrderAggregate {
+  return orders.reduce<OrderAggregate>(
+    (acc, o) => {
+      const opex = o.biayaOperasional || 0;
+      acc.count += 1;
+      acc.totalInvoice += o.totalInvoice;
+      acc.totalHpp += o.totalHpp;
+      acc.totalBiayaOperasional += opex;
+      acc.totalDibayarVendor += o.totalDibayarKeVendor || 0;
+      acc.sisaUtangVendor += Math.max(0, o.totalHpp - (o.totalDibayarKeVendor || 0));
+      acc.netProfit += o.totalInvoice - o.totalHpp - opex;
+      return acc;
+    },
+    { count: 0, totalInvoice: 0, totalHpp: 0, totalBiayaOperasional: 0, totalDibayarVendor: 0, sisaUtangVendor: 0, netProfit: 0 }
+  );
 }
 
 /**

@@ -14,6 +14,8 @@ import {
   ArrowRight,
   CheckCircle2,
   AlertCircle,
+  Landmark,
+  PiggyBank,
 } from 'lucide-react';
 
 interface FinanceStatsGridProps {
@@ -32,8 +34,8 @@ export function FinanceStatsGrid({
 }: FinanceStatsGridProps) {
   if (isLoading || !summary) {
     return (
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
           <MetricCardSkeleton key={i} />
         ))}
       </div>
@@ -42,6 +44,7 @@ export function FinanceStatsGrid({
 
   const isSaldoMinus = summary.saldoKasRiil < 0;
   const isProfitMinus = summary.totalProfitRealtime < 0;
+  const isLabaBersihMinus = summary.labaBersih < 0;
   const danaTersedia = summary.saldoKasRiil;
   const hutangVendor = summary.totalUtangVendor;
   const selisihCover = danaTersedia - hutangVendor;
@@ -53,8 +56,8 @@ export function FinanceStatsGrid({
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {/* 1. Dana Masuk */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
+        {/* 1. Dana Masuk (pemasukan usaha, tanpa dana investor) */}
         <div
           role="button"
           tabIndex={0}
@@ -78,15 +81,50 @@ export function FinanceStatsGrid({
               Dana Masuk
             </h4>
             <div className="mt-0.5 sm:mt-1 text-sm sm:text-lg font-bold tracking-tight text-emerald-700 tabular-nums truncate">
-              {formatRupiah(summary.totalKasMasuk)}
+              {formatRupiah(summary.totalKasMasukUsaha)}
             </div>
           </div>
           <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
-            DP / pelunasan order & kas masuk
+            Pemasukan usaha (order & kas masuk)
           </p>
         </div>
 
-        {/* 2. Dana Keluar */}
+        {/* 2. Dana Investor: kas bertambah tetapi wajib dikembalikan */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onSelectMetric?.('investor')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectMetric?.('investor')}
+          className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 shadow-card-double transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-card-hover cursor-pointer"
+        >
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center rounded-lg p-1.5 sm:p-2 bg-violet-50 text-violet-600">
+                <Landmark className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </span>
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <span className="rounded-full border border-violet-200 bg-violet-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-violet-700">
+                  Wajib Kembali
+                </span>
+                <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-violet-600" />
+              </div>
+            </div>
+            <h4 className="mt-2 sm:mt-3 text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
+              Dana Investor (Sisa Kewajiban)
+            </h4>
+            <div className="mt-0.5 sm:mt-1 text-sm sm:text-lg font-bold tracking-tight text-violet-700 tabular-nums truncate">
+              {formatRupiah(summary.kewajibanInvestor)}
+            </div>
+          </div>
+          <p
+            className="mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] text-slate-400 font-medium truncate"
+            title={`Masuk ${formatRupiah(summary.danaInvestorMasuk)} - Dikembalikan ${formatRupiah(summary.danaInvestorKembali)} pada periode ini`}
+          >
+            Masuk {formatCompactRupiah(summary.danaInvestorMasuk)} • Kembali {formatCompactRupiah(summary.danaInvestorKembali)}
+          </p>
+        </div>
+
+        {/* 3. Dana Keluar */}
         <div
           role="button"
           tabIndex={0}
@@ -118,7 +156,7 @@ export function FinanceStatsGrid({
           </p>
         </div>
 
-        {/* 3. Dana Tersedia (Saldo Kas) */}
+        {/* 4. Dana Tersedia (Saldo Kas) */}
         <div
           role="button"
           tabIndex={0}
@@ -183,7 +221,7 @@ export function FinanceStatsGrid({
           </p>
         </div>
 
-        {/* 4. Sisa Customer (Piutang) */}
+        {/* 5. Sisa Customer (Piutang) */}
         <div
           role="button"
           tabIndex={0}
@@ -215,7 +253,7 @@ export function FinanceStatsGrid({
           </p>
         </div>
 
-        {/* 5. Sisa Hutang ke Vendor */}
+        {/* 6. Sisa Hutang ke Vendor */}
         <div
           role="button"
           tabIndex={0}
@@ -247,7 +285,7 @@ export function FinanceStatsGrid({
           </p>
         </div>
 
-        {/* 6. Profit & Omzet (Realtime) */}
+        {/* 7. Laba Kotor & Omzet (basis order) */}
         <div
           role="button"
           tabIndex={0}
@@ -290,7 +328,7 @@ export function FinanceStatsGrid({
               </div>
             </div>
             <h4 className="mt-2 sm:mt-3 text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
-              Profit & Omzet
+              Laba Kotor & Omzet
             </h4>
             <div
               className={cn(
@@ -303,6 +341,65 @@ export function FinanceStatsGrid({
           </div>
           <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
             Omzet {formatCompactRupiah(summary.omzetTotal)} ({summary.omzetLunasCount + summary.omzetBerjalanCount} order)
+          </p>
+        </div>
+
+        {/* 8. Laba Bersih: laba kotor dipotong beban kas operasional periode */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onSelectMetric?.('net_profit')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectMetric?.('net_profit')}
+          className={cn(
+            'group relative flex flex-col justify-between rounded-2xl border bg-white p-3 sm:p-4 shadow-card-double transition-all duration-200 hover:-translate-y-0.5 cursor-pointer',
+            isLabaBersihMinus
+              ? 'border-rose-200/90 hover:border-rose-300 hover:shadow-card-hover'
+              : 'border-emerald-200/90 hover:border-emerald-300 hover:shadow-card-hover'
+          )}
+        >
+          <div>
+            <div className="flex items-center justify-between">
+              <span
+                className={cn(
+                  'inline-flex items-center rounded-lg p-1.5 sm:p-2 transition-colors',
+                  isLabaBersihMinus ? 'bg-rose-50 text-rose-600 ring-1 ring-rose-200' : 'bg-emerald-50 text-emerald-600'
+                )}
+              >
+                <PiggyBank className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </span>
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <span
+                  className={cn(
+                    'rounded-full border px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold transition-colors',
+                    isLabaBersihMinus
+                      ? 'border-rose-200 bg-rose-50 text-rose-700'
+                      : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  )}
+                >
+                  Margin {summary.labaBersihMarginPercent.toFixed(0)}%
+                </span>
+                <ArrowRight
+                  className={cn(
+                    'h-3 w-3 sm:h-3.5 sm:w-3.5 transition-transform group-hover:translate-x-0.5',
+                    isLabaBersihMinus ? 'text-rose-300 group-hover:text-rose-600' : 'text-slate-300 group-hover:text-emerald-600'
+                  )}
+                />
+              </div>
+            </div>
+            <h4 className="mt-2 sm:mt-3 text-[11px] sm:text-xs font-semibold text-slate-500 truncate">
+              Laba Bersih (Profit Riil)
+            </h4>
+            <div
+              className={cn(
+                'mt-0.5 sm:mt-1 text-sm sm:text-lg font-bold tracking-tight tabular-nums truncate',
+                isLabaBersihMinus ? 'text-rose-600' : 'text-emerald-700'
+              )}
+            >
+              {formatRupiah(summary.labaBersih)}
+            </div>
+          </div>
+          <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-[11px] text-slate-400 font-medium truncate">
+            Laba kotor - beban kas {formatCompactRupiah(summary.bebanOperasionalKas ?? 0)}
           </p>
         </div>
       </div>
@@ -371,6 +468,13 @@ export function FinanceStatsGrid({
                 </>
               )}
             </p>
+            {summary.kewajibanInvestor > 0 && (
+              <p className="text-[11px] text-violet-700 leading-relaxed">
+                Dana yang ada termasuk dana investor{' '}
+                <span className="font-semibold tabular-nums">{formatRupiah(summary.kewajibanInvestor)}</span> yang wajib
+                dikembalikan.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5 lg:min-w-[540px]">

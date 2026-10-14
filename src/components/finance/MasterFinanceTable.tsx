@@ -472,7 +472,7 @@ export function MasterFinanceTable({
             {/* Scrollable Columns */}
             <th className="px-4 py-3 min-w-[180px]">NAMA PROJECT</th>
             <th className="px-4 py-3 bg-blue-50 text-blue-900">TOTAL BIAYA VENDOR</th>
-            <th className="px-4 py-3 bg-blue-50 text-blue-900">DP VENDOR</th>
+            <th className="px-4 py-3 bg-blue-50 text-blue-900">PEMBAYARAN VENDOR</th>
             <th className="px-4 py-3 bg-blue-100 text-blue-950 font-bold">SISA BAYAR VENDOR</th>
             <th className="px-4 py-3 text-center">QTY</th>
             <th className="px-4 py-3 bg-purple-50 text-purple-900 font-bold">TOTAL JUMLAH</th>
