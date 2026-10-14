@@ -66,6 +66,7 @@ function emitLive() {
     fs.listeners.vendors.next(snapshot([]));
     fs.listeners.orders.next(snapshot([orderDoc]));
     fs.listeners.kas.next(snapshot([kasDoc]));
+    fs.listeners.finance_investor.next(snapshot([]));
   });
 }
 
@@ -181,11 +182,11 @@ describe('useFirebaseFinance: state awal dan status sinkronisasi', () => {
     expect(result.current.error).toBe('permission-denied');
   });
 
-  it('retry memasang ulang ketiga listener', () => {
+  it('retry memasang ulang keempat listener', () => {
     const { result } = renderHook(() => useFirebaseFinance());
     const before = fs.subscribeCount;
     act(() => result.current.retry());
-    expect(fs.subscribeCount - before).toBe(3);
+    expect(fs.subscribeCount - before).toBe(4);
     expect(result.current.syncState).toBe('connecting');
   });
 });
@@ -217,11 +218,13 @@ describe('useFirebaseFinance: persistensi label termin', () => {
 });
 
 describe('useFirebaseFinance: kesiapan data kas', () => {
-  it('kasReady bernilai false sampai snapshot kas pertama tiba', () => {
+  it('kasReady bernilai false sampai snapshot kas dan investor pertama tiba', () => {
     const { result } = renderHook(() => useFirebaseFinance());
     act(() => fs.listeners.orders.next(snapshot([orderDoc])));
     expect(result.current.kasReady).toBe(false);
     act(() => fs.listeners.kas.next(snapshot([])));
+    expect(result.current.kasReady).toBe(false);
+    act(() => fs.listeners.finance_investor.next(snapshot([])));
     expect(result.current.kasReady).toBe(true);
   });
 });
@@ -323,5 +326,186 @@ describe('useFirebaseFinance: entri pinjaman milik app sendiri', () => {
 
     const payload = fs.updateDoc.mock.calls[0][1] as Record<string, Array<{ id?: string }>>;
     expect(payload.riwayatPembayaran.map((p) => p.id)).toEqual(['p2']);
+  });
+});
+
+describe('useFirebaseFinance: F-12 dana investor dan master vendor', () => {
+  it('membaca transaksi investor dari koleksi finance_investor dan menggabungkannya dengan kas', () => {
+    const { result } = renderHook(() => useFirebaseFinance());
+    act(() => {
+      fs.listeners.vendors.next(snapshot([]));
+      fs.listeners.orders.next(snapshot([orderDoc]));
+      fs.listeners.kas.next(snapshot([kasDoc]));
+      fs.listeners.finance_investor.next(
+        snapshot([
+          { id: 'inv-1', tanggal: '2026-10-03', jenis: 'masuk', nominal: 1_000_000, keterangan: '-', investorNama: ' Pak Budi ', jatuhTempo: '2027-01-31' },
+          { id: 'inv-2', tanggal: '2026-10-20', jenis: 'pengembalian', nominal: 400_000, investorNama: 'Pak Budi' },
+          { id: 'inv-lama', tanggal: '2026-09-01', jenis: 'masuk', nominal: 9, investorNama: 'Sebelum cutoff' },
+        ])
+      );
+    });
+
+    const ids = result.current.cashTransactions.map((t) => t.id).sort();
+    expect(ids).toEqual(['inv-1', 'inv-2', 'kas-1']);
+    expect(result.current.cashTransactions.find((t) => t.id === 'inv-1')).toMatchObject({
+      tipe: 'masuk',
+      kategori: 'Dana Investor',
+      investorNama: 'Pak Budi',
+      jatuhTempo: '2027-01-31',
+      koleksi: 'investor',
+    });
+    expect(result.current.cashTransactions.find((t) => t.id === 'inv-2')).toMatchObject({ tipe: 'keluar', kategori: 'Pengembalian Dana Investor' });
+    expect(result.current.cashTransactions.find((t) => t.id === 'kas-1')?.koleksi).toBeUndefined();
+  });
+
+  it('kas masuk berkategori lama "Biaya Lain" terbaca sebagai Pendapatan Lain, kas keluar tetap Biaya Lain', () => {
+    const { result } = renderHook(() => useFirebaseFinance());
+    act(() => {
+      fs.listeners.vendors.next(snapshot([]));
+      fs.listeners.orders.next(snapshot([orderDoc]));
+      fs.listeners.kas.next(
+        snapshot([
+          { id: 'kas-masuk-lama', tanggal: '2026-10-13', jenis: 'masuk', jumlah: 2_000_000, kategori: 'Biaya Lain', keterangan: 'Pendapatan' },
+          { id: 'kas-keluar', tanggal: '2026-10-13', jenis: 'keluar', jumlah: 50_000, kategori: 'Biaya Lain', keterangan: 'Admin' },
+        ])
+      );
+      fs.listeners.finance_investor.next(snapshot([]));
+    });
+
+    expect(result.current.cashTransactions.find((t) => t.id === 'kas-masuk-lama')?.kategori).toBe('Pendapatan Lain');
+    expect(result.current.cashTransactions.find((t) => t.id === 'kas-keluar')?.kategori).toBe('Biaya Lain');
+  });
+
+  it('snapshot kas berikutnya tidak menghapus transaksi investor, dan sebaliknya', () => {
+    const { result } = renderHook(() => useFirebaseFinance());
+    emitLive();
+    act(() => {
+      fs.listeners.finance_investor.next(snapshot([{ id: 'inv-1', tanggal: '2026-10-03', jenis: 'masuk', nominal: 1_000, investorNama: 'A' }]));
+    });
+    act(() => fs.listeners.kas.next(snapshot([])));
+    expect(result.current.cashTransactions.map((t) => t.id)).toEqual(['inv-1']);
+    act(() => fs.listeners.kas.next(snapshot([kasDoc])));
+    act(() => fs.listeners.finance_investor.next(snapshot([])));
+    expect(result.current.cashTransactions.map((t) => t.id)).toEqual(['kas-1']);
+  });
+
+  it('addKas kategori investor ditulis ke finance_investor dengan jenis, bukan ke kas', async () => {
+    fs.addDoc.mockResolvedValueOnce({ id: 'inv-baru' });
+    const { result } = renderHook(() => useFirebaseFinance());
+    emitLive();
+
+    await act(async () => {
+      await result.current.addKas({
+        tanggal: '2026-10-12',
+        tipe: 'masuk',
+        nominal: 5_000_000,
+        kategori: 'Dana Investor',
+        keterangan: 'Transfer BCA',
+        investorNama: 'Bu Sari',
+        jatuhTempo: '2026-12-31',
+      });
+    });
+
+    expect(fs.addDoc.mock.calls[0][0]).toEqual({ name: 'finance_investor' });
+    expect(fs.addDoc.mock.calls[0][1]).toMatchObject({ jenis: 'masuk', nominal: 5_000_000, investorNama: 'Bu Sari', jatuhTempo: '2026-12-31' });
+    expect(fs.addDoc.mock.calls[0][1]).not.toHaveProperty('kategori');
+    expect(result.current.cashTransactions.find((t) => t.id === 'inv-baru')).toMatchObject({ koleksi: 'investor', investorNama: 'Bu Sari' });
+  });
+
+  it('addKas kategori biasa tetap ditulis ke kas tanpa field investor', async () => {
+    fs.addDoc.mockResolvedValueOnce({ id: 'kas-baru' });
+    const { result } = renderHook(() => useFirebaseFinance());
+    emitLive();
+
+    await act(async () => {
+      await result.current.addKas({ tanggal: '2026-10-12', tipe: 'keluar', nominal: 10_000, kategori: 'Operasional', keterangan: 'Listrik' });
+    });
+
+    expect(fs.addDoc.mock.calls[0][0]).toEqual({ name: 'kas' });
+    expect(fs.addDoc.mock.calls[0][1]).not.toHaveProperty('investorNama');
+  });
+
+  it('updateKas dan deleteKas transaksi investor menuju finance_investor dan rollback bila gagal', async () => {
+    fs.updateDoc.mockRejectedValueOnce(new Error('permission-denied'));
+    fs.deleteDoc.mockRejectedValueOnce(new Error('permission-denied'));
+    const { result } = renderHook(() => useFirebaseFinance());
+    emitLive();
+    act(() => {
+      fs.listeners.finance_investor.next(snapshot([{ id: 'inv-1', tanggal: '2026-10-03', jenis: 'masuk', nominal: 1_000_000, investorNama: 'Pak Budi' }]));
+    });
+
+    await act(async () => {
+      await expect(result.current.updateKas('inv-1', { nominal: 2_000_000, kategori: 'Dana Investor', investorNama: 'Pak Budi', jatuhTempo: '2027-02-01' })).rejects.toThrow();
+    });
+    expect(fs.updateDoc.mock.calls[0][0]).toEqual({ col: 'finance_investor', id: 'inv-1' });
+    expect(fs.updateDoc.mock.calls[0][1]).toMatchObject({ nominal: 2_000_000, jenis: 'masuk', jatuhTempo: '2027-02-01' });
+    expect(fs.updateDoc.mock.calls[0][1]).not.toHaveProperty('jumlah');
+    expect(result.current.cashTransactions.find((t) => t.id === 'inv-1')?.nominal).toBe(1_000_000);
+
+    await act(async () => {
+      await expect(result.current.deleteKas('inv-1')).rejects.toThrow();
+    });
+    expect(fs.deleteDoc.mock.calls[0][0]).toEqual({ col: 'finance_investor', id: 'inv-1' });
+    await waitFor(() => expect(result.current.cashTransactions.map((t) => t.id)).toContain('inv-1'));
+  });
+
+  it('error pada listener investor menjadikan status error', () => {
+    const { result } = renderHook(() => useFirebaseFinance());
+    emitLive();
+    act(() => fs.listeners.finance_investor.error(new Error('permission-denied')));
+    expect(result.current.syncState).toBe('error');
+  });
+
+  it('menambah vendor baru dan menolak nama yang sudah ada', async () => {
+    fs.addDoc.mockResolvedValueOnce({ id: 'v-new' });
+    const { result } = renderHook(() => useFirebaseFinance());
+    act(() => {
+      fs.listeners.vendors.next(snapshot([{ id: 'v-1', nama: 'Vendor Wisnu' }]));
+      fs.listeners.orders.next(snapshot([orderDoc]));
+      fs.listeners.kas.next(snapshot([]));
+    });
+
+    await act(async () => {
+      await expect(result.current.addVendor('vendor wisnu')).rejects.toThrow(/sudah terdaftar/);
+    });
+    expect(fs.addDoc).not.toHaveBeenCalled();
+
+    await act(async () => {
+      const created = await result.current.addVendor('  Konveksi  Baru ');
+      expect(created).toMatchObject({ id: 'v-new', nama: 'Konveksi Baru' });
+    });
+    expect(fs.addDoc.mock.calls[0][0]).toEqual({ name: 'vendors' });
+    expect(result.current.vendors.map((v) => v.nama)).toContain('Konveksi Baru');
+  });
+
+  it('rename vendor gagal mengembalikan nama semula', async () => {
+    fs.updateDoc.mockRejectedValueOnce(new Error('permission-denied'));
+    const { result } = renderHook(() => useFirebaseFinance());
+    act(() => {
+      fs.listeners.vendors.next(snapshot([{ id: 'v-1', nama: 'Vendor Wisnu' }]));
+      fs.listeners.orders.next(snapshot([orderDoc]));
+      fs.listeners.kas.next(snapshot([]));
+    });
+
+    await act(async () => {
+      await expect(result.current.renameVendor('v-1', 'Wisnu Konveksi')).rejects.toThrow();
+    });
+    expect(result.current.vendors.find((v) => v.id === 'v-1')?.nama).toBe('Vendor Wisnu');
+  });
+
+  it('rename vendor langsung memperbarui nama vendor di order yang terhubung', async () => {
+    fs.updateDoc.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useFirebaseFinance());
+    act(() => {
+      fs.listeners.vendors.next(snapshot([{ id: 'v-1', nama: 'Vendor Wisnu' }]));
+      fs.listeners.orders.next(snapshot([{ ...orderDoc, vendorId: 'v-1' }]));
+      fs.listeners.kas.next(snapshot([]));
+    });
+    expect(result.current.orders[0].vendorName).toBe('Vendor Wisnu');
+
+    await act(async () => {
+      await result.current.renameVendor('v-1', 'Wisnu Konveksi');
+    });
+    expect(result.current.orders[0].vendorName).toBe('Wisnu Konveksi');
   });
 });

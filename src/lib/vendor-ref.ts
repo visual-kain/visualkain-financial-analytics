@@ -16,3 +16,17 @@ export function resolveVendorRef(
   const match = vendors.find((v) => v.nama.trim().toLowerCase() === name.toLowerCase() || v.id === name);
   return match ? { vendorId: match.id, vendorName: match.nama } : { vendorId: '', vendorName: name };
 }
+
+/** Nama vendor wajib terisi, bukan placeholder, dan unik (tanpa beda huruf besar/kecil) di master `vendors`. */
+export function validateVendorName(
+  nama: string,
+  vendors: ReadonlyArray<{ id: string; nama: string }>,
+  excludeId?: string | null
+): string | null {
+  const clean = (nama || '').trim();
+  if (!clean) return 'Nama vendor wajib diisi';
+  if (isPlaceholderVendorName(clean)) return 'Nama vendor tidak valid';
+  const lower = clean.toLowerCase();
+  const clash = vendors.some((v) => v.id !== excludeId && v.nama.trim().toLowerCase() === lower);
+  return clash ? `Vendor "${clean}" sudah terdaftar` : null;
+}

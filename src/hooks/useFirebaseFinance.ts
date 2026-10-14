@@ -12,13 +12,15 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { calculateOrderTotals } from '@/lib/calculations';
-import { isFromFinanceStartDate, todayInJakarta } from '@/lib/constants';
+import { isFromFinanceStartDate, normalizeKategoriKasMasuk, todayInJakarta } from '@/lib/constants';
 import { toPersistedLabel } from '@/lib/payment-ledger';
-import type { Order, CashTransaction, CustomerPayment, CashOutflowCategory } from '@/types';
+import { validateVendorName } from '@/lib/vendor-ref';
+import { INVESTOR_COLLECTION, investorJenisFromKategori, mapInvestorDoc } from '@/lib/investor-ledger';
+import type { Order, CashTransaction, CustomerPayment } from '@/types';
 
 export type SyncState = 'connecting' | 'live' | 'error';
 
-export type FinanceWriteOperation = 'updateOrder' | 'addKas' | 'updateKas' | 'deleteKas';
+export type FinanceWriteOperation = 'updateOrder' | 'addKas' | 'updateKas' | 'deleteKas' | 'addVendor' | 'renameVendor';
 
 /** Dilempar saat penulisan Firestore gagal; state lokal sudah dikembalikan ke nilai sebelum mutasi. */
 export class FinanceWriteError extends Error {
@@ -37,13 +39,13 @@ function isPinjamanEntry(p: { catatan?: unknown } | null | undefined): boolean {
   return String(p?.catatan || '').toLowerCase().includes('pinjaman');
 }
 
-type ListenerName = 'orders' | 'kas' | 'vendors' | 'init';
+type ListenerName = 'orders' | 'kas' | 'investor' | 'vendors' | 'init';
 
 function sortKasDesc(list: CashTransaction[]): CashTransaction[] {
   return [...list].sort((a, b) => b.tanggal.localeCompare(a.tanggal));
 }
 
-interface VendorInfo {
+export interface VendorInfo {
   id: string;
   nama: string;
   pic?: string;
@@ -68,13 +70,18 @@ interface UseFirebaseFinanceResult {
   addKas: (data: Omit<CashTransaction, 'id'>) => Promise<string>;
   updateKas: (id: string, data: Partial<Omit<CashTransaction, 'id'>>) => Promise<void>;
   deleteKas: (id: string) => Promise<void>;
+  addVendor: (nama: string) => Promise<VendorInfo>;
+  renameVendor: (id: string, nama: string) => Promise<void>;
 }
 
 export function useFirebaseFinance(): UseFirebaseFinanceResult {
   const [orders, setOrders] = useState<Order[]>([]);
   const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>([]);
   const [subscriptionKey, setSubscriptionKey] = useState<number>(0);
-  const [kasReady, setKasReady] = useState<boolean>(false);
+  const [kasLoaded, setKasLoaded] = useState<boolean>(false);
+  const [investorLoaded, setInvestorLoaded] = useState<boolean>(false);
+  // Daftar kas gabungan dari `kas` dan `finance_investor`; baru siap setelah keduanya memberi snapshot pertama.
+  const kasReady = kasLoaded && investorLoaded;
   const [vendors, setVendors] = useState<VendorInfo[]>([]);
   const [ordersLoaded, setOrdersLoaded] = useState<boolean>(false);
   const [listenerErrors, setListenerErrors] = useState<Partial<Record<ListenerName, string>>>({});
@@ -105,6 +112,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
   useEffect(() => {
     let unsubscribeOrders: (() => void) | undefined;
     let unsubscribeKas: (() => void) | undefined;
+    let unsubscribeInvestor: (() => void) | undefined;
     let unsubscribeVendors: (() => void) | undefined;
 
     try {
@@ -121,6 +129,17 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
           });
           vendorsMapRef.current = map;
           setVendors(list);
+          // Order hanya me-resolve nama vendor saat snapshot orders; rename vendor perlu dipantulkan ke order yang sudah dimuat.
+          setOrders((prev) => {
+            let changed = false;
+            const next = prev.map((o) => {
+              const nama = o.vendorId ? map.get(o.vendorId) : undefined;
+              if (!nama || nama === o.vendorName) return o;
+              changed = true;
+              return { ...o, vendorName: nama };
+            });
+            return changed ? next : prev;
+          });
           markListenerOk('vendors');
         },
         (err) => {
@@ -342,27 +361,47 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
         (snapshot) => {
           const mappedKas: CashTransaction[] = snapshot.docs.map((dSnap) => {
             const kd = dSnap.data();
-            return {
+            const tipe = kd.jenis === 'masuk' ? 'masuk' : 'keluar';
+            const tx: CashTransaction = {
               id: dSnap.id,
               tanggal: kd.tanggal || todayInJakarta(),
-              tipe: kd.jenis === 'masuk' ? 'masuk' : 'keluar',
+              tipe,
               nominal: Number(kd.jumlah || kd.nominal || 0),
-              kategori: (kd.kategori || 'Biaya Lain') as CashOutflowCategory,
+              kategori: (tipe === 'masuk' ? normalizeKategoriKasMasuk(kd.kategori) : kd.kategori || 'Biaya Lain') as CashTransaction['kategori'],
               keterangan: kd.keterangan || '-',
             };
+            if (typeof kd.investorNama === 'string' && kd.investorNama.trim()) tx.investorNama = kd.investorNama.trim();
+            if (typeof kd.jatuhTempo === 'string' && kd.jatuhTempo) tx.jatuhTempo = kd.jatuhTempo;
+            return tx;
           });
 
           // Saring hanya transaksi kas mulai 1 Oktober 2026 ke atas.
           const filteredKasByCutoff = mappedKas
             .filter((t) => isFromFinanceStartDate(t.tanggal))
             .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-          setCashTransactions(filteredKasByCutoff);
-          setKasReady(true);
+          setCashTransactions((prev) => sortKasDesc([...prev.filter((t) => t.koleksi === 'investor'), ...filteredKasByCutoff]));
+          setKasLoaded(true);
           markListenerOk('kas');
         },
         (err) => {
           console.warn('[Firebase] Listener kas gagal:', err.message);
           markListenerError('kas', err.message);
+        }
+      );
+
+      unsubscribeInvestor = onSnapshot(
+        collection(db, INVESTOR_COLLECTION),
+        (snapshot) => {
+          const investorTxs = snapshot.docs
+            .map((dSnap) => mapInvestorDoc(dSnap.id, dSnap.data(), todayInJakarta()))
+            .filter((t) => isFromFinanceStartDate(t.tanggal));
+          setCashTransactions((prev) => sortKasDesc([...prev.filter((t) => t.koleksi !== 'investor'), ...investorTxs]));
+          setInvestorLoaded(true);
+          markListenerOk('investor');
+        },
+        (err) => {
+          console.warn('[Firebase] Listener investor gagal:', err.message);
+          markListenerError('investor', err.message);
         }
       );
     } catch (e: unknown) {
@@ -374,6 +413,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
     return () => {
       unsubscribeOrders?.();
       unsubscribeKas?.();
+      unsubscribeInvestor?.();
       unsubscribeVendors?.();
     };
   }, [subscriptionKey, markListenerOk, markListenerError]);
@@ -381,7 +421,8 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
   const retry = useCallback(() => {
     setListenerErrors({});
     setOrdersLoaded(false);
-    setKasReady(false);
+    setKasLoaded(false);
+    setInvestorLoaded(false);
     setSubscriptionKey((k) => k + 1);
   }, []);
 
@@ -483,16 +524,28 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
 
   const addKas = useCallback(async (data: Omit<CashTransaction, 'id'>): Promise<string> => {
     let newId: string;
+    const investorJenis = investorJenisFromKategori(data.kategori);
     try {
-      const ref = await addDoc(collection(db, 'kas'), {
-        tanggal: data.tanggal,
-        jenis: data.tipe,
-        kategori: data.kategori,
-        keterangan: data.keterangan,
-        jumlah: data.nominal,
-        nominal: data.nominal,
-        createdAt: serverTimestamp(),
-      });
+      // Transaksi investor masuk ke koleksi sendiri supaya tidak ikut terhitung di aplikasi operasional yang membaca `kas`.
+      const ref = investorJenis
+        ? await addDoc(collection(db, INVESTOR_COLLECTION), {
+            tanggal: data.tanggal,
+            jenis: investorJenis,
+            nominal: data.nominal,
+            keterangan: data.keterangan,
+            investorNama: data.investorNama || '',
+            ...(data.jatuhTempo ? { jatuhTempo: data.jatuhTempo } : {}),
+            createdAt: serverTimestamp(),
+          })
+        : await addDoc(collection(db, 'kas'), {
+            tanggal: data.tanggal,
+            jenis: data.tipe,
+            kategori: data.kategori,
+            keterangan: data.keterangan,
+            jumlah: data.nominal,
+            nominal: data.nominal,
+            createdAt: serverTimestamp(),
+          });
       newId = ref.id;
     } catch (err: unknown) {
       throw new FinanceWriteError('addKas', err);
@@ -506,6 +559,9 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
         nominal: data.nominal,
         kategori: data.kategori,
         keterangan: data.keterangan,
+        ...(data.investorNama ? { investorNama: data.investorNama } : {}),
+        ...(data.jatuhTempo ? { jatuhTempo: data.jatuhTempo } : {}),
+        ...(investorJenis ? { koleksi: 'investor' as const } : {}),
       };
       setCashTransactions((prev) =>
         prev.some((t) => t.id === newId) ? prev : sortKasDesc([newTx, ...prev])
@@ -525,18 +581,27 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
         )
       );
 
+      const isInvestorDoc = previous?.koleksi === 'investor';
       const payload: Record<string, unknown> = { updatedAt: serverTimestamp() };
       if (data.tanggal !== undefined) payload.tanggal = data.tanggal;
-      if (data.tipe !== undefined) payload.jenis = data.tipe;
-      if (data.kategori !== undefined) payload.kategori = data.kategori;
       if (data.keterangan !== undefined) payload.keterangan = data.keterangan;
       if (data.nominal !== undefined) {
-        payload.jumlah = Number(data.nominal);
         payload.nominal = Number(data.nominal);
+        if (!isInvestorDoc) payload.jumlah = Number(data.nominal);
+      }
+      if (isInvestorDoc) {
+        // Jenis investor tidak boleh berpindah koleksi; hanya kategori investor lain yang diterima.
+        const jenis = investorJenisFromKategori(data.kategori);
+        if (jenis) payload.jenis = jenis;
+        if (data.investorNama !== undefined) payload.investorNama = data.investorNama;
+        if (data.jatuhTempo !== undefined) payload.jatuhTempo = data.jatuhTempo;
+      } else {
+        if (data.tipe !== undefined) payload.jenis = data.tipe;
+        if (data.kategori !== undefined) payload.kategori = data.kategori;
       }
 
       try {
-        await updateDoc(doc(db, 'kas', id), payload);
+        await updateDoc(doc(db, isInvestorDoc ? INVESTOR_COLLECTION : 'kas', id), payload);
       } catch (err: unknown) {
         if (previous) {
           setCashTransactions((prev) =>
@@ -553,7 +618,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
     const previous = cashTransactionsRef.current.find((t) => t.id === id);
     setCashTransactions((prev) => prev.filter((t) => t.id !== id));
     try {
-      await deleteDoc(doc(db, 'kas', id));
+      await deleteDoc(doc(db, previous?.koleksi === 'investor' ? INVESTOR_COLLECTION : 'kas', id));
     } catch (err: unknown) {
       if (previous) {
         setCashTransactions((prev) =>
@@ -561,6 +626,47 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
         );
       }
       throw new FinanceWriteError('deleteKas', err);
+    }
+  }, []);
+
+  const vendorsRef = useRef<VendorInfo[]>(vendors);
+  vendorsRef.current = vendors;
+
+  // Koleksi `vendors` dipakai bersama aplikasi operasional, jadi nama wajib unik agar resolveVendorRef tidak ambigu.
+  const addVendor = useCallback(async (nama: string): Promise<VendorInfo> => {
+    const clean = nama.trim().replace(/\s+/g, ' ');
+    const invalid = validateVendorName(clean, vendorsRef.current);
+    if (invalid) throw new Error(invalid);
+    try {
+      const ref = await addDoc(collection(db, 'vendors'), { nama: clean, pic: '-', createdAt: serverTimestamp() });
+      const created: VendorInfo = { id: ref.id, nama: clean, pic: '-' };
+      vendorsMapRef.current.set(ref.id, clean);
+      setVendors((prev) => (prev.some((v) => v.id === ref.id) ? prev : [...prev, created]));
+      return created;
+    } catch (err: unknown) {
+      throw new FinanceWriteError('addVendor', err);
+    }
+  }, []);
+
+  const renameVendor = useCallback(async (id: string, nama: string): Promise<void> => {
+    const clean = nama.trim().replace(/\s+/g, ' ');
+    const invalid = validateVendorName(clean, vendorsRef.current, id);
+    if (invalid) throw new Error(invalid);
+    const previous = vendorsRef.current.find((v) => v.id === id);
+    const renameOrders = (nama: string) =>
+      setOrders((prev) => prev.map((o) => (o.vendorId === id ? { ...o, vendorName: nama } : o)));
+    setVendors((prev) => prev.map((v) => (v.id === id ? { ...v, nama: clean } : v)));
+    vendorsMapRef.current.set(id, clean);
+    renameOrders(clean);
+    try {
+      await updateDoc(doc(db, 'vendors', id), { nama: clean, updatedAt: serverTimestamp() });
+    } catch (err: unknown) {
+      if (previous) {
+        setVendors((prev) => prev.map((v) => (v.id === id ? previous : v)));
+        vendorsMapRef.current.set(id, previous.nama);
+        renameOrders(previous.nama);
+      }
+      throw new FinanceWriteError('renameVendor', err);
     }
   }, []);
 
@@ -577,5 +683,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
     addKas,
     updateKas,
     deleteKas,
+    addVendor,
+    renameVendor,
   };
 }

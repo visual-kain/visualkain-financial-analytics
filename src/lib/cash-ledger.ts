@@ -5,13 +5,14 @@
 import type { CashInflowEntry, CashTransaction, InflowCategoryType, Order } from '@/types';
 import { FINANCE_START_DATE } from './constants';
 import { buildCashOutflowEntries } from './financial-calculator';
+import { isInvestorInflow, KATEGORI_INVESTOR } from './investor-ledger';
 
 export interface CashEntry {
   id: string;
   tanggal: string;
   arah: 'masuk' | 'keluar';
   nominal: number;
-  sumber: 'order_customer' | 'order_vendor' | 'order_opex' | 'kas';
+  sumber: 'order_customer' | 'order_vendor' | 'order_opex' | 'kas' | 'investor_masuk' | 'investor_keluar';
   kategori: string;
   orderId?: string;
 }
@@ -32,6 +33,10 @@ export interface CashPeriodSummary {
   keluarOpexOrder: number;
   keluarKas: number;
   keluarCount: number;
+  masukInvestor: number;
+  keluarInvestor: number;
+  /** Σ dana investor masuk − Σ pengembalian pokok, kumulatif sampai akhir periode. */
+  kewajibanInvestor: number;
 }
 
 export function matchPeriod(tanggal: string | undefined, bulan: string, tahun: string): boolean {
@@ -101,6 +106,20 @@ export function buildCashInflowEntries(orders: Order[], transactions: CashTransa
   transactions.forEach((tx) => {
     if (tx.tipe !== 'masuk' || tx.kategori === 'Penerimaan Konsumen') return;
     if (tx.tanggal && tx.tanggal < FINANCE_START_DATE) return;
+    if (isInvestorInflow(tx)) {
+      list.push({
+        id: tx.id,
+        tanggal: tx.tanggal,
+        sumber: 'manual',
+        jenis: 'investor',
+        noInv: tx.refInvoice || '-',
+        customerName: tx.investorNama?.trim() || 'Investor',
+        projectName: '-',
+        keterangan: tx.keterangan || 'Dana Investor',
+        nominal: tx.nominal,
+      });
+      return;
+    }
     list.push({
       id: tx.id,
       tanggal: tx.tanggal,
@@ -124,7 +143,7 @@ export function buildCashEntries(orders: Order[], transactions: CashTransaction[
     tanggal: e.tanggal,
     arah: 'masuk',
     nominal: e.nominal,
-    sumber: e.sumber === 'order' ? 'order_customer' : 'kas',
+    sumber: e.sumber === 'order' ? 'order_customer' : e.jenis === 'investor' ? 'investor_masuk' : 'kas',
     kategori: e.jenis,
     orderId: e.orderId,
   }));
@@ -137,7 +156,13 @@ export function buildCashEntries(orders: Order[], transactions: CashTransaction[
       arah: 'keluar',
       nominal: e.nominal,
       sumber:
-        e.sumber === 'manual' ? 'kas' : e.kategori === 'Biaya Operasional Order' ? 'order_opex' : 'order_vendor',
+        e.sumber === 'manual'
+          ? e.kategori === KATEGORI_INVESTOR.pengembalian
+            ? 'investor_keluar'
+            : 'kas'
+          : e.kategori === 'Biaya Operasional Order'
+          ? 'order_opex'
+          : 'order_vendor',
       kategori: e.kategori,
       orderId: e.rawOrder?.id,
     }));
@@ -146,7 +171,7 @@ export function buildCashEntries(orders: Order[], transactions: CashTransaction[
 }
 
 // Batas akhir periode sebagai string ISO; '-31' aman untuk semua bulan karena perbandingannya leksikografis.
-function periodEnd({ bulan, tahun }: CashPeriod): string | null {
+export function periodEnd({ bulan, tahun }: CashPeriod): string | null {
   if (tahun === 'all') return null;
   return bulan === 'all' ? `${tahun}-12-31` : `${tahun}-${bulan}-31`;
 }
@@ -163,34 +188,68 @@ export function summarizeCashPeriod(entries: CashEntry[], period: CashPeriod): C
     keluarOpexOrder: 0,
     keluarKas: 0,
     keluarCount: 0,
+    masukInvestor: 0,
+    keluarInvestor: 0,
+    kewajibanInvestor: 0,
   };
   const end = periodEnd(period);
 
   for (const e of entries) {
     if (e.tanggal < FINANCE_START_DATE) continue;
     const signed = e.arah === 'masuk' ? e.nominal : -e.nominal;
-    if (!end || e.tanggal <= end) summary.saldoKas += signed;
+    if (!end || e.tanggal <= end) {
+      summary.saldoKas += signed;
+      if (e.sumber === 'investor_masuk') summary.kewajibanInvestor += e.nominal;
+      if (e.sumber === 'investor_keluar') summary.kewajibanInvestor -= e.nominal;
+    }
     if (!matchPeriod(e.tanggal, period.bulan, period.tahun)) continue;
 
     if (e.arah === 'masuk') {
       summary.masukPeriode += e.nominal;
       if (e.sumber === 'order_customer') summary.masukOrder += e.nominal;
+      else if (e.sumber === 'investor_masuk') summary.masukInvestor += e.nominal;
       else summary.masukNonOrder += e.nominal;
     } else {
       summary.keluarPeriode += e.nominal;
       summary.keluarCount += 1;
-      if (e.sumber === 'order_vendor' || (e.sumber === 'kas' && e.kategori === 'Pembayaran Vendor')) {
-        summary.keluarVendor += e.nominal;
+      if (isBebanKasEntry(e)) {
+        summary.keluarKas += e.nominal;
       } else if (e.sumber === 'order_opex') {
         summary.keluarOpexOrder += e.nominal;
+      } else if (e.sumber === 'investor_keluar') {
+        summary.keluarInvestor += e.nominal;
       } else {
-        summary.keluarKas += e.nominal;
+        summary.keluarVendor += e.nominal;
       }
     }
   }
 
   summary.saldoAwalPeriode = summary.saldoKas - (summary.masukPeriode - summary.keluarPeriode);
   return summary;
+}
+
+// Beban kas = kas keluar non-order selain pembayaran vendor (sudah di HPP) dan pengembalian pokok investor (pelunasan utang).
+function isBebanKasEntry(e: CashEntry): boolean {
+  return e.arah === 'keluar' && e.sumber === 'kas' && e.kategori !== 'Pembayaran Vendor';
+}
+
+export interface BebanKasGroup {
+  kategori: string;
+  total: number;
+  count: number;
+}
+
+/** Rincian beban kas per kategori; jumlahnya identik dengan `keluarKas` pada periode yang sama. */
+export function groupBebanKasByKategori(entries: CashEntry[], period: CashPeriod): BebanKasGroup[] {
+  const map = new Map<string, BebanKasGroup>();
+  for (const e of entries) {
+    if (!isBebanKasEntry(e) || !matchPeriod(e.tanggal, period.bulan, period.tahun)) continue;
+    const g = map.get(e.kategori) ?? { kategori: e.kategori, total: 0, count: 0 };
+    g.total += e.nominal;
+    g.count += 1;
+    map.set(e.kategori, g);
+  }
+  return [...map.values()].sort((a, b) => b.total - a.total || a.kategori.localeCompare(b.kategori));
 }
 
 export function collectYearOptions(orders: Order[], transactions: CashTransaction[]): string[] {

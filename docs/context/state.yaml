@@ -74,3 +74,9 @@ features:
     status: completed
     spec_path: .kiro/specs/F-10-audit-bugfix-integritas-data
     active_phase: completed
+  - id: F-12
+    name: Feedback Klien 14 Okt 2026 (Laba Bersih, Biaya Tambahan, Master Vendor & Rekening, Dana Investor)
+    track: engineering
+    status: in_progress
+    spec_path: .kiro/specs/F-12-client-feedback-laba-investor
+    active_phase: verification

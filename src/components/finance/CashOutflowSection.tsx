@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { collectYearOptions } from '@/lib/cash-ledger';
 import { buildOutflowCategoryOptions } from '@/lib/constants';
+import { isInvestorTransaction } from '@/lib/investor-ledger';
 import {
   cn,
   formatRupiah,
@@ -134,7 +135,8 @@ export function CashOutflowSection({
         );
       }
     } else if (item.sumber === 'manual') {
-      router.push(`/cash-out/new?mode=operasional&editKasId=${encodeURIComponent(item.id)}`);
+      const mode = item.rawTransaction && isInvestorTransaction(item.rawTransaction) ? 'investor' : 'operasional';
+      router.push(`/cash-out/new?mode=${mode}&editKasId=${encodeURIComponent(item.id)}`);
     }
   };
 
