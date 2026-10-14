@@ -100,6 +100,15 @@ Sebagai finance, saya ingin biaya tambahan dirinci per item beserta asalnya (cus
 3. THE label "Nama termin" / "Nama pembayaran" SHALL menjadi "Judul Pembayaran", termasuk header kolom tabel riwayat.
 4. THE "Rekening Tujuan" SHALL dapat ditambah dan diedit nomornya (US-12.6).
 
+### US-12.11 Selisih biaya tambahan untuk VisualKain — feedback lanjutan 14 Okt 2026
+Klien (chat WhatsApp, 14 Okt 2026 17.01–17.07, contoh VK260039) menilai logika biaya tambahan sudah benar, tetapi kartu "Total Biaya Tambahan Rp 1.400.000" membingungkan. Customer membayar extra charge Rp 900.000 untuk produksi lebih cepat, VisualKain menambah Rp 500.000 ke vendor, sehingga yang masuk ke VisualKain Rp 400.000. Menjumlahkan tagihan customer (uang masuk) dengan tagihan vendor (uang keluar) tidak punya arti bisnis. Klien menyarankan total itu disembunyikan bila membingungkan.
+
+1. THE section Rincian Biaya Tambahan SHALL NOT menampilkan jumlah gabungan seluruh sumber.
+2. THE section SHALL menampilkan kartu "Selisih untuk VisualKain" bernilai `selisih = Σcustomer − Σvendor − Σlainnya`.
+3. WHEN `selisih` negatif THEN kartu SHALL memakai warna rose; selain itu emerald.
+4. THE header kartu Rincian Biaya Tambahan di drawer Inspeksi Order SHALL menampilkan "Selisih {nilai}" dengan aturan yang sama, bukan total gabungan.
+5. THE rumus net invoice, HPP, biaya operasional, dan laba order SHALL tidak berubah (selisih hanya tampilan).
+
 ## 4. Non-Regression Invariants
 
 1. Saldo Kas Riil = (Saldo Awal + Total Kas Masuk) − Total Kas Keluar SHALL CONTINUE TO hold; Total Kas Masuk kini = Pemasukan Usaha + Dana Investor.

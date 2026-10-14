@@ -6,7 +6,7 @@ branch: "main"
 base_commit: "3a79adc"
 current_commit: "main (merge F-12)"
 active_feature: "F-12"
-active_task: "F-12 di-merge ke main, menunggu smoke di live"
+active_task: "F-12 (task 1–18) di main, menunggu smoke di live"
 expires_after: "2026-10-28"
 ---
 
@@ -16,7 +16,8 @@ expires_after: "2026-10-28"
 Menerapkan 10 poin feedback klien sesuai `.kiro/specs/F-12-client-feedback-laba-investor/`: kartu Laba Bersih, rincian biaya tambahan, rename Pembayaran Vendor, total gabungan per vendor, HPP terkunci, tambah/edit vendor dan rekening, hapus badge Live Firestore, hapus field voucher, Dana Investor sebagai kewajiban, dan perbaikan form termin.
 
 ## Status
-- Task 1–17 selesai (termasuk Opsi B koleksi `finance_investor`, migrasi dana investor lama, dan kategori kas masuk `Pendapatan Lain`).
+- Task 1–18 selesai (termasuk Opsi B koleksi `finance_investor`, migrasi dana investor lama, dan kategori kas masuk `Pendapatan Lain`).
+- Task 18 (feedback lanjutan klien, US-12.11): kartu "Total Biaya Tambahan" diganti "Selisih untuk VisualKain" = customer − vendor − lainnya (VK260039: Rp 400.000). Commit langsung ke `main` atas permintaan Sehan.
 - Di-merge langsung ke `main` atas permintaan Sehan (2026-10-14) tanpa smoke lokal; smoke dilakukan Sehan di live.
 - Data produksi sudah berubah (task 16): dana investor Rp 2.000.000 kini di `finance_investor`. Versi aplikasi yang sedang ter-deploy (pra-F-12) dan VisualKainDB tidak membaca koleksi itu, sehingga saldo kas di keduanya turun Rp 2.000.000 sampai F-12 di-deploy (VisualKainDB tetap turun; diterima Sehan).
 

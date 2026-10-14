@@ -10,7 +10,8 @@ export interface BiayaTambahanSummary {
   customer: number;
   vendor: number;
   lainnya: number;
-  total: number;
+  /** Bagian VisualKain dari biaya tambahan. Sengaja bukan jumlah ketiganya: tagihan customer uang masuk, vendor dan lainnya uang keluar. */
+  selisih: number;
 }
 
 interface BiayaTambahanSource {
@@ -23,12 +24,11 @@ interface BiayaTambahanSource {
 }
 
 export function summarizeBiayaTambahan(items: ReadonlyArray<BiayaTambahanItem>): BiayaTambahanSummary {
-  const sum: BiayaTambahanSummary = { customer: 0, vendor: 0, lainnya: 0, total: 0 };
+  const sum: BiayaTambahanSummary = { customer: 0, vendor: 0, lainnya: 0, selisih: 0 };
   for (const item of items) {
-    const nominal = Number(item.nominal) || 0;
-    sum[item.sumber] += nominal;
-    sum.total += nominal;
+    sum[item.sumber] += Number(item.nominal) || 0;
   }
+  sum.selisih = sum.customer - sum.vendor - sum.lainnya;
   return sum;
 }
 

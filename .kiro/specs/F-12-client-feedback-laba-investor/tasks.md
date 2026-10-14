@@ -98,3 +98,11 @@ Aturan eksekusi:
   - _Requirements: A-7_
 
 Catatan: temuan audit AU-3 sampai AU-5 (requirements §7) sengaja tidak dijadikan task karena klien tidak memintanya.
+
+## Batch G — Feedback lanjutan klien (2026-10-14 sore)
+
+- [x] **18. Ganti "Total Biaya Tambahan" dengan "Selisih untuk VisualKain"**
+  - `biaya-tambahan.ts`: `BiayaTambahanSummary.total` diganti `selisih = customer − vendor − lainnya` (test kasus VK260039 dan selisih negatif).
+  - `BiayaTambahanSection`: kartu keempat menjadi "Selisih untuk VisualKain" (emerald/rose).
+  - `OrderInspectionDrawer`: header rincian menampilkan selisih, bukan total gabungan.
+  - _Requirements: 12.11_

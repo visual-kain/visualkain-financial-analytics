@@ -93,10 +93,15 @@ export function BiayaTambahanSection({ items, onChange, onPendingChange }: Biaya
             </span>
           </div>
         ))}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <span className="block text-[11px] leading-tight text-slate-500">Total Biaya Tambahan</span>
-          <div className="mt-1 font-mono text-sm font-extrabold text-slate-900 tabular-nums">{formatRupiah(summary.total)}</div>
-          <span className="text-[10px] text-slate-500">{items.length} item</span>
+        <div
+          className={cn(
+            'rounded-xl border p-3',
+            summary.selisih < 0 ? 'border-rose-200 bg-rose-50 text-rose-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+          )}
+        >
+          <span className="block text-[11px] leading-tight opacity-90">Selisih untuk VisualKain</span>
+          <div className="mt-1 font-mono text-sm font-extrabold tabular-nums">{formatRupiah(summary.selisih)}</div>
+          <span className="text-[10px] opacity-80">Customer − vendor − lainnya</span>
         </div>
       </div>
 

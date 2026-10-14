@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatRupiah, normalizeWaNumber } from '@/lib/utils';
+import { cn, formatRupiah, normalizeWaNumber } from '@/lib/utils';
 import type { MasterFinanceRow } from '@/types';
 import { BIAYA_TAMBAHAN_SUMBER_OPTIONS, deriveBiayaTambahanItems, summarizeBiayaTambahan } from '@/lib/biaya-tambahan';
 import {
@@ -359,7 +359,9 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
                 <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-2">
                   <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
                     <span className="font-bold text-slate-600">Rincian Biaya Tambahan</span>
-                    <span className="font-mono font-bold text-slate-900">{formatRupiah(biayaTambahanSum.total)}</span>
+                    <span className={cn('font-mono font-bold', biayaTambahanSum.selisih < 0 ? 'text-rose-600' : 'text-emerald-700')}>
+                      Selisih {formatRupiah(biayaTambahanSum.selisih)}
+                    </span>
                   </div>
                   {biayaTambahanItems.map((item) => (
                     <div key={item.id} className="flex items-start justify-between gap-2 text-xs">

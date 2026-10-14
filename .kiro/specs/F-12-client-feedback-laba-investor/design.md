@@ -79,7 +79,7 @@ export interface InvestorSummary {
 export function summarizeInvestors(txs: CashTransaction[], until?: string | null): InvestorSummary[];
 
 // biaya-tambahan
-export function summarizeBiayaTambahan(items): { customer: number; vendor: number; lainnya: number; total: number };
+export function summarizeBiayaTambahan(items): { customer: number; vendor: number; lainnya: number; selisih: number };
 export function deriveBiayaTambahanItems(order): BiayaTambahanItem[];
 export function deriveCostBase(order, items): { hppDasar: number; opexDasar: number };
 
@@ -111,6 +111,8 @@ net   = gross − diskon + Σcustomer
 hpp   = hppDasar + Σvendor        (field terkunci)
 opex  = opexDasar + Σlainnya
 laba  = net − hpp − opex
+
+selisih = Σcustomer − Σvendor − Σlainnya   (tampilan saja, US-12.11)
 ```
 
 Saat halaman dibuka tanpa perubahan, `net`, `hpp`, dan `opex` identik dengan nilai tersimpan (invariant 4).
