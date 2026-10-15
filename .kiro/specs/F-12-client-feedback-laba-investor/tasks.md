@@ -125,3 +125,7 @@ Catatan: temuan audit AU-3 sampai AU-5 (requirements §7) sengaja tidak dijadika
   - `CashCoveragePanel` (test render): varian `banner` menggantikan panel "Status Cover Hutang Vendor" di `FinanceStatsGrid`; varian `compact` menggantikan bagian status cover di drawer Saldo Kas.
   - `page.tsx`: proyeksi dihitung dari semua order dan entri kas, diteruskan ke dashboard dan drawer.
   - _Requirements: 12.14_
+
+- [x] **22. Samakan header grup tabel master: "Pembayaran Vendor" dan "Pembayaran Customer"**
+  - `MasterFinanceTable`: "Komitmen Vendor (HPP)" → "Pembayaran Vendor", "Pembayaran Konsumen" → "Pembayaran Customer"; teks saja (2026-10-15).
+  - _Requirements: 3.4_

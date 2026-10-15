@@ -52,6 +52,7 @@ Sebagai finance, saya ingin biaya tambahan dirinci per item beserta asalnya (cus
 1. THE kolom tabel master "DP VENDOR" SHALL bernama "PEMBAYARAN VENDOR", termasuk header ekspor Excel.
 2. THE label "DP Vendor Disetor" di drawer Inspeksi Order SHALL menjadi "Pembayaran Vendor".
 3. THE nilai kolom SHALL tetap total yang sudah dibayar ke vendor (`totalDibayarKeVendor`).
+4. THE header grup kolom di tabel master SHALL bernama "PEMBAYARAN VENDOR" (sebelumnya "KOMITMEN VENDOR (HPP)") dan "PEMBAYARAN CUSTOMER" (sebelumnya "PEMBAYARAN KONSUMEN") agar penamaannya konsisten (permintaan klien 15 Okt 2026, hanya teks).
 
 ### US-12.4 Total gabungan per vendor saat difilter — feedback #4
 1. WHEN drawer Utang Vendor difilter ke satu vendor THEN drawer SHALL menampilkan kartu agregat "Total {vendor} ({n} pesanan)" berisi Σ Total Nilai Invoice, Σ HPP Vendor, Σ Sudah Diserahkan, Σ Sisa Utang, dan Σ Net Profit dari pesanan yang tampil.

@@ -443,10 +443,10 @@ export function MasterFinanceTable({
               Project
             </th>
             <th colSpan={3} className="px-4 py-2 bg-blue-50 text-blue-800">
-              Komitmen Vendor (HPP)
+              Pembayaran Vendor
             </th>
             <th colSpan={5} className="px-4 py-2 bg-teal-50 text-teal-800">
-              Pembayaran Konsumen
+              Pembayaran Customer
             </th>
             <th colSpan={4} className="px-4 py-2 bg-slate-100 text-slate-500">
               Beban & Penyesuaian
