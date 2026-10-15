@@ -170,30 +170,38 @@ export function BiayaTambahanSection({ items, onChange, onPendingChange }: Biaya
       ) : (
         <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
           {items.map((item) => (
-            <li key={item.id} className={cn('flex flex-wrap items-center gap-2 px-3.5 py-2.5 text-xs', editingId === item.id && 'bg-amber-50/60')}>
-              <span className={cn('rounded-md border px-1.5 py-0.5 text-[10px] font-bold shrink-0', SUMBER_TONE[item.sumber])}>
-                {sumberLabel(item.sumber)}
-              </span>
-              <span className="min-w-0 flex-1 font-semibold text-slate-800 break-words">{item.keterangan}</span>
-              <span className="font-mono font-bold text-slate-900 tabular-nums">{formatRupiah(item.nominal)}</span>
-              <span className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => startEdit(item)}
-                  aria-label={`Edit ${item.keterangan}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 cursor-pointer"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(item.id)}
-                  aria-label={`Hapus ${item.keterangan}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 cursor-pointer"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </span>
+            <li
+              key={item.id}
+              className={cn('flex flex-col gap-2 px-3.5 py-2.5 text-xs sm:flex-row sm:items-center', editingId === item.id && 'bg-amber-50/60')}
+            >
+              {/* Keterangan dan nominal dipisah baris di mobile; dalam satu baris flex-wrap, teks basis-0 menyusut hingga pecah per huruf. */}
+              <div className="flex min-w-0 flex-1 items-start gap-2">
+                <span className={cn('rounded-md border px-1.5 py-0.5 text-[10px] font-bold shrink-0', SUMBER_TONE[item.sumber])}>
+                  {sumberLabel(item.sumber)}
+                </span>
+                <span className="min-w-0 flex-1 font-semibold text-slate-800 break-words">{item.keterangan}</span>
+              </div>
+              <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+                <span className="font-mono font-bold text-slate-900 tabular-nums">{formatRupiah(item.nominal)}</span>
+                <span className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => startEdit(item)}
+                    aria-label={`Edit ${item.keterangan}`}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 cursor-pointer"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => remove(item.id)}
+                    aria-label={`Hapus ${item.keterangan}`}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 cursor-pointer"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              </div>
             </li>
           ))}
         </ul>

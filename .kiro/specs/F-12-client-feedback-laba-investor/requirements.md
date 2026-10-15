@@ -109,6 +109,19 @@ Klien (chat WhatsApp, 14 Okt 2026 17.01–17.07, contoh VK260039) menilai logika
 4. THE header kartu Rincian Biaya Tambahan di drawer Inspeksi Order SHALL menampilkan "Selisih {nilai}" dengan aturan yang sama, bukan total gabungan.
 5. THE rumus net invoice, HPP, biaya operasional, dan laba order SHALL tidak berubah (selisih hanya tampilan).
 
+### US-12.12 Urutan section halaman Edit Finansial — feedback lanjutan 14 Okt 2026 malam
+Klien (chat WhatsApp, 14 Okt 2026 21.12–21.20) meminta urutan: 1) Nilai Tagihan Invoice, 2) Riwayat Termin Pembayaran Customer, 3) Rincian Biaya Tambahan, 4) Kewajiban Beban Pokok Mitra. Sebelumnya posisi 2 dan 3 terbalik. Klien menegaskan "jangan ubah logika, hanya posisinya, tuker".
+
+1. THE kolom utama halaman Edit Finansial SHALL berurutan: Nilai Tagihan Invoice, Riwayat Termin Pembayaran Konsumen, Rincian Biaya Tambahan, Kewajiban Beban Pokok Mitra Vendor.
+2. THE logika, perhitungan, dan judul section SHALL tidak berubah. Panel termin tetap tanpa nomor (komponen dipakai bersama form Dana Masuk), sehingga nomor judul yang tampil tetap berurutan 1, 2, 3.
+
+### US-12.13 Bug: keterangan biaya tambahan pecah per huruf di mobile — laporan klien 14 Okt 2026 21.10
+Screenshot klien (VK260039, layar ponsel sekitar 360px) menunjukkan teks keterangan "Biaya tambahan customer percepat produksi EXTRA CHARGE" tampil satu huruf per baris. Penyebab: baris item memakai `flex-wrap` dengan keterangan `flex-1` (basis 0), sehingga keterangan tidak pernah turun ke baris baru dan lebarnya habis dimakan badge, nominal, dan tombol aksi, lalu `break-words` memecahnya per huruf.
+
+1. WHEN lebar layar < 640px THEN baris item SHALL tampil dua tingkat: badge sumber dan keterangan di atas, nominal serta tombol Edit/Hapus di bawah.
+2. WHEN lebar layar ≥ 640px THEN baris item SHALL tetap satu baris seperti sebelumnya.
+3. THE keterangan SHALL membungkus per kata, bukan per huruf, untuk teks normal.
+
 ## 4. Non-Regression Invariants
 
 1. Saldo Kas Riil = (Saldo Awal + Total Kas Masuk) − Total Kas Keluar SHALL CONTINUE TO hold; Total Kas Masuk kini = Pemasukan Usaha + Dana Investor.

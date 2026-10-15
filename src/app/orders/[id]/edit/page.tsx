@@ -521,15 +521,6 @@ export default function OrderEditFinancePage() {
               </div>
             </section>
 
-            <BiayaTambahanSection
-              items={biayaTambahanItems}
-              onChange={(next) => {
-                setBiayaTambahanItems(next);
-                setIsDirty(true);
-              }}
-              onPendingChange={setBiayaTambahanPending}
-            />
-
             <PaymentLedgerPanel
               variant="customer"
               totalTagihan={netInvoice}
@@ -544,6 +535,15 @@ export default function OrderEditFinancePage() {
               defaultRekening="Transfer BCA"
               onDraftChange={handleDraftChange}
               onManageAccount={rekening.open}
+            />
+
+            <BiayaTambahanSection
+              items={biayaTambahanItems}
+              onChange={(next) => {
+                setBiayaTambahanItems(next);
+                setIsDirty(true);
+              }}
+              onPendingChange={setBiayaTambahanPending}
             />
 
             <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-card-double space-y-5">

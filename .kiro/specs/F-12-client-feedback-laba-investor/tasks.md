@@ -106,3 +106,14 @@ Catatan: temuan audit AU-3 sampai AU-5 (requirements §7) sengaja tidak dijadika
   - `BiayaTambahanSection`: kartu keempat menjadi "Selisih untuk VisualKain" (emerald/rose).
   - `OrderInspectionDrawer`: header rincian menampilkan selisih, bukan total gabungan.
   - _Requirements: 12.11_
+
+## Batch H — Feedback lanjutan klien (2026-10-14 malam)
+
+- [x] **19. Tukar posisi panel termin dan rincian biaya tambahan**
+  - `orders/[id]/edit/page.tsx`: `PaymentLedgerPanel` (termin customer) dipindah ke atas `BiayaTambahanSection`. Tanpa perubahan logika maupun judul.
+  - _Requirements: 12.12_
+
+- [x] **20. Perbaiki baris item biaya tambahan di mobile**
+  - `BiayaTambahanSection`: `li` menjadi `flex-col` di bawah 640px (keterangan di atas, nominal dan aksi di bawah), `sm:flex-row` di atasnya.
+  - Diverifikasi visual di 360px dan 900px dengan markup yang sama (jsdom tidak menghitung layout).
+  - _Requirements: 12.13_
