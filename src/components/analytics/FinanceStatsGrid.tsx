@@ -4,6 +4,8 @@ import React from 'react';
 import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
 import type { FinancialSummary, MetricDrawerType, Order } from '@/types';
 import { MetricCardSkeleton } from '@/components/ui/shimmer';
+import { CashCoveragePanel } from '@/components/analytics/CashCoveragePanel';
+import type { CashCoverageProjection } from '@/lib/cash-ledger';
 import {
   Wallet,
   ArrowDownLeft,
@@ -12,8 +14,6 @@ import {
   ClockAlert,
   HandCoins,
   ArrowRight,
-  CheckCircle2,
-  AlertCircle,
   Landmark,
   PiggyBank,
 } from 'lucide-react';
@@ -25,10 +25,12 @@ interface FinanceStatsGridProps {
   orderCountWithDebt?: number;
   activeOrderCount?: number;
   onSelectMetric?: (metric: MetricDrawerType) => void;
+  coverage?: CashCoverageProjection;
 }
 
 export function FinanceStatsGrid({
   summary,
+  coverage,
   isLoading = false,
   onSelectMetric,
 }: FinanceStatsGridProps) {
@@ -45,14 +47,6 @@ export function FinanceStatsGrid({
   const isSaldoMinus = summary.saldoKasRiil < 0;
   const isProfitMinus = summary.totalProfitRealtime < 0;
   const isLabaBersihMinus = summary.labaBersih < 0;
-  const danaTersedia = summary.saldoKasRiil;
-  const hutangVendor = summary.totalUtangVendor;
-  const selisihCover = danaTersedia - hutangVendor;
-  const isTercover = selisihCover >= 0;
-  const persenTercover =
-    hutangVendor > 0
-      ? Math.max(0, Math.min(100, (Math.max(0, danaTersedia) / hutangVendor) * 100))
-      : 100;
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -404,126 +398,7 @@ export function FinanceStatsGrid({
         </div>
       </div>
 
-      {/* Ringkasan Langsung: Apakah Dana yang Ada Bisa Tercover ke Hutang Vendor & Sisanya Berapa */}
-      <div
-        className={cn(
-          'rounded-2xl border p-3.5 sm:p-4 shadow-card-double transition-all',
-          isTercover
-            ? 'border-emerald-200/90 bg-gradient-to-r from-emerald-50/70 via-white to-emerald-50/30'
-            : 'border-amber-200/90 bg-gradient-to-r from-amber-50/70 via-white to-rose-50/30'
-        )}
-      >
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                Status Cover Hutang Vendor & Sisa Dana
-              </span>
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold',
-                  isTercover
-                    ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
-                    : 'border-amber-300 bg-amber-100 text-amber-900'
-                )}
-              >
-                {isTercover ? (
-                  <>
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
-                    TERCOVER PENUH (100%)
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="h-3.5 w-3.5 text-amber-700" />
-                    BELUM TERCOVER PENUH ({persenTercover.toFixed(1)}%)
-                  </>
-                )}
-              </span>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              {isTercover ? (
-                <>
-                  Dana yang ada saat ini (
-                  <span className="font-semibold text-slate-900 tabular-nums">{formatRupiah(danaTersedia)}</span>) cukup
-                  untuk melunasi seluruh sisa hutang ke vendor (
-                  <span className="font-semibold text-slate-900 tabular-nums">{formatRupiah(hutangVendor)}</span>) dengan
-                  sisa bersih{' '}
-                  <span className="font-bold text-emerald-700 tabular-nums">+{formatRupiah(selisihCover)}</span>.
-                </>
-              ) : (
-                <>
-                  Dana yang ada saat ini (
-                  <span className="font-semibold text-slate-900 tabular-nums">{formatRupiah(danaTersedia)}</span>) belum
-                  cukup menutup sisa hutang ke vendor (
-                  <span className="font-semibold text-slate-900 tabular-nums">{formatRupiah(hutangVendor)}</span>).
-                  Kurang{' '}
-                  <span className="font-bold text-rose-600 tabular-nums">
-                    {formatRupiah(Math.abs(selisihCover))}
-                  </span>
-                  , namun masih ada sisa tagihan customer{' '}
-                  <span className="font-bold text-indigo-700 tabular-nums">
-                    {formatRupiah(summary.totalPiutangCustomer)}
-                  </span>{' '}
-                  yang belum cair.
-                </>
-              )}
-            </p>
-            {summary.kewajibanInvestor > 0 && (
-              <p className="text-[11px] text-violet-700 leading-relaxed">
-                Dana yang ada termasuk dana investor{' '}
-                <span className="font-semibold tabular-nums">{formatRupiah(summary.kewajibanInvestor)}</span> yang wajib
-                dikembalikan.
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-2.5 lg:min-w-[540px]">
-            <div className="rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                Dana yang Ada
-              </div>
-              <div className="mt-0.5 text-sm font-bold text-slate-900 tabular-nums">
-                {formatRupiah(danaTersedia)}
-              </div>
-            </div>
-            <div className="rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                Sisa Hutang Vendor
-              </div>
-              <div className="mt-0.5 text-sm font-bold text-amber-700 tabular-nums">
-                {formatRupiah(hutangVendor)}
-              </div>
-            </div>
-            <div
-              className={cn(
-                'rounded-xl border px-3 py-2',
-                isTercover
-                  ? 'border-emerald-200 bg-emerald-50/70'
-                  : 'border-rose-200 bg-rose-50/70'
-              )}
-            >
-              <div
-                className={cn(
-                  'text-[10px] font-semibold uppercase tracking-wider',
-                  isTercover ? 'text-emerald-700' : 'text-rose-700'
-                )}
-              >
-                {isTercover ? 'Sisa Dana Bersih' : 'Kekurangan Cover Hutang'}
-              </div>
-              <div
-                className={cn(
-                  'mt-0.5 text-sm font-bold tabular-nums',
-                  isTercover ? 'text-emerald-800' : 'text-rose-700'
-                )}
-              >
-                {isTercover
-                  ? `+${formatRupiah(selisihCover)}`
-                  : `-${formatRupiah(Math.abs(selisihCover))}`}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {coverage && <CashCoveragePanel coverage={coverage} />}
     </div>
   );
 }

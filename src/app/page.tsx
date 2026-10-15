@@ -21,7 +21,7 @@ import {
   transformToMasterRows,
   applyCashPeriod,
 } from '@/lib/financial-calculator';
-import { buildCashEntries, summarizeCashPeriod, collectYearOptions, matchPeriod } from '@/lib/cash-ledger';
+import { buildCashEntries, summarizeCashPeriod, collectYearOptions, matchPeriod, projectCashCoverage } from '@/lib/cash-ledger';
 import { computeVendorPerformance, computeCheapestByKategori } from '@/lib/calculations';
 import { useFirebaseFinance } from '@/hooks/useFirebaseFinance';
 import { useAuth } from '@/context/AuthContext';
@@ -136,6 +136,10 @@ function FinancialDashboardContent() {
   const summary = useMemo(
     () => applyCashPeriod(calculateFinancialSummary(0, filteredCashTxs, filteredOrders), cashPeriod),
     [filteredCashTxs, filteredOrders, cashPeriod]
+  );
+  const coverage = useMemo(
+    () => projectCashCoverage(rawOrders, cashEntries, cashPeriod, { bulan, tahun }),
+    [rawOrders, cashEntries, cashPeriod, bulan, tahun]
   );
   const masterRows = useMemo(() => transformToMasterRows(filteredOrders), [filteredOrders]);
   const [tableExport, setTableExport] = useState<{ rows: MasterFinanceRow[]; filterLabel: string } | null>(null);
@@ -256,6 +260,7 @@ function FinancialDashboardContent() {
         cashTransactions={rawCashTxs}
         cashPeriod={{ bulan, tahun }}
         saldoAwal={cashPeriod.saldoAwalPeriode}
+        coverage={coverage}
         onOpenAddIncome={() => {
           setActiveMetricDrawer(null);
           router.push('/cash-in/new');
@@ -436,6 +441,7 @@ function FinancialDashboardContent() {
 
               <FinanceStatsGrid
                 summary={summary}
+                coverage={coverage}
                 orders={filteredOrders}
                 orderCountWithDebt={filteredOrders.filter((o) => o.totalHpp > o.totalDibayarKeVendor).length}
                 activeOrderCount={filteredOrders.length}

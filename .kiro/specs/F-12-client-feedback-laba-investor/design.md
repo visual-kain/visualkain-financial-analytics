@@ -117,6 +117,21 @@ selisih = Σcustomer − Σvendor − Σlainnya   (tampilan saja, US-12.11)
 
 Saat halaman dibuka tanpa perubahan, `net`, `hpp`, dan `opex` identik dengan nilai tersimpan (invariant 4).
 
+## 4a. Proyeksi Kecukupan Dana (US-12.14)
+
+```
+end              = akhir periode (null bila Semua Tahun)
+order dihitung   = tanggalOrder ∈ [2026-10-01, end]
+bayarCustomer(o) = Σ entri order_customer milik o dengan tanggal ≤ end
+bayarVendor(o)   = Σ entri order_vendor milik o dengan tanggal ≤ end
+piutang          = Σ max(0, totalInvoice − bayarCustomer)
+utangVendor      = Σ max(0, totalHpp − bayarVendor)
+proyeksiSisa     = saldoKas(end) + piutang − utangVendor − kewajibanInvestor(end)
+sisaTanpaPelunasan = saldoKas(end) − utangVendor − kewajibanInvestor(end)
+```
+
+`projectCashCoverage` di `cash-ledger.ts` memakai entri kas yang sama dengan saldo kas, sehingga sumber angkanya tunggal. Komponen `CashCoveragePanel` (varian `banner` di dashboard, `compact` di drawer Saldo Kas) hanya menampilkan hasilnya.
+
 ## 5. Master Rekening
 
 - `kode` = nilai yang ditulis sebagai prefix keterangan (`"Transfer BCA - catatan"`). Tidak dapat diubah setelah dibuat agar `splitKeterangan` tetap mengenali transaksi lama.

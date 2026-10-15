@@ -117,3 +117,11 @@ Catatan: temuan audit AU-3 sampai AU-5 (requirements §7) sengaja tidak dijadika
   - `BiayaTambahanSection`: `li` menjadi `flex-col` di bawah 640px (keterangan di atas, nominal dan aksi di bawah), `sm:flex-row` di atasnya.
   - Diverifikasi visual di 360px dan 900px dengan markup yang sama (jsdom tidak menghitung layout).
   - _Requirements: 12.13_
+
+## Batch I — Proyeksi kecukupan dana (2026-10-15)
+
+- [x] **21. Proyeksi kecukupan dana**
+  - `cash-ledger.ts`: `projectCashCoverage` dan tipe `CashCoverageProjection` (test `f12-cash-coverage.test.ts`: data Oktober asli, filter bulan berikutnya, pelunasan sesudah periode, order sesudah periode, kelebihan bayar, pengembalian pokok).
+  - `CashCoveragePanel` (test render): varian `banner` menggantikan panel "Status Cover Hutang Vendor" di `FinanceStatsGrid`; varian `compact` menggantikan bagian status cover di drawer Saldo Kas.
+  - `page.tsx`: proyeksi dihitung dari semua order dan entri kas, diteruskan ke dashboard dan drawer.
+  - _Requirements: 12.14_

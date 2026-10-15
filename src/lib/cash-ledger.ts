@@ -233,6 +233,64 @@ function isBebanKasEntry(e: CashEntry): boolean {
   return e.arah === 'keluar' && e.sumber === 'kas' && e.kategori !== 'Pembayaran Vendor';
 }
 
+export interface CashCoverageProjection {
+  saldoKas: number;
+  /** Sisa tagihan customer per akhir periode: uang yang masih akan masuk. */
+  piutangCustomer: number;
+  /** Sisa HPP yang belum dibayar ke vendor per akhir periode. */
+  utangVendor: number;
+  kewajibanInvestor: number;
+  danaTersedia: number;
+  totalKewajiban: number;
+  /** Sisa dana bila semua pelunasan customer masuk lalu vendor dan pokok investor dilunasi. */
+  proyeksiSisa: number;
+  /** Sisa dana bila kewajiban dilunasi sekarang, tanpa menunggu pelunasan customer. */
+  sisaTanpaPelunasan: number;
+}
+
+/**
+ * Proyeksi kecukupan dana per akhir periode (US-12.14). Piutang dan utang dihitung dari semua order sampai akhir
+ * periode dan pembayaran yang tanggalnya sampai akhir periode, sehingga sebanding dengan saldo kas yang kumulatif;
+ * memakai order bulan terpilih saja akan menghilangkan utang order bulan lalu yang kasnya sudah terpakai.
+ */
+export function projectCashCoverage(
+  orders: Order[],
+  entries: CashEntry[],
+  cash: Pick<CashPeriodSummary, 'saldoKas' | 'kewajibanInvestor'>,
+  period: CashPeriod
+): CashCoverageProjection {
+  const end = periodEnd(period);
+  const paidCustomer = new Map<string, number>();
+  const paidVendor = new Map<string, number>();
+  for (const e of entries) {
+    if (!e.orderId || e.tanggal < FINANCE_START_DATE || (end && e.tanggal > end)) continue;
+    const target = e.sumber === 'order_customer' ? paidCustomer : e.sumber === 'order_vendor' ? paidVendor : null;
+    target?.set(e.orderId, (target.get(e.orderId) ?? 0) + e.nominal);
+  }
+
+  let piutangCustomer = 0;
+  let utangVendor = 0;
+  for (const order of orders) {
+    const tanggal = order.tanggalOrder;
+    if (!tanggal || tanggal < FINANCE_START_DATE || (end && tanggal > end)) continue;
+    piutangCustomer += Math.max(0, (order.totalInvoice || 0) - (paidCustomer.get(order.id) ?? 0));
+    utangVendor += Math.max(0, (order.totalHpp || 0) - (paidVendor.get(order.id) ?? 0));
+  }
+
+  const danaTersedia = cash.saldoKas + piutangCustomer;
+  const totalKewajiban = utangVendor + cash.kewajibanInvestor;
+  return {
+    saldoKas: cash.saldoKas,
+    piutangCustomer,
+    utangVendor,
+    kewajibanInvestor: cash.kewajibanInvestor,
+    danaTersedia,
+    totalKewajiban,
+    proyeksiSisa: danaTersedia - totalKewajiban,
+    sisaTanpaPelunasan: cash.saldoKas - totalKewajiban,
+  };
+}
+
 export interface BebanKasGroup {
   kategori: string;
   total: number;

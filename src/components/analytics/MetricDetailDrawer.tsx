@@ -10,6 +10,7 @@ import {
   buildCashEntries,
   groupBebanKasByKategori,
   type CashPeriod,
+  type CashCoverageProjection,
 } from '@/lib/cash-ledger';
 import { isInvestorInflow, summarizeInvestors } from '@/lib/investor-ledger';
 import type {
@@ -41,6 +42,7 @@ import {
   PiggyBank,
 } from 'lucide-react';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { CashCoveragePanel } from '@/components/analytics/CashCoveragePanel';
 
 interface MetricDetailDrawerProps {
   isOpen: boolean;
@@ -54,6 +56,7 @@ interface MetricDetailDrawerProps {
   cashTransactions?: CashTransaction[];
   cashPeriod?: CashPeriod;
   saldoAwal?: number;
+  coverage?: CashCoverageProjection;
   initialVendorFilter?: string | null;
   onOpenAddIncome?: () => void;
   onOpenAddExpense?: () => void;
@@ -71,6 +74,7 @@ export function MetricDetailDrawer({
   cashTransactions,
   cashPeriod,
   saldoAwal = 0,
+  coverage,
   initialVendorFilter = null,
   onOpenAddIncome,
   onOpenAddExpense,
@@ -741,7 +745,7 @@ export function MetricDetailDrawer({
                 <div className="flex items-center justify-between text-xs text-slate-500 font-medium pb-1 border-b border-slate-100">
                   <span>
                     {metricType === 'saldo' && saldoSubView === 'komponen'
-                      ? 'Komponen Akuntansi Saldo Kas & Status Cover Hutang'
+                      ? 'Komponen Akuntansi Saldo Kas & Proyeksi Kecukupan Dana'
                       : metricType === 'investor'
                       ? `Posisi per Investor (${investorList.length} investor)`
                       : `Rincian Transaksi Pembentuk (${
@@ -970,68 +974,7 @@ export function MetricDetailDrawer({
                       </div>
                     </div>
 
-                    {/* Evaluasi Kecukupan Dana Terhadap Sisa Hutang Vendor */}
-                    <div
-                      className={cn(
-                        'rounded-xl border p-3.5 space-y-2 text-xs',
-                        summary.saldoKasRiil >= summary.totalUtangVendor
-                          ? 'border-emerald-200 bg-emerald-50/70'
-                          : 'border-amber-200 bg-amber-50/70'
-                      )}
-                    >
-                      <div className="flex items-center justify-between font-bold text-slate-900">
-                        <span>Status Cover Sisa Hutang ke Vendor</span>
-                        <span
-                          className={cn(
-                            'rounded-full px-2 py-0.5 text-[10px] font-bold',
-                            summary.saldoKasRiil >= summary.totalUtangVendor
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              : 'bg-amber-100 text-amber-900 border border-amber-300'
-                          )}
-                        >
-                          {summary.saldoKasRiil >= summary.totalUtangVendor
-                            ? 'TERCOVER PENUH'
-                            : 'BELUM TERCOVER PENUH'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-slate-600">
-                        <span>Dana Tersedia Saat Ini</span>
-                        <span className="font-mono font-bold text-slate-900 tabular-nums">
-                          {formatRupiah(summary.saldoKasRiil)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-slate-600">
-                        <span>Sisa Hutang ke Vendor</span>
-                        <span className="font-mono font-bold text-amber-800 tabular-nums">
-                          {formatRupiah(summary.totalUtangVendor)}
-                        </span>
-                      </div>
-                      <div className="pt-1.5 border-t border-slate-200/80 flex justify-between items-center font-bold">
-                        <span>
-                          {summary.saldoKasRiil >= summary.totalUtangVendor
-                            ? 'Sisa Dana Bersih (Setelah Tutup Hutang)'
-                            : 'Kekurangan Dana (Untuk Tutup Hutang)'}
-                        </span>
-                        <span
-                          className={cn(
-                            'font-mono tabular-nums',
-                            summary.saldoKasRiil >= summary.totalUtangVendor
-                              ? 'text-emerald-700'
-                              : 'text-rose-600'
-                          )}
-                        >
-                          {summary.saldoKasRiil >= summary.totalUtangVendor
-                            ? `+${formatRupiah(summary.saldoKasRiil - summary.totalUtangVendor)}`
-                            : `-${formatRupiah(Math.abs(summary.saldoKasRiil - summary.totalUtangVendor))}`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-[11px] text-indigo-700 pt-1">
-                        <span>Sisa Tagihan Customer (Piutang Belum Masuk)</span>
-                        <span className="font-mono font-bold tabular-nums">
-                          {formatRupiah(summary.totalPiutangCustomer)}
-                        </span>
-                      </div>
-                    </div>
+                    {coverage && <CashCoveragePanel coverage={coverage} variant="compact" />}
 
                     {summary.saldoKasRiil < 0 && (
                       <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-3 text-xs text-rose-800 flex items-start gap-2.5">

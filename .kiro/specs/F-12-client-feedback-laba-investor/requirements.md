@@ -122,6 +122,23 @@ Screenshot klien (VK260039, layar ponsel sekitar 360px) menunjukkan teks keteran
 2. WHEN lebar layar ≥ 640px THEN baris item SHALL tetap satu baris seperti sebelumnya.
 3. THE keterangan SHALL membungkus per kata, bukan per huruf, untuk teks normal.
 
+### US-12.14 Proyeksi kecukupan dana — feedback klien 15 Okt 2026
+Klien: "Kalau aku mau tahu apakah uang yang ada saat ini dan uang yang akan masuk dari pelunasan customer itu bisa meng-cover utang yang ada (pelunasan vendor dan biaya investor), jadi biar tahu masih cukup atau jadinya minus."
+
+Analisis kebutuhan:
+- Pertanyaan klien adalah posisi likuiditas: (kas saat ini + sisa tagihan customer) dibanding (sisa utang vendor + pokok dana investor yang wajib kembali). "Piutang" dalam pesan klien yang dimaksud adalah kewajiban (utang), bukan piutang.
+- Panel lama "Status Cover Hutang Vendor & Sisa Dana" hanya membandingkan kas dengan utang vendor. Pelunasan customer hanya disebut di teks, dan dana investor tidak dikurangkan, padahal dana itu ada di kas dan wajib kembali.
+- Saldo kas bersifat kumulatif sampai akhir periode, sedangkan kartu Piutang dan Utang Vendor memuat order bulan terpilih saja. Mencampur keduanya membuat proyeksi bulan November kehilangan utang order Oktober yang kasnya sudah terpakai. Karena itu proyeksi memakai semua order sejak 1 Okt 2026 sampai akhir periode dan pembayaran bertanggal sampai akhir periode.
+- Bagi hasil investor belum punya jadwal kewajiban (dicatat manual saat dibayar), jadi tidak ikut sebagai kewajiban; biaya operasional order sudah dicatat sebagai kas keluar.
+
+1. THE dashboard SHALL mengganti panel "Status Cover Hutang Vendor & Sisa Dana" dengan panel "Proyeksi Kecukupan Dana" berisi: Kas saat ini, + Pelunasan customer (akan masuk), − Sisa utang vendor, − Dana investor (wajib kembali), = Proyeksi sisa dana.
+2. THE `proyeksiSisa` SHALL = saldoKas + Σ max(0, totalInvoice − bayarCustomer) − Σ max(0, totalHpp − bayarVendor) − kewajibanInvestor, dengan order bertanggal 1 Okt 2026 sampai akhir periode dan pembayaran bertanggal sampai akhir periode.
+3. WHEN `proyeksiSisa` ≥ 0 THEN panel SHALL berstatus "CUKUP" (emerald); selain itu "MINUS" (rose).
+4. THE panel SHALL menampilkan `sisaTanpaPelunasan = saldoKas − (utang vendor + kewajiban investor)`: bila negatif, panel menyebut kekurangannya dan bahwa sebagian pelunasan perlu menunggu tagihan customer cair.
+5. THE drawer Saldo Kas SHALL menampilkan rincian yang sama, menggantikan bagian "Status Cover Sisa Hutang ke Vendor".
+6. Pengembalian pokok investor SHALL tidak mengubah `proyeksiSisa` (kas dan kewajiban turun sama besar).
+7. Data Oktober 2026 (audit §7): kas Rp 997.980 + pelunasan customer Rp 6.010.500 − utang vendor Rp 3.455.000 − dana investor Rp 2.000.000 = sisa Rp 1.553.480 (CUKUP); tanpa menunggu pelunasan kurang Rp 4.457.020.
+
 ## 4. Non-Regression Invariants
 
 1. Saldo Kas Riil = (Saldo Awal + Total Kas Masuk) − Total Kas Keluar SHALL CONTINUE TO hold; Total Kas Masuk kini = Pemasukan Usaha + Dana Investor.
