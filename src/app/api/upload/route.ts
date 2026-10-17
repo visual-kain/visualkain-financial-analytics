@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     if (err instanceof Error && err.message === 'CLOUDINARY_NOT_CONFIGURED') {
       console.error('[upload] Env Cloudinary belum diatur');
-      return NextResponse.json({ error: 'Penyimpanan gambar belum dikonfigurasi di server.' }, { status: 500 });
+      return NextResponse.json({ error: 'Penyimpanan gambar (Cloudinary) belum dikonfigurasi di server. Minta admin mengisi env CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, dan CLOUDINARY_API_SECRET.' }, { status: 500 });
     }
     console.error('[upload]', err);
     return NextResponse.json({ error: 'Upload gagal, coba lagi' }, { status: 500 });

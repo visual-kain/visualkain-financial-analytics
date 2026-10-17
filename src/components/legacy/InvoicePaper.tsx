@@ -3,14 +3,15 @@
 import React from 'react';
 import { STATUS_LABELS, type BankAccountInfo, type LegacyOrder } from '@/lib/legacy/types';
 import { formatCurrency, formatDate, timestampToDate } from '@/lib/legacy/formatters';
-import { calculateTotals, getInvoiceItems } from '@/lib/legacy/calculations';
+import { invoiceFigures } from '@/lib/document-figures';
 import { invoicePaymentDateLabel, type InvoicePaymentSummary } from '@/lib/invoice-payments';
 
 /**
  * Kertas invoice formal versi visualkaindb sebelum redesain 9 Okt 2026 (commit d34f192), atas permintaan klien
  * 17 Okt 2026 (K-22). Gaya memakai kelas CSS bersama kertas PO/penawaran/surat. Perubahan dari aslinya:
  * rekening mengikuti pilihan rekening invoice, DP diambil dari pembayaran yang sudah diterima di modul finansial,
- * status memakai label 8 tahap, dan detail DP (status, riwayat pembayaran, sisa) ditampilkan dengan gaya total yang sama.
+ * status memakai label 6 tahap, detail DP (status, riwayat pembayaran, sisa) ditampilkan dengan gaya total yang sama, dan
+ * angka tagihan diambil dari rumus modul finansial (K-32).
  */
 export const DEFAULT_BANK_INFO: BankAccountInfo = {
   bankName: 'BCA',
@@ -33,13 +34,13 @@ export default function InvoicePaper({ order, payments, bankInfo = DEFAULT_BANK_
     );
   }
 
-  const totals = calculateTotals(order);
-  const items = getInvoiceItems(order);
+  const fig = invoiceFigures(order);
+  const items = fig.items;
 
   const createdDate = timestampToDate(order.createdAt);
   const dateStr = createdDate ? formatDate(createdDate) : '-';
 
-  const netTotal = totals.jumlahSemua;
+  const netTotal = fig.total;
   const targetDpPersen = Number(order.targetDpPersen) || 70;
   const targetDpNominal = Math.round(netTotal * (targetDpPersen / 100));
   const dp1 = payments?.dp1 ?? 0;
@@ -161,12 +162,27 @@ export default function InvoicePaper({ order, payments, bankInfo = DEFAULT_BANK_
         <div className="invoice-totals">
           <div className="total-row">
             <span>Subtotal</span>
-            <span>{formatCurrency(totals.grossTotal)}</span>
+            <span>{formatCurrency(fig.subtotal)}</span>
           </div>
           <div className="total-row">
             <span>Diskon</span>
-            <span>{formatCurrency(totals.diskon)}</span>
+            <span>{formatCurrency(fig.diskon)}</span>
           </div>
+          {fig.biayaTambahan !== 0 && (
+            <div className="total-row">
+              <span>
+                Biaya Tambahan
+                {fig.biayaTambahanNotes && <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>{fig.biayaTambahanNotes}</span>}
+              </span>
+              <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(fig.biayaTambahan)}</span>
+            </div>
+          )}
+          {fig.penyesuaian !== 0 && (
+            <div className="total-row">
+              <span>Penyesuaian</span>
+              <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(fig.penyesuaian)}</span>
+            </div>
+          )}
           <div className="total-row" style={{ fontWeight: 700, borderTop: '1px solid #cbd5e1', paddingTop: '0.5rem' }}>
             <span>Total Tagihan</span>
             <span>{formatCurrency(netTotal)}</span>

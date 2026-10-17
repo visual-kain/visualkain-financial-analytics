@@ -40,3 +40,13 @@ npm install
 npm run dev
 ```
 Buka [http://localhost:3000](http://localhost:3000) pada browser Anda.
+
+## 🔐 Environment Variables
+Isi di `.env.local` untuk lokal dan di Vercel (Production + Preview) untuk deploy, satu baris per variabel dengan format `NAMA=nilai`. Next.js hanya membaca file `.env*` standar, jadi catatan seperti `env.cloudinary` tidak terpakai (dan sudah di-ignore git).
+
+| Variabel | Keterangan |
+|---|---|
+| `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` | Konfigurasi Firebase web |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Upload gambar ACC lewat `/api/upload` (hanya server, jangan diberi awalan `NEXT_PUBLIC_`) |
+| `NEXT_PUBLIC_PRODUKSI_EMAILS` | Opsional. Email akun tim produksi (dipisah koma) yang mendarat di Ringkasan Produksi setelah login |
+| `NEXT_PUBLIC_LOGIN_EMAIL_HINT` | Opsional. Email bawaan di form login |

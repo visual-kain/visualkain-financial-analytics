@@ -87,3 +87,31 @@
 .vk-legacy #invoicePaper .invoice-totals {
   width: 280px;
 }
+
+/*
+ * Kolom kiri (rekening + catatan) dulu dibatasi 55% sementara kolom total 280px tanpa jarak, sehingga keduanya
+ * bertumpuk (feedback klien 17 Okt 2026). Kolom kiri dipersempit dan diberi jarak tetap ke kolom total.
+ */
+.vk-legacy #invoicePaper .invoice-footer {
+  gap: 8mm;
+}
+.vk-legacy #invoicePaper .invoice-footer-left {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 46%;
+}
+.vk-legacy #invoicePaper .invoice-pay-box {
+  min-width: 0;
+}
+.vk-legacy #invoicePaper .total-row {
+  gap: 3mm;
+}
+.vk-legacy #invoicePaper .total-row > span:first-child {
+  min-width: 0;
+}
+@media print {
+  .vk-legacy #invoicePaper .invoice-footer-left {
+    max-width: 46% !important;
+    width: auto !important;
+  }
+}

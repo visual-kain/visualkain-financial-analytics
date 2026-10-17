@@ -4,7 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { timestampToDate } from '@/lib/legacy/formatters';
-import { isOrderStatus, type KategoriDoc, type LegacyOrder, type SizeChart, type VendorDoc } from '@/lib/legacy/types';
+import { normalizeOrderStatus, type KategoriDoc, type LegacyOrder, type SizeChart, type VendorDoc } from '@/lib/legacy/types';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -69,7 +69,7 @@ export function OpsDataProvider({ children }: { children: React.ReactNode }) {
             id: d.id,
             noInv: String(data.noInv || ''),
             namaCustomer: String(data.namaCustomer || ''),
-            status: isOrderStatus(data.status) ? data.status : 'received',
+            status: normalizeOrderStatus(data.status),
           } as LegacyOrder;
         });
         setOrders(sortOrdersNewestFirst(list));

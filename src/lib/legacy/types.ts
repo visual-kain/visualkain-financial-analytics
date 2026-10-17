@@ -3,35 +3,17 @@
  * bisa tidak lengkap; pembacaan selalu memakai fallback.
  */
 
-export type OrderStatus =
-  | 'received'
-  | 'payment'
-  | 'production'
-  | 'finishing'
-  | 'qc'
-  | 'packing'
-  | 'delivery'
-  | 'completed';
+/** Status 6 tahap mengikuti `visualkaindb` main (K-31): finishing, QC, dan packing digabung ke Produksi, Approval Desain ditambah. */
+export type OrderStatus = 'received' | 'payment' | 'approval' | 'production' | 'delivery' | 'completed';
 
-export const STATUS_ORDER: OrderStatus[] = [
-  'received',
-  'payment',
-  'production',
-  'finishing',
-  'qc',
-  'packing',
-  'delivery',
-  'completed',
-];
+export const STATUS_ORDER: OrderStatus[] = ['received', 'payment', 'approval', 'production', 'delivery', 'completed'];
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   received: 'Pesanan Diterima',
-  payment: 'Pembayaran Dikonfirmasi',
+  payment: 'Menunggu Pembayaran',
+  approval: 'Approval Desain',
   production: 'Produksi',
-  finishing: 'Finishing',
-  qc: 'Quality Control',
-  packing: 'Packing',
-  delivery: 'Delivery',
+  delivery: 'Pengiriman',
   completed: 'Selesai',
 };
 
@@ -39,16 +21,22 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
 export const STATUS_FILTER_LABELS: Record<OrderStatus, string> = {
   received: 'Diterima',
   payment: 'Pembayaran',
+  approval: 'Approval',
   production: 'Produksi',
-  finishing: 'Finishing',
-  qc: 'QC',
-  packing: 'Packing',
-  delivery: 'Delivery',
+  delivery: 'Pengiriman',
   completed: 'Selesai',
 };
 
 export function isOrderStatus(value: unknown): value is OrderStatus {
   return typeof value === 'string' && (STATUS_ORDER as string[]).includes(value);
+}
+
+/** Status lama di dokumen dibaca sebagai Produksi tanpa menulis ulang data, sama dengan `normalizeStatus` visualkaindb. */
+const LEGACY_STATUS_MAP: Record<string, OrderStatus> = { finishing: 'production', qc: 'production', packing: 'production' };
+
+export function normalizeOrderStatus(value: unknown): OrderStatus {
+  if (isOrderStatus(value)) return value;
+  return (typeof value === 'string' && LEGACY_STATUS_MAP[value]) || 'received';
 }
 
 export interface FirestoreTimestampLike {

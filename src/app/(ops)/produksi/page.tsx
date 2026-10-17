@@ -96,8 +96,8 @@ function ProduksiContent() {
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
             <KpiCard icon={ClipboardList} tone="bg-teal-50 text-teal-700" title="Order Aktif" value={kpi.aktif.count} hint={`${kpi.aktif.pcs} pcs belum selesai`} href="/data-customer" />
-            <KpiCard icon={Hourglass} tone="bg-amber-50 text-amber-700" title="Antrean" value={kpi.antrean.count} hint={`Diterima & pembayaran • ${kpi.antrean.pcs} pcs`} href="/data-customer?status=received" />
-            <KpiCard icon={Scissors} tone="bg-sky-50 text-sky-700" title="Dalam Produksi" value={kpi.produksi.count} hint={`Produksi s.d. packing • ${kpi.produksi.pcs} pcs`} href="/data-customer?status=production" />
+            <KpiCard icon={Hourglass} tone="bg-amber-50 text-amber-700" title="Antrean" value={kpi.antrean.count} hint={`Diterima, pembayaran, approval • ${kpi.antrean.pcs} pcs`} href="/data-customer?status=received" />
+            <KpiCard icon={Scissors} tone="bg-sky-50 text-sky-700" title="Dalam Produksi" value={kpi.produksi.count} hint={`Sedang dijahit • ${kpi.produksi.pcs} pcs`} href="/data-customer?status=production" />
             <KpiCard icon={Truck} tone="bg-indigo-50 text-indigo-700" title="Pengiriman" value={kpi.pengiriman.count} hint={`${kpi.pengiriman.pcs} pcs dalam pengiriman`} href="/data-customer?status=delivery" />
             <KpiCard icon={CheckCircle2} tone="bg-emerald-50 text-emerald-700" title="Selesai" value={kpi.selesai.count} hint={`${kpi.selesai.pcs} pcs terselesaikan`} href="/data-customer?status=completed" />
           </div>

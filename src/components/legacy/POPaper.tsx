@@ -11,6 +11,7 @@ import {
   vendorPriceKey,
 } from '@/lib/legacy/calculations';
 import { formatCurrency, formatDate, timestampToDate } from '@/lib/legacy/formatters';
+import { poFigures } from '@/lib/document-figures';
 import type { LegacyOrder, VendorDoc } from '@/lib/legacy/types';
 
 interface POPaperProps {
@@ -75,13 +76,12 @@ export function POPaper({ order, vendor }: POPaperProps) {
   const poNo = formatPoNumber(order.noInv);
   const dateStr = formatDate(timestampToDate(order.createdAt));
 
-  const { items, grandTotal } = getPoItems(order);
-
-  const dpPersenPO = order.dpPersenPO || 0;
-  const dpAmount = grandTotal * (dpPersenPO / 100);
-  const sisa = grandTotal - dpAmount;
-  const hasDp = dpAmount > 0;
-  const dpPersenDisplay = dpPersenPO.toFixed(2);
+  const { items, grandTotal: itemsTotal } = getPoItems(order);
+  // Total, biaya tambahan vendor, dan pembayaran ke vendor mengikuti modul finansial (K-32).
+  const fig = poFigures(order, itemsTotal);
+  const hasExtra = fig.biayaTambahan !== 0 || fig.penyesuaian !== 0;
+  const hasDp = fig.sudahDibayar > 0;
+  const dpPersenDisplay = fig.total > 0 ? ((fig.sudahDibayar / fig.total) * 100).toFixed(2) : '0.00';
 
   return (
     <div id="poPaper" className="invoice-paper po-paper">
@@ -160,25 +160,48 @@ export function POPaper({ order, vendor }: POPaperProps) {
         </div>
 
         <div className="invoice-totals">
+          {hasExtra && (
+            <>
+              <div className="total-row">
+                <span>Subtotal</span>
+                <span>{formatCurrency(fig.itemsTotal)}</span>
+              </div>
+              {fig.biayaTambahan !== 0 && (
+                <div className="total-row">
+                  <span>
+                    Biaya Tambahan
+                    {fig.biayaTambahanNotes && <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>{fig.biayaTambahanNotes}</span>}
+                  </span>
+                  <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(fig.biayaTambahan)}</span>
+                </div>
+              )}
+              {fig.penyesuaian !== 0 && (
+                <div className="total-row">
+                  <span>Penyesuaian</span>
+                  <span style={{ whiteSpace: 'nowrap' }}>{formatCurrency(fig.penyesuaian)}</span>
+                </div>
+              )}
+            </>
+          )}
           {hasDp ? (
             <>
               <div className="total-row">
                 <span>Total Tagihan</span>
-                <span>{formatCurrency(grandTotal)}</span>
+                <span>{formatCurrency(fig.total)}</span>
               </div>
               <div className="total-row po-dp-row">
-                <span>DP ({dpPersenDisplay}%)</span>
-                <span>- {formatCurrency(dpAmount)}</span>
+                <span>Sudah Dibayar ({dpPersenDisplay}%)</span>
+                <span>- {formatCurrency(fig.sudahDibayar)}</span>
               </div>
               <div className="total-row grand-total">
                 <span>Sisa Tagihan</span>
-                <span>{formatCurrency(sisa)}</span>
+                <span>{formatCurrency(fig.sisa)}</span>
               </div>
             </>
           ) : (
             <div className="total-row grand-total">
               <span>Total Tagihan</span>
-              <span>{formatCurrency(grandTotal)}</span>
+              <span>{formatCurrency(fig.total)}</span>
             </div>
           )}
         </div>

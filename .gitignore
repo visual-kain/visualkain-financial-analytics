@@ -13,8 +13,11 @@ build/
 dist/
 
 # Environment Variables
-.env*.local
-.env
+.env*
+!.env.example
+# Catatan kredensial di luar format .env (mis. env.cloudinary) tidak boleh ikut ter-commit.
+env.*
+*.env
 
 # Cache & Diagnostics
 .context-cache/
