@@ -13,6 +13,10 @@ import KerjasamaListPage from '@/app/(ops)/kerjasama/page';
 import KerjasamaNewPage from '@/app/(ops)/kerjasama/new/page';
 import PenawaranNewPage from '@/app/(ops)/penawaran/new/page';
 import PurchaseOrderPage from '@/app/(ops)/purchase-order/page';
+import ProduksiPage from '@/app/(ops)/produksi/page';
+import CostProfitPage from '@/app/(ops)/cost-profit/page';
+import KalenderPage from '@/app/(ops)/kalender/page';
+import VendorPage from '@/app/(ops)/vendor/page';
 import { fixtureKategori, fixtureOrders, fixtureSizeCharts, fixtureVendors } from '@/test/fixtures/ops-fixtures';
 
 // Promise dibuat sekali; `use()` dengan promise baru tiap render akan suspend terus-menerus.
@@ -38,6 +42,10 @@ export function DevPreviewScreen({ screen }: { screen: string }) {
     'kerjasama-new': <KerjasamaNewPage />,
     'penawaran-new': <PenawaranNewPage />,
     'purchase-order': <PurchaseOrderPage />,
+    produksi: <ProduksiPage />,
+    'cost-profit': <CostProfitPage />,
+    kalender: <KalenderPage />,
+    vendor: <VendorPage />,
   };
   const content = screens[screen];
   if (!content) notFound();

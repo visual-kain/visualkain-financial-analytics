@@ -15,6 +15,8 @@ interface OpsDataValue {
   vendors: VendorDoc[];
   ordersState: LoadState;
   sizeChartsState: LoadState;
+  vendorsState: LoadState;
+  kategoriState: LoadState;
   error: string | null;
   retry: () => void;
   getOrderById: (id: string) => LegacyOrder | undefined;
@@ -40,12 +42,16 @@ export function OpsDataProvider({ children }: { children: React.ReactNode }) {
   const [vendors, setVendors] = useState<VendorDoc[]>([]);
   const [ordersState, setOrdersState] = useState<LoadState>('loading');
   const [sizeChartsState, setSizeChartsState] = useState<LoadState>('loading');
+  const [vendorsState, setVendorsState] = useState<LoadState>('loading');
+  const [kategoriState, setKategoriState] = useState<LoadState>('loading');
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     setOrdersState('loading');
     setSizeChartsState('loading');
+    setVendorsState('loading');
+    setKategoriState('loading');
     setError(null);
 
     const fail = (label: string) => (err: Error) => {
@@ -102,8 +108,12 @@ export function OpsDataProvider({ children }: { children: React.ReactNode }) {
             .filter((k) => k.nama)
             .sort((a, b) => a.nama.localeCompare(b.nama))
         );
+        setKategoriState('ready');
       },
-      fail('cp_kategori')
+      (err) => {
+        fail('cp_kategori')(err);
+        setKategoriState('error');
+      }
     );
 
     const unsubVendors = onSnapshot(
@@ -124,8 +134,12 @@ export function OpsDataProvider({ children }: { children: React.ReactNode }) {
             .filter((v) => v.nama)
             .sort((a, b) => a.nama.localeCompare(b.nama))
         );
+        setVendorsState('ready');
       },
-      fail('vendors')
+      (err) => {
+        fail('vendors')(err);
+        setVendorsState('error');
+      }
     );
 
     return () => {
@@ -149,13 +163,15 @@ export function OpsDataProvider({ children }: { children: React.ReactNode }) {
       vendors,
       ordersState,
       sizeChartsState,
+      vendorsState,
+      kategoriState,
       error,
       retry,
       getOrderById: (id) => orderMap.get(id),
       getVendorName: (id) => (id ? vendorMap.get(id) || '-' : '-'),
       getSizeChart: (id) => (id ? chartMap.get(id) : undefined),
     };
-  }, [orders, sizeCharts, kategoriList, vendors, ordersState, sizeChartsState, error, retry]);
+  }, [orders, sizeCharts, kategoriList, vendors, ordersState, sizeChartsState, vendorsState, kategoriState, error, retry]);
 
   return <OpsDataContext.Provider value={value}>{children}</OpsDataContext.Provider>;
 }
@@ -179,6 +195,8 @@ export function OpsDataFixtureProvider({ data, children }: { data: OpsFixtureDat
       orders,
       ordersState: 'ready',
       sizeChartsState: 'ready',
+      vendorsState: 'ready',
+      kategoriState: 'ready',
       error: null,
       retry: () => undefined,
       getOrderById: (id) => orderMap.get(id),

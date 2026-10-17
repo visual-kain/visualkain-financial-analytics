@@ -20,7 +20,7 @@ Permintaan klien:
 |---|---|---|
 | Fase 1 (MVP) | Shell navigasi gabungan (sidebar desktop + bottom nav HP), Data Customer (daftar, detail, tambah, edit, hapus), Techpack, Invoice, Size Chart, warning minus dan teks panjang di semua tabel, ekspor Excel Data Customer | Dikerjakan |
 | Fase 2 | Pengajuan Kerjasama (aturan nomor + daftar surat), Penawaran Harga (aturan nomor + daftar), Purchase Order | Dikerjakan |
-| Fase 3 | Master Vendor, Kalender Produksi, Cost & Profit (kalkulator, kategori, bahan, markup), ringkasan operasional (antrean produksi, radar deadline) | Backlog, hanya spec |
+| Fase 3 | Ringkasan Produksi (antrean, pipeline, radar deadline, komposisi order), Data Vendor, Kalender Produksi, Cost & Profit (kalkulator, kategori, bahan, markup) | Dikerjakan (permintaan Sehan 17 Okt 2026) |
 | Tidak dimigrasi | Beranda `visualkaindb` dan modul `/finance` (cashout, kas vendor, report, manual) | Sudah digantikan modul finansial aplikasi ini |
 
 ## 3. Glossary
@@ -127,6 +127,25 @@ Permintaan klien:
 2. THE form (item: deskripsi, qty, satuan, harga satuan, jumlah = qty × harga) dan kertas SHALL sama dengan `visualkaindb`, tanpa grand total.
 3. THE penawaran SHALL disimpan di koleksi `penawaran` dan punya daftar dengan filter tahun dan pencarian.
 
+### US-13.14 Ringkasan Produksi (Fase 3)
+1. THE halaman `/produksi` SHALL menampilkan KPI Order Aktif, Antrean, Dalam Produksi, Pengiriman, Selesai (jumlah order dan pcs), pipeline 8 tahap yang menaut ke Data Customer terfilter, radar deadline (lewat, H-3, aman) dengan daftar order terurut, qty belum selesai per jenis lengan, serta peringkat kategori, bahan, dan customer berdasarkan jumlah order.
+2. THE halaman SHALL NOT menampilkan angka uang (sudah ada di Ringkasan Finansial).
+3. THE periode default SHALL mulai Okt 2026 dengan pilihan "Semua periode" (K-1).
+
+### US-13.15 Data Vendor (Fase 3)
+1. THE daftar vendor SHALL bisa dicari dan menampilkan nama, alamat, WA, PIC, dan jumlah order.
+2. THE tambah/edit SHALL menulis `vendors {nama, alamat, wa, pic}` dan menolak nama duplikat.
+3. IF vendor masih dipakai order THEN hapus SHALL diblokir.
+
+### US-13.16 Kalender Produksi (Fase 3)
+1. THE kalender bulan SHALL menandai tanggal deadline order, catatan manual (`calendarNotes`), hari ini, dan hari libur.
+2. THE ketuk tanggal SHALL menampilkan order yang deadline-nya hari itu atau form catatan baru.
+3. THE ekspor SHALL tersedia sebagai tautan Google Calendar per deadline dan file `.ics` per bulan (K-28).
+
+### US-13.17 Cost & Profit (Fase 3)
+1. THE kalkulator SHALL memakai rumus `visualkaindb`: aturan markup pertama dengan qtyMin ≤ qty ≤ qtyMax, harga jual = modal × (1 + persen/100), profit = total jual − total modal.
+2. THE database SHALL mengelola `cp_kategori`, `cp_bahan`, `cp_markup` dengan bentuk dokumen yang sama; hapus kategori diblokir bila masih punya bahan; aturan markup yang tumpang tindih diberi peringatan.
+
 ### US-13.13 Purchase Order (Fase 2)
 1. THE nomor PO SHALL berformat `PO-{No. Invoice}`.
 2. THE pemilihan order SHALL berupa pencarian seperti invoice; judul file cetak `PO-{noInv}_{vendor}`.
@@ -162,6 +181,8 @@ Permintaan klien:
 | K-24 | Laporan Finansial order menampilkan baris "Biaya Tambahan Customer" di Ringkasan Pendapatan sehingga Subtotal − Diskon + Biaya Tambahan = Total Tagihan. |
 | K-25 | Semua tombol utama dashboard (tinggi h-10/h-11) memakai gaya taktil yang sama dengan tombol "Surat Baru": border lebih gelap + `shadow-btn-primary` untuk solid, `shadow-btn-secondary` untuk outline, teks font-medium. |
 | K-26 | Bottom nav HP mengikuti section halaman aktif (menggantikan K-4): Finansial menampilkan Data Table, Dana Masuk, Dana Keluar, Mitra Vendor; Dokumen menampilkan Invoice, PO, Penawaran, Kerjasama; Operasional menampilkan Customer dan Size Chart; Ringkasan menampilkan satu pintasan per section. Slot terakhir selalu Menu. |
+| K-27 | Navigasi dua section: **Produksi** (Ringkasan Produksi, Data Customer, Size Chart, Data Vendor, Kalender, Cost & Profit, dan grup Dokumen) dan **Finansial** (Ringkasan Finansial, Data Table, Dana Masuk, Dana Keluar, Mitra Vendor). Memilih Ringkasan atau halaman dari satu section mengganti bottom nav HP ke section itu: 3 tab tetap + 1 slot halaman aktif + Menu (menggantikan K-26). |
+| K-28 | Kalender: integrasi Google Calendar OAuth visualkaindb tidak dipindah karena client ID terikat domain lama; diganti tautan "Tambah ke Google Calendar" per deadline dan ekspor `.ics` per bulan. |
 
 ## 6. Pertanyaan terbuka
 - Q-1 (sebagian terjawab K-24 untuk laporan finansial): Kertas invoice memakai rumus `visualkaindb` (gross − diskon), sedangkan pembayaran dari ledger finansial. Untuk order dengan biaya tambahan customer (F-12) atau gross yang diubah manual di Edit Finansial, Total Tagihan di invoice bisa berbeda dari Data Table. Perlu keputusan: tetap seperti `visualkaindb`, atau tambah baris biaya tambahan dan pakai total finansial.

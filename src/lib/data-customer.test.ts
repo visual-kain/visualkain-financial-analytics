@@ -71,12 +71,22 @@ describe('navigasi', () => {
     expect(resolveActiveNavId('/kerjasama/new', null)).toBe('kerjasama');
   });
 
-  it('bottom nav HP hanya berisi tab section yang aktif', () => {
-    expect(mobileNavItemsFor('cashout').map((i) => i.id)).toEqual(['datatable', 'cashin', 'cashout', 'vendor']);
-    expect(mobileNavItemsFor('penawaran').map((i) => i.id)).toEqual(['invoice', 'purchase-order', 'penawaran', 'kerjasama']);
-    expect(mobileNavItemsFor('size-chart').map((i) => i.id)).toEqual(['data-customer', 'size-chart']);
-    expect(mobileNavItemsFor('dashboard').map((i) => i.id)).toEqual(['dashboard', 'data-customer', 'invoice', 'datatable']);
+  it('bottom nav HP mengikuti section Produksi atau Finansial', () => {
+    expect(mobileNavItemsFor('dashboard').map((i) => i.id)).toEqual(['dashboard', 'datatable', 'cashin', 'cashout']);
+    expect(mobileNavItemsFor('cashout').map((i) => i.id)).toEqual(['dashboard', 'datatable', 'cashin', 'cashout']);
+    expect(mobileNavItemsFor('vendor').map((i) => i.id)).toEqual(['dashboard', 'datatable', 'cashin', 'vendor']);
+    expect(mobileNavItemsFor('produksi').map((i) => i.id)).toEqual(['produksi', 'data-customer', 'invoice', 'size-chart']);
+    expect(mobileNavItemsFor('penawaran').map((i) => i.id)).toEqual(['produksi', 'data-customer', 'invoice', 'penawaran']);
+    expect(mobileNavItemsFor('kalender').map((i) => i.id)).toEqual(['produksi', 'data-customer', 'invoice', 'kalender']);
   });
+
+  it('route Fase 3 terpetakan ke menu yang benar', () => {
+    expect(resolveActiveNavId('/vendor', null)).toBe('data-vendor');
+    expect(resolveActiveNavId('/produksi', null)).toBe('produksi');
+    expect(resolveActiveNavId('/cost-profit', null)).toBe('cost-profit');
+    expect(resolveActiveNavId('/', 'vendor')).toBe('vendor');
+  });
+
 });
 
 describe('legacy formatters', () => {

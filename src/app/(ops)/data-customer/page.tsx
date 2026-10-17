@@ -181,7 +181,7 @@ function DataCustomerContent() {
   return (
     <>
       <PageHeader
-        eyebrow={<EyebrowBadge>Operasional</EyebrowBadge>}
+        eyebrow={<EyebrowBadge>Produksi</EyebrowBadge>}
         title="Data Customer"
         subtitle="Seluruh order produksi: identitas customer, spesifikasi produksi, rincian qty per jenis lengan, dan vendor. Default menampilkan order mulai Oktober 2026."
         actions={

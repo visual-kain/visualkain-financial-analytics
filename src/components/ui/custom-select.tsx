@@ -19,6 +19,9 @@ interface CustomSelectProps {
   placeholder?: string;
   icon?: React.ReactNode;
   className?: string;
+  disabled?: boolean;
+  id?: string;
+  'aria-label'?: string;
 }
 
 export function CustomSelect({
@@ -28,14 +31,19 @@ export function CustomSelect({
   placeholder = 'Pilih...',
   icon,
   className = '',
+  disabled = false,
+  id,
+  'aria-label': ariaLabel,
 }: CustomSelectProps) {
   const selectedOption = options.find((o) => o.value === value);
 
   return (
-    <SelectPrimitive.Root value={value} onValueChange={onValueChange}>
+    <SelectPrimitive.Root value={value} onValueChange={onValueChange} disabled={disabled}>
       <SelectPrimitive.Trigger
+        id={id}
+        aria-label={ariaLabel}
         className={cn(
-          'group inline-flex h-9 min-w-0 items-center justify-between gap-1.5 sm:gap-2 rounded-xl border border-slate-200 bg-white px-2.5 sm:px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 active:scale-[0.98] cursor-pointer',
+          'group inline-flex h-9 min-w-0 items-center justify-between gap-1.5 sm:gap-2 rounded-xl border border-slate-200 bg-white px-2.5 sm:px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50',
           className
         )}
       >

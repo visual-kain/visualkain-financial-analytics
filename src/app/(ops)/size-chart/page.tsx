@@ -59,7 +59,7 @@ function SizeChartContent() {
   return (
     <>
       <PageHeader
-        eyebrow={<EyebrowBadge>Operasional</EyebrowBadge>}
+        eyebrow={<EyebrowBadge>Produksi</EyebrowBadge>}
         title="Size Chart"
         subtitle="Kelola ukuran panjang dan lebar per size (XS sampai 5XL). Size chart dipilih di form order dan tercetak di halaman 3 techpack."
         actions={

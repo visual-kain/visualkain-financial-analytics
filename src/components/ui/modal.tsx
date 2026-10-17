@@ -35,7 +35,8 @@ export function Modal({ open, onClose, title, description, children, footer, siz
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy) onClose();
+      // Esc yang sudah dipakai menutup dropdown/popup di dalam dialog tidak ikut menutup dialog.
+      if (e.key === 'Escape' && !busy && !e.defaultPrevented) onClose();
     };
     window.addEventListener('keydown', handler);
     const prev = document.body.style.overflow;

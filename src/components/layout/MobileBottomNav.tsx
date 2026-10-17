@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LayoutGrid, LogOut, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { NAV_GROUP_LABELS, groupedNavItems, mobileNavItemsFor, resolveActiveNavId } from '@/lib/navigation';
+import { NAV_SECTION_LABELS, groupedNavItems, mobileNavItemsFor, resolveActiveNavId, sectionOfNavId } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
 function MenuSheet({ open, activeId, onClose }: { open: boolean; activeId: string; onClose: () => void }) {
@@ -128,7 +128,7 @@ function MobileBottomNavInner() {
   const activeId = resolveActiveNavId(pathname, searchParams.get('tab'));
   const primary = mobileNavItemsFor(activeId);
   const activeInMenu = !primary.some((item) => item.id === activeId);
-  const section = primary[0]?.group === 'ringkasan' ? null : NAV_GROUP_LABELS[primary[0].group];
+  const section = NAV_SECTION_LABELS[sectionOfNavId(activeId)];
   const gridCols = { 1: 'grid-cols-2', 2: 'grid-cols-3', 3: 'grid-cols-4', 4: 'grid-cols-5' }[primary.length] ?? 'grid-cols-5';
 
   useEffect(() => {

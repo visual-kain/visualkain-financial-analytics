@@ -31,8 +31,8 @@ Status: `[ ]` belum, `[x]` selesai.
 - [ ] 20. `npm run lint`, `npm run test`, `npm run build`, `npm run context:validate`; cek layar 360/768/1440/1920 px; review independen.
 - [ ] 21. Update `docs/context/state.yaml`, `docs/specs/_index.md`, handoff.
 
-## Fase 3 (backlog, belum dikerjakan)
-- [ ] 22. Master Vendor.
-- [ ] 23. Kalender Produksi.
-- [ ] 24. Cost & Profit.
-- [ ] 25. Ringkasan operasional.
+## Fase 3
+- [x] 22. Data Vendor (`/vendor`). _US-13.15_
+- [x] 23. Kalender Produksi (`/kalender`). _US-13.16, K-28_
+- [x] 24. Cost & Profit (`/cost-profit`). _US-13.17_
+- [x] 25. Ringkasan Produksi (`/produksi`) + navigasi dua section. _US-13.14, K-27_
