@@ -19,6 +19,7 @@ import { buildCashOutflowEntries } from '@/lib/financial-calculator';
 import { exportCashOutflowToExcel } from '@/lib/excel-export';
 import { Button } from '@/components/ui/button';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { CreatorLabel } from '@/components/ui/creator-label';
 import {
   WalletCards,
   TrendingDown,
@@ -646,6 +647,7 @@ export function CashOutflowSection({
                     <div className="text-[11px] font-medium text-slate-600 leading-snug line-clamp-2" title={item.keterangan}>
                       {item.keterangan}
                     </div>
+                    <CreatorLabel audit={item} />
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 min-w-0">
@@ -706,6 +708,7 @@ export function CashOutflowSection({
                 <th className="px-4 py-3">REFERENSI / VENDOR</th>
                 <th className="px-4 py-3">KATEGORI</th>
                 <th className="px-4 py-3">KETERANGAN</th>
+                <th className="px-4 py-3">DICATAT OLEH</th>
                 <th className="px-4 py-3 text-right">JUMLAH (RP)</th>
                 <th className="px-4 py-3 text-center">AKSI</th>
               </tr>
@@ -713,7 +716,7 @@ export function CashOutflowSection({
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {paginatedEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Filter className="h-8 w-8 text-slate-300" />
                       <p className="text-xs font-semibold text-slate-600">
@@ -749,6 +752,9 @@ export function CashOutflowSection({
                       </span>
                     </td>
                     <td className="px-4 py-3.5 font-medium text-slate-800">{item.keterangan}</td>
+                    <td className="px-4 py-3.5 max-w-[150px]">
+                      <CreatorLabel audit={item} />
+                    </td>
                     <td className="px-4 py-3.5 text-right font-mono font-bold text-rose-600 tabular-num">
                       {formatRupiah(item.nominal)}
                     </td>

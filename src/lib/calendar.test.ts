@@ -147,7 +147,7 @@ describe('deadlines', () => {
     expect(getDeadlineStatus(undefined)).toBeNull();
     expect(getDeadlineStatus([])).toBeNull();
     expect(getDeadlineStatus([{ status: 'completed' }, { status: 'completed' }])).toBe('completed');
-    expect(getDeadlineStatus([{ status: 'completed' }, { status: 'qc' }])).toBe('active');
+    expect(getDeadlineStatus([{ status: 'completed' }, { status: 'production' }])).toBe('active');
   });
 
   it('lists holidays and delivered orders of the month in date order', () => {

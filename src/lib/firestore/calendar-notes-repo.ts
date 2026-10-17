@@ -1,6 +1,8 @@
 import { addDoc, collection, deleteDoc, doc, onSnapshot, type Unsubscribe } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { normalizeCalendarNote, sortCalendarNotes, type CalendarNote } from '@/lib/calendar';
+import { createdStamp } from '@/lib/audit';
+import { currentActor } from '@/lib/firestore/actor';
 
 export const CALENDAR_NOTES_COLLECTION = 'calendarNotes';
 
@@ -24,6 +26,7 @@ export async function addCalendarNote(date: string, text: string): Promise<strin
     date,
     text: text.trim(),
     createdAt: new Date().toISOString(),
+    ...createdStamp(currentActor()),
   });
   return ref.id;
 }

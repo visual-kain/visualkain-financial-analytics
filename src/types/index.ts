@@ -1,3 +1,4 @@
+import type { AuditFields } from '@/lib/audit';
 /**
  * Kontrak Tipe Data Finansial VisualKain 2026
  * Sumber Spesifikasi: docs/specs/design.md & Dokumen_Konfirmasi_Fitur_Update_VisualKain.pdf
@@ -17,7 +18,7 @@ export interface BiayaTambahanItem {
   sumber: BiayaTambahanSumber;
 }
 
-export interface CashInflowEntry {
+export interface CashInflowEntry extends AuditFields {
   id: string;
   tanggal: string;              // YYYY-MM-DD
   sumber: 'order' | 'manual';   // 'order' dari invoice konsumen, 'manual' dari koleksi kas
@@ -31,7 +32,7 @@ export interface CashInflowEntry {
   rawOrder?: Order;             // Referensi order lengkap untuk modal inspeksi
 }
 
-export interface CustomerPayment {
+export interface CustomerPayment extends AuditFields {
   id: string;               // ID unik pembayaran
   orderId: string;          // Relasi ke order.id
   noInv: string;            // Nomor invoice acuan
@@ -45,7 +46,7 @@ export interface CustomerPayment {
   createdAt: string;
 }
 
-export interface VendorPayment {
+export interface VendorPayment extends AuditFields {
   id: string;
   orderId?: string;
   vendorId?: string;
@@ -127,7 +128,7 @@ export interface VendorDebtBreakdown {
   orders: Order[];
 }
 
-export interface MasterFinanceRow {
+export interface MasterFinanceRow extends AuditFields {
   id: string;
   noInv: string;
   tanggalInv: string;
@@ -186,7 +187,7 @@ export type CashOutflowCategory =
   | 'Pengembalian Dana Investor'
   | 'Bagi Hasil Investor';
 
-export interface CashOutflowEntry {
+export interface CashOutflowEntry extends AuditFields {
   id: string;
   tanggal: string;
   sumber: 'order' | 'manual';
@@ -201,7 +202,7 @@ export interface CashOutflowEntry {
   rawTransaction?: CashTransaction;
 }
 
-export interface CashTransaction {
+export interface CashTransaction extends AuditFields {
   id: string;
   tanggal: string;
   tipe: 'masuk' | 'keluar';

@@ -3,7 +3,9 @@
  * Jumlah termin tidak dibatasi: nomor urut dan label dihasilkan dari data, bukan dari daftar jenis tetap.
  */
 
-export interface LedgerEntry {
+import type { AuditFields } from '@/lib/audit';
+
+export interface LedgerEntry extends AuditFields {
   id: string;
   tanggal: string;
   nominal: number;

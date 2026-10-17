@@ -15,6 +15,8 @@ import { isPinjamanEntry } from '@/lib/order-payments';
 import { mapFinanceOrderDoc } from '@/lib/finance-order-mapper';
 import { isFromFinanceStartDate, normalizeKategoriKasMasuk, todayInJakarta } from '@/lib/constants';
 import { toPersistedLabel } from '@/lib/payment-ledger';
+import { createdStamp, pickAudit, updatedStamp } from '@/lib/audit';
+import { currentActor } from '@/lib/firestore/actor';
 import { validateVendorName } from '@/lib/vendor-ref';
 import { INVESTOR_COLLECTION, investorJenisFromKategori, mapInvestorDoc } from '@/lib/investor-ledger';
 import type { Order, CashTransaction, CustomerPayment } from '@/types';
@@ -183,6 +185,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
               nominal: Number(kd.jumlah || kd.nominal || 0),
               kategori: (tipe === 'masuk' ? normalizeKategoriKasMasuk(kd.kategori) : kd.kategori || 'Biaya Lain') as CashTransaction['kategori'],
               keterangan: kd.keterangan || '-',
+              ...pickAudit(kd),
             };
             if (typeof kd.investorNama === 'string' && kd.investorNama.trim()) tx.investorNama = kd.investorNama.trim();
             if (typeof kd.jatuhTempo === 'string' && kd.jatuhTempo) tx.jatuhTempo = kd.jatuhTempo;
@@ -252,6 +255,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
       const firestorePayload: Record<string, unknown> = {
         ...data,
         updatedAt: serverTimestamp(),
+        ...updatedStamp(currentActor()),
       };
 
       if (data.totalDibayarKeVendor !== undefined) {
@@ -273,6 +277,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
           label: toPersistedLabel(p.label),
           keterangan: p.keterangan || (p.jenis === 'dp' ? 'DP Pembayaran' : 'Pembayaran Termin'),
           createdAt: p.createdAt || new Date().toISOString(),
+          ...pickAudit(p),
         }));
         const riwayatPembayaranFirestore = sanitizedCustomerList.map((p) => ({
           id: p.id,
@@ -284,6 +289,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
           jenis: p.jenis,
           terminKe: p.terminKe,
           label: p.label,
+          ...pickAudit(p),
         }));
         const rawOrder = ordersRef.current.find((o) => o.id === orderId)?.rawOrder;
         // ID yang pernah atau sedang ada di pembayaranList adalah milik app ini; sisanya entri pinjaman dari luar yang harus dipertahankan.
@@ -316,6 +322,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
           keterangan: vp.keterangan || vp.catatan || 'Transfer BCA',
           catatan: vp.catatan || vp.keterangan || 'Transfer BCA',
           createdAt: vp.createdAt || new Date().toISOString(),
+          ...pickAudit(vp),
         }));
       }
 
@@ -339,6 +346,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
   const addKas = useCallback(async (data: Omit<CashTransaction, 'id'>): Promise<string> => {
     let newId: string;
     const investorJenis = investorJenisFromKategori(data.kategori);
+    const stamp = createdStamp(currentActor());
     try {
       // Transaksi investor masuk ke koleksi sendiri supaya tidak ikut terhitung di aplikasi operasional yang membaca `kas`.
       const ref = investorJenis
@@ -350,6 +358,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
             investorNama: data.investorNama || '',
             ...(data.jatuhTempo ? { jatuhTempo: data.jatuhTempo } : {}),
             createdAt: serverTimestamp(),
+            ...stamp,
           })
         : await addDoc(collection(db, 'kas'), {
             tanggal: data.tanggal,
@@ -359,6 +368,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
             jumlah: data.nominal,
             nominal: data.nominal,
             createdAt: serverTimestamp(),
+            ...stamp,
           });
       newId = ref.id;
     } catch (err: unknown) {
@@ -376,6 +386,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
         ...(data.investorNama ? { investorNama: data.investorNama } : {}),
         ...(data.jatuhTempo ? { jatuhTempo: data.jatuhTempo } : {}),
         ...(investorJenis ? { koleksi: 'investor' as const } : {}),
+        ...pickAudit(stamp),
       };
       setCashTransactions((prev) =>
         prev.some((t) => t.id === newId) ? prev : sortKasDesc([newTx, ...prev])
@@ -396,7 +407,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
       );
 
       const isInvestorDoc = previous?.koleksi === 'investor';
-      const payload: Record<string, unknown> = { updatedAt: serverTimestamp() };
+      const payload: Record<string, unknown> = { updatedAt: serverTimestamp(), ...updatedStamp(currentActor()) };
       if (data.tanggal !== undefined) payload.tanggal = data.tanggal;
       if (data.keterangan !== undefined) payload.keterangan = data.keterangan;
       if (data.nominal !== undefined) {
@@ -452,7 +463,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
     const invalid = validateVendorName(clean, vendorsRef.current);
     if (invalid) throw new Error(invalid);
     try {
-      const ref = await addDoc(collection(db, 'vendors'), { nama: clean, pic: '-', createdAt: serverTimestamp() });
+      const ref = await addDoc(collection(db, 'vendors'), { nama: clean, pic: '-', createdAt: serverTimestamp(), ...createdStamp(currentActor()) });
       const created: VendorInfo = { id: ref.id, nama: clean, pic: '-' };
       vendorsMapRef.current.set(ref.id, clean);
       setVendors((prev) => (prev.some((v) => v.id === ref.id) ? prev : [...prev, created]));
@@ -473,7 +484,7 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
     vendorsMapRef.current.set(id, clean);
     renameOrders(clean);
     try {
-      await updateDoc(doc(db, 'vendors', id), { nama: clean, updatedAt: serverTimestamp() });
+      await updateDoc(doc(db, 'vendors', id), { nama: clean, updatedAt: serverTimestamp(), ...updatedStamp(currentActor()) });
     } catch (err: unknown) {
       if (previous) {
         setVendors((prev) => prev.map((v) => (v.id === id ? previous : v)));

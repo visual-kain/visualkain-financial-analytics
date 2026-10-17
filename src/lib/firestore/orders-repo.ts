@@ -16,7 +16,9 @@ import {
 import { db } from '@/lib/firebase';
 import { countPcs } from '@/lib/legacy/calculations';
 import { generateInvoiceNumber } from '@/lib/legacy/formatters';
-import { STATUS_LABELS, isOrderStatus, type LegacyOrder, type OrderStatus } from '@/lib/legacy/types';
+import { STATUS_LABELS, normalizeOrderStatus, type LegacyOrder, type OrderStatus } from '@/lib/legacy/types';
+import { updatedStamp } from '@/lib/audit';
+import { currentActor } from '@/lib/firestore/actor';
 
 interface TrackingSource {
   noInv: string;
@@ -37,7 +39,7 @@ type StatusHistory = Array<{ status: OrderStatus; at: string }>;
  */
 export async function syncTracking(source: TrackingSource, previousStatus: OrderStatus | null): Promise<void> {
   if (!source.noInv) return;
-  const status: OrderStatus = isOrderStatus(source.status) ? source.status : 'received';
+  const status: OrderStatus = normalizeOrderStatus(source.status);
   const ref = doc(db, 'tracking', source.noInv);
 
   let history: StatusHistory = [];
@@ -117,7 +119,7 @@ export async function createOrder(data: Record<string, unknown>): Promise<string
 }
 
 export async function updateOrder(existing: LegacyOrder, data: Record<string, unknown>): Promise<void> {
-  await updateDoc(doc(db, 'orders', existing.id), { ...data, updatedAt: Timestamp.now() });
+  await updateDoc(doc(db, 'orders', existing.id), { ...data, updatedAt: Timestamp.now(), ...updatedStamp(currentActor()) });
   try {
     await syncTracking({ ...existing, ...data, noInv: existing.noInv } as TrackingSource, existing.status);
   } catch (err) {

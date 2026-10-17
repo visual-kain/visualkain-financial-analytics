@@ -31,6 +31,7 @@ import {
 } from '@/lib/constants';
 import type { Order, CustomerPayment, BiayaTambahanItem } from '@/types';
 import { toast, Toaster } from 'sonner';
+import { pickAudit } from '@/lib/audit';
 import {
   ArrowLeft,
   Save,
@@ -130,6 +131,7 @@ export default function OrderEditFinancePage() {
           jenis: p.jenis,
           keterangan: p.keterangan,
           createdAt: p.createdAt,
+          ...pickAudit(p),
         })),
         netTagihan,
         'customer'
@@ -296,6 +298,7 @@ export default function OrderEditFinancePage() {
           label: row.label,
           keterangan: row.keterangan || 'Transfer BCA',
           createdAt: row.createdAt || new Date().toISOString(),
+          ...pickAudit(row),
         };
       });
 

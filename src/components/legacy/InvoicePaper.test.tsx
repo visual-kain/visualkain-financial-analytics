@@ -17,7 +17,7 @@ describe('InvoicePaper (formal)', () => {
     expect(screen.getByText('Pembayaran:')).toBeTruthy();
     expect(screen.getByText(/Mandiri/)).toBeTruthy();
     expect(hasColoredBackground(container)).toBe(false);
-    expect(screen.getByText('Pembayaran Dikonfirmasi')).toBeTruthy();
+    expect(screen.getByText('Menunggu Pembayaran')).toBeTruthy();
   });
 
   it('menampilkan detail DP: status, baris DP diterima dengan tanggal, dan sisa DP target', () => {
@@ -43,5 +43,11 @@ describe('InvoicePaper (formal)', () => {
     expect(screen.getByText('Lunas 100%')).toBeTruthy();
     expect(screen.getByText('LUNAS')).toBeTruthy();
     expect(screen.queryByText(/Sisa DP/)).toBeNull();
+  });
+
+  it('total tagihan mengikuti finansial: biaya tambahan customer tampil sebagai baris tersendiri', () => {
+    render(<InvoicePaper order={{ ...order, biayaTambahanCust: 900000, biayaTambahanCustNotes: 'Ongkir dadakan' } as LegacyOrder} />);
+    expect(screen.getByText('Ongkir dadakan')).toBeTruthy();
+    expect(screen.getByText('Total Tagihan').parentElement!.textContent).toContain('1.900.000');
   });
 });

@@ -9,6 +9,8 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { getInitials, getUserDisplayName } from '@/lib/legacy/formatters';
+import { isProduksiEmail } from '@/lib/user-roles';
+import { EMPTY_ACTOR, type Actor } from '@/lib/audit';
 import { useRouter } from 'next/navigation';
 
 export interface UserProfile {
@@ -37,7 +39,7 @@ function buildProfile(firebaseUser: User): UserProfile {
   return {
     name,
     shortName: name.split(/\s+/).slice(0, 2).join(' '),
-    role: 'Tim VisualKain',
+    role: isProduksiEmail(firebaseUser.email) ? 'Tim Produksi' : 'Tim VisualKain',
     email: firebaseUser.email || '',
     initials: getInitials(name),
     department: 'VisualKain',
@@ -110,4 +112,11 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+
+/** Versi tanpa error di luar AuthProvider (test komponen, pratinjau): mengembalikan akun aktif untuk stempel K-36. */
+export function useCurrentActor(): Actor {
+  const context = useContext(AuthContext);
+  const profile = context?.profile;
+  return profile ? { name: profile.name, email: profile.email } : EMPTY_ACTOR;
 }

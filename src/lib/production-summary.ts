@@ -6,8 +6,9 @@ import { STATUS_ORDER, type LegacyOrder, type OrderStatus } from '@/lib/legacy/t
  * OperationalRadarCard, leaderboard bahan). Hanya angka operasional; angka uang ada di Ringkasan Finansial.
  */
 
-export const IN_PRODUCTION: OrderStatus[] = ['production', 'finishing', 'qc', 'packing'];
-export const QUEUE: OrderStatus[] = ['received', 'payment'];
+export const IN_PRODUCTION: OrderStatus[] = ['production'];
+// Kartu "Antrean" StatsGrid visualkaindb main: diterima, pembayaran, dan approval desain.
+export const QUEUE: OrderStatus[] = ['received', 'payment', 'approval'];
 
 export interface StatusBucket {
   count: number;

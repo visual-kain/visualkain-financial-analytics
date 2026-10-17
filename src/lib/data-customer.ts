@@ -2,6 +2,7 @@ import { calculateTotals } from '@/lib/legacy/calculations';
 import { timestampToDate } from '@/lib/legacy/formatters';
 import { STATUS_ORDER, type LegacyOrder, type OrderStatus } from '@/lib/legacy/types';
 import { isArchivedOrder } from '@/lib/order-form';
+import { pickAudit } from '@/lib/audit';
 
 export type DataCustomerScope = 'current' | 'archive';
 export type StatusFilter = OrderStatus | 'all';
@@ -18,6 +19,7 @@ export interface DataCustomerRow {
   jenisBahan: string;
   warna: string;
   createdBy: string;
+  updatedBy?: string;
   accCustUrl: string;
   qtyTotal: number;
   qtyTanpaLengan: number;
@@ -48,6 +50,7 @@ export function toDataCustomerRow(order: LegacyOrder, vendorName: string): DataC
     jenisBahan: text(order.jenisBahan),
     warna: text(order.warna),
     createdBy: text(order.createdBy),
+    ...pickAudit({ updatedBy: order.updatedBy }),
     accCustUrl: text(order.accCustUrl),
     qtyTotal: totals.totalPesanan,
     qtyTanpaLengan: totals.qtyPerKategori.tanpaLengan,

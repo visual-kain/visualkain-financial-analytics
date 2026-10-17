@@ -1,22 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
-import { Pencil, Ruler, Trash2 } from 'lucide-react';
+import { Download, Loader2, Pencil, Ruler, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { SIZES } from '@/lib/legacy/calculations';
 import type { LegacyOrder, SizeChart } from '@/lib/legacy/types';
 import { cn } from '@/lib/utils';
+import { SizeChartGuide, downloadSizeChartJpg, sizeChartFileName } from './SizeChartGuide';
+import { CreatorLabel } from '@/components/ui/creator-label';
 
 function value(chart: SizeChart, size: string, key: 'panjang' | 'lebar'): number {
   return Number(chart.sizes?.[size]?.[key] ?? 0) || 0;
-}
-
-function range(chart: SizeChart, key: 'panjang' | 'lebar'): string {
-  const values = SIZES.map((s) => value(chart, s, key)).filter((v) => v > 0);
-  if (values.length === 0) return '-';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return min === max ? `${min} cm` : `${min}–${max} cm`;
 }
 
 interface SizeChartDetailProps {
@@ -26,9 +21,27 @@ interface SizeChartDetailProps {
   onDelete: () => void;
 }
 
-/** Panel detail satu size chart: tabel ukuran melebar di desktop, tegak di HP. Angka tidak diubah. */
+/**
+ * Panel detail satu size chart dengan poster Measurement Guide desain klien (17 Okt 2026) yang bisa diunduh
+ * sebagai JPG untuk dikirim ke customer. Angka ukuran tidak diubah.
+ */
 export function SizeChartDetail({ chart, orders, onEdit, onDelete }: SizeChartDetailProps) {
   const recent = orders.slice(0, 6);
+  const guideRef = useRef<SVGSVGElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const download = async () => {
+    if (!guideRef.current || downloading) return;
+    setDownloading(true);
+    try {
+      await downloadSizeChartJpg(guideRef.current, sizeChartFileName(chart));
+      toast.success('Size chart diunduh sebagai JPG.');
+    } catch {
+      toast.error('Gagal membuat JPG. Muat ulang halaman lalu coba lagi.');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-card-double">
@@ -39,8 +52,17 @@ export function SizeChartDetail({ chart, orders, onEdit, onDelete }: SizeChartDe
           <p className="mt-1 text-xs text-slate-500">
             {orders.length > 0 ? `Dipakai di ${orders.length} order` : 'Belum dipakai order'} &bull; Satuan centimeter (cm)
           </p>
+          <CreatorLabel audit={chart} className="mt-1" />
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+          <button
+            type="button"
+            onClick={download}
+            disabled={downloading}
+            className="col-span-2 inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-teal-700 bg-teal-600 px-4 text-xs font-medium text-white shadow-btn-primary hover:bg-teal-700 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 sm:h-10"
+          >
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download JPG
+          </button>
           <button
             type="button"
             onClick={onEdit}
@@ -58,97 +80,56 @@ export function SizeChartDetail({ chart, orders, onEdit, onDelete }: SizeChartDe
         </div>
       </header>
 
-      <div className="grid gap-5 p-4 sm:p-5 md:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)]">
-        <figure className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-          <img src="/img/shirt.jpg" alt="Diagram acuan ukur baju" className="h-44 w-auto object-contain mix-blend-multiply xl:h-52" />
-          <div className="grid w-full grid-cols-2 gap-2 text-center">
-            <div className="rounded-xl border border-slate-200 bg-white px-2 py-2">
-              <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Panjang</span>
-              <span className="block text-xs font-bold tabular-nums text-slate-800">{range(chart, 'panjang')}</span>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white px-2 py-2">
-              <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-400">Lebar</span>
-              <span className="block text-xs font-bold tabular-nums text-slate-800">{range(chart, 'lebar')}</span>
-            </div>
-          </div>
-          <figcaption className="text-center text-[11px] text-slate-500">* Ukuran dapat berbeda ±1-2 cm dari spesifikasi.</figcaption>
+      <div className="space-y-4 p-3 sm:p-5">
+        <figure className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <SizeChartGuide ref={guideRef} chart={chart} className="block h-auto w-full" />
         </figure>
 
-        <div className="min-w-0 space-y-4">
-          <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 md:block">
-            <table className="w-full min-w-[560px] text-sm">
-              <thead>
-                <tr className="bg-slate-100 text-[11px] font-bold uppercase tracking-wide text-slate-600">
-                  <th className="px-3 py-3 text-left">Size</th>
-                  {SIZES.map((s) => (
-                    <th key={s} className="px-2 py-3 text-center">
-                      {s}
-                    </th>
-                  ))}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 md:hidden">
+          <p className="border-b border-slate-100 bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-500">Tabel ukuran untuk dibaca di HP</p>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-100 text-[11px] font-bold uppercase tracking-wide text-slate-600">
+                <th className="px-3 py-2.5 text-left">Size</th>
+                <th className="px-3 py-2.5 text-right">Panjang (cm)</th>
+                <th className="px-3 py-2.5 text-right">Lebar (cm)</th>
+              </tr>
+            </thead>
+            <tbody className="font-mono tabular-nums">
+              {SIZES.map((s) => (
+                <tr key={s} className="border-t border-slate-100">
+                  <td className="px-3 py-2.5 font-sans font-bold text-slate-800">{s}</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-slate-900">{value(chart, s, 'panjang')}</td>
+                  <td className="px-3 py-2.5 text-right font-semibold text-slate-900">{value(chart, s, 'lebar')}</td>
                 </tr>
-              </thead>
-              <tbody className="tabular-nums">
-                {(['panjang', 'lebar'] as const).map((key, idx) => (
-                  <tr key={key} className={cn(idx === 0 && 'border-b border-slate-100')}>
-                    <th scope="row" className="whitespace-nowrap px-3 py-3.5 text-left text-xs font-bold text-slate-700">
-                      {key === 'panjang' ? 'Panjang (cm)' : 'Lebar (cm)'}
-                    </th>
-                    {SIZES.map((s) => (
-                      <td key={s} className="px-2 py-3.5 text-center text-base font-bold text-slate-900">
-                        {value(chart, s, key)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-          <div className="overflow-hidden rounded-2xl border border-slate-200 md:hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-100 text-[11px] font-bold uppercase tracking-wide text-slate-600">
-                  <th className="px-3 py-2.5 text-left">Size</th>
-                  <th className="px-3 py-2.5 text-right">Panjang (cm)</th>
-                  <th className="px-3 py-2.5 text-right">Lebar (cm)</th>
-                </tr>
-              </thead>
-              <tbody className="tabular-nums">
-                {SIZES.map((s) => (
-                  <tr key={s} className="border-t border-slate-100">
-                    <td className="px-3 py-2.5 font-bold text-slate-800">{s}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-slate-900">{value(chart, s, 'panjang')}</td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-slate-900">{value(chart, s, 'lebar')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="rounded-2xl border border-slate-200 p-3.5 sm:p-4">
+          <div className="mb-2.5 flex items-center justify-between gap-2">
+            <h3 className="text-xs font-bold text-slate-800">Order yang memakai size chart ini</h3>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold tabular-nums text-slate-600">{orders.length}</span>
           </div>
-
-          <div className="rounded-2xl border border-slate-200 p-3.5 sm:p-4">
-            <div className="mb-2.5 flex items-center justify-between gap-2">
-              <h3 className="text-xs font-bold text-slate-800">Order yang memakai size chart ini</h3>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold tabular-nums text-slate-600">{orders.length}</span>
-            </div>
-            {recent.length === 0 ? (
-              <p className="text-xs text-slate-500">Belum ada order. Pilih size chart ini di form order agar tercetak di halaman 3 techpack.</p>
-            ) : (
-              <ul className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
-                {recent.map((o) => (
-                  <li key={o.id}>
-                    <Link
-                      href={`/data-customer/${o.id}`}
-                      className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-xs transition-colors hover:border-teal-300 hover:bg-teal-50/50"
-                    >
-                      <span className="shrink-0 font-extrabold text-teal-700">{o.noInv}</span>
-                      <span className="min-w-0 truncate text-slate-600">{o.namaCustomer}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {orders.length > recent.length && <p className="mt-2 text-[11px] text-slate-500">+{orders.length - recent.length} order lainnya di Data Customer.</p>}
-          </div>
+          {recent.length === 0 ? (
+            <p className="text-xs text-slate-500">Belum ada order. Pilih size chart ini di form order agar tercetak di halaman 3 techpack.</p>
+          ) : (
+            <ul className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
+              {recent.map((o) => (
+                <li key={o.id}>
+                  <Link
+                    href={`/data-customer/${o.id}`}
+                    className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-xs transition-colors hover:border-teal-300 hover:bg-teal-50/50"
+                  >
+                    <span className="shrink-0 font-extrabold text-teal-700">{o.noInv}</span>
+                    <span className="min-w-0 truncate text-slate-600">{o.namaCustomer}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {orders.length > recent.length && <p className="mt-2 text-[11px] text-slate-500">+{orders.length - recent.length} order lainnya di Data Customer.</p>}
         </div>
       </div>
     </section>
@@ -191,6 +172,7 @@ export function SizeChartList({ charts, selectedId, usage, onSelect }: SizeChart
                 <span className="min-w-0">
                   <span className="line-clamp-2 text-sm font-bold text-slate-900">{chart.nama}</span>
                   <span className="mt-0.5 block text-[11px] text-slate-500">{used > 0 ? `Dipakai ${used} order` : 'Belum dipakai'}</span>
+                  <CreatorLabel audit={chart} className="mt-0.5" showEditor={false} />
                 </span>
               </button>
             </li>

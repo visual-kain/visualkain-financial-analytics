@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { homeRouteFor } from '@/lib/user-roles';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
@@ -20,9 +21,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       router.replace('/login');
     }
     if (isAuthenticated && isLoginPage) {
-      router.replace('/');
+      router.replace(homeRouteFor(profile?.email));
     }
-  }, [isAuthenticated, loading, isLoginPage, isDevPreview, router]);
+  }, [isAuthenticated, loading, isLoginPage, isDevPreview, router, profile?.email]);
 
   if (isDevPreview) return <>{children}</>;
 

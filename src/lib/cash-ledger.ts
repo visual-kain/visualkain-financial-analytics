@@ -6,6 +6,7 @@ import type { CashInflowEntry, CashTransaction, InflowCategoryType, Order } from
 import { FINANCE_START_DATE } from './constants';
 import { buildCashOutflowEntries } from './financial-calculator';
 import { isInvestorInflow, KATEGORI_INVESTOR } from './investor-ledger';
+import { pickAudit } from './audit';
 
 export interface CashEntry {
   id: string;
@@ -75,6 +76,7 @@ export function buildCashInflowEntries(orders: Order[], transactions: CashTransa
             p.keterangan || (jenis === 'dp' ? 'Pembayaran DP 1' : jenis === 'pelunasan' ? 'Pelunasan Order' : 'Pembayaran Termin'),
           nominal: p.nominal,
           rawOrder: order,
+          ...pickAudit(p),
         });
       });
     } else if (order.totalUangMasukCustomer > 0) {
@@ -117,6 +119,7 @@ export function buildCashInflowEntries(orders: Order[], transactions: CashTransa
         projectName: '-',
         keterangan: tx.keterangan || 'Dana Investor',
         nominal: tx.nominal,
+        ...pickAudit(tx),
       });
       return;
     }
@@ -131,6 +134,7 @@ export function buildCashInflowEntries(orders: Order[], transactions: CashTransa
       projectName: '-',
       keterangan: tx.keterangan || 'Kas Masuk Non-Order',
       nominal: tx.nominal,
+      ...pickAudit(tx),
     });
   });
 

@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Eye, FileText, Pencil, Shirt, Trash2 } from 'lucide-react';
+import { FileText, Pencil, Shirt, Trash2 } from 'lucide-react';
 import { AccImageThumb } from '@/components/ops/AccImageThumb';
 import { OrderStatusBadge } from '@/components/ops/OrderStatusBadge';
 import { Shimmer } from '@/components/ui/shimmer';
 import { formatDateTime, formatRelativeTime } from '@/lib/legacy/formatters';
 import { formatShortIsoDate, isDeadlineOverdue, type DataCustomerRow } from '@/lib/data-customer';
 import { cn } from '@/lib/utils';
+import { CreatorLabel } from '@/components/ui/creator-label';
 
 export interface DataCustomerActions {
   onOpen: (row: DataCustomerRow) => void;
@@ -26,37 +27,54 @@ interface DataCustomerTableProps extends DataCustomerActions {
   emptyState: React.ReactNode;
 }
 
-const TH = 'border-b border-slate-200 bg-slate-100 px-3 py-2.5 text-left align-bottom text-[10.5px] font-bold uppercase leading-tight tracking-wide text-slate-600';
-const TD = 'border-b border-slate-100 px-3 py-3 align-top';
-const TEXT = 'whitespace-normal break-words leading-snug';
-const NUM = 'whitespace-nowrap text-center tabular-nums font-semibold text-slate-800';
+const TH = 'border-b border-slate-200 bg-slate-100 px-1.5 py-2 text-left align-bottom text-[9px] font-bold uppercase leading-tight text-slate-600 break-normal';
+const TD = 'border-b border-slate-100 px-1.5 py-2.5 align-top';
+const TEXT = 'whitespace-normal break-words hyphens-auto leading-snug';
+const NUM = 'text-center font-mono tabular-nums font-semibold text-slate-800';
+
+/**
+ * Lebar dasar tiap kolom. Tabel memakai table-fixed selebar layar: bila layar lebih lebar, sisa ruang dibagi
+ * proporsional; di bawah total lebar ini baru muncul scroll horizontal (feedback klien 17 Okt 2026, K-33).
+ */
+const COLS = [66, 84, 84, 58, 62, 56, 60, 44, 52, 38, 44, 44, 44, 44, 44, 60, 44, 90, 68];
+const STATUS_RIGHT = COLS[COLS.length - 1];
 
 /** Kolom sesuai screenshot klien ke-1 + STATUS (K-12); teks turun baris di lebar kolom tetap (K-6). */
 export function DataCustomerTable({ rows, loading, selectedId, onHover, today, emptyState, ...actions }: DataCustomerTableProps) {
   return (
     <div className="max-h-[calc(100vh-280px)] min-h-[320px] overflow-auto">
-      <table className="w-max min-w-full border-separate border-spacing-0 text-left text-xs text-slate-700">
+      <table
+        className="w-full table-fixed border-separate border-spacing-0 text-left text-[11px] text-slate-700"
+        style={{ minWidth: COLS.reduce((a, w) => a + w, 0) }}
+      >
+        <colgroup>
+          {COLS.map((w, i) => (
+            <col key={i} style={{ width: w }} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
-            <th className={cn(TH, 'sticky left-0 top-0 z-30 w-[112px] min-w-[112px] bg-teal-50 text-teal-800 shadow-[1px_0_0_0_#e2e8f0]')}>No Inv</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[176px] min-w-[176px]')}>Nama Customer</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[200px] min-w-[200px]')}>Nama Project</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[112px] min-w-[112px]')}>Delivery Date (Deadline)</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[150px] min-w-[150px]')}>Jenis Metode Produksi</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[120px] min-w-[120px]')}>Kategori</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[140px] min-w-[140px]')}>Jenis Bahan</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[110px] min-w-[110px]')}>Warna</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[120px] min-w-[120px]')}>Created By</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[84px] min-w-[84px] text-center')}>Raw Acc Cust</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[76px] min-w-[76px] bg-teal-50 text-center text-teal-800')}>Total (Qty)</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[80px] min-w-[80px] text-center')}>Total Tanpa Lengan</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[72px] min-w-[72px] text-center')}>Total Pendek</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[80px] min-w-[80px] text-center')}>Total 3/4 Tangan</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[76px] min-w-[76px] text-center')}>Total Panjang</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[140px] min-w-[140px]')}>Vendor</th>
-            <th className={cn(TH, 'sticky top-0 z-20 w-[110px] min-w-[110px]')}>Dibuat</th>
-            <th className={cn(TH, 'sticky right-[188px] top-0 z-30 w-[150px] min-w-[150px] text-center shadow-[-1px_0_0_0_#e2e8f0]')}>Status</th>
-            <th className={cn(TH, 'sticky right-0 top-0 z-30 w-[188px] min-w-[188px] text-center shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]')}>Aksi</th>
+            <th className={cn(TH, 'sticky left-0 top-0 z-30 bg-teal-50 text-teal-800 shadow-[1px_0_0_0_#e2e8f0]')}>No Inv</th>
+            <th className={cn(TH, 'sticky top-0 z-20')}>Nama Customer</th>
+            <th className={cn(TH, 'sticky top-0 z-20')}>Nama Project</th>
+            <th className={cn(TH, 'sticky top-0 z-20')}>Delivery Date (Deadline)</th>
+            <th className={cn(TH, 'sticky top-0 z-20')}>Jenis Metode Produksi</th>
+            <th className={cn(TH, 'sticky top-0 z-20')}>Kategori</th>
+            <th className={cn(TH, 'sticky top-0 z-20')}>Jenis Bahan</th>
+            <th className={cn(TH, 'sticky top-0 z-20')}>Warna</th>
+            <th className={cn(TH, 'sticky top-0 z-20')}>Created By</th>
+            <th className={cn(TH, 'sticky top-0 z-20 text-center')}>Raw Acc Cust</th>
+            <th className={cn(TH, 'sticky top-0 z-20 bg-teal-50 px-1 text-center text-teal-800')}>Total (Qty)</th>
+            <th className={cn(TH, 'sticky top-0 z-20 px-1 text-center')}>Total Tanpa Lengan</th>
+            <th className={cn(TH, 'sticky top-0 z-20 px-1 text-center')}>Total Pendek</th>
+            <th className={cn(TH, 'sticky top-0 z-20 px-1 text-center')}>Total 3/4 Tangan</th>
+            <th className={cn(TH, 'sticky top-0 z-20 px-1 text-center')}>Total Panjang</th>
+            <th className={cn(TH, 'sticky top-0 z-20')}>Vendor</th>
+            <th className={cn(TH, 'sticky top-0 z-20')}>Dibuat</th>
+            <th className={cn(TH, 'sticky top-0 z-30 text-center shadow-[-1px_0_0_0_#e2e8f0]')} style={{ right: STATUS_RIGHT }}>
+              Status
+            </th>
+            <th className={cn(TH, 'sticky right-0 top-0 z-30 text-center shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]')}>Aksi</th>
           </tr>
         </thead>
         <tbody>
@@ -90,20 +108,32 @@ export function DataCustomerTable({ rows, loading, selectedId, onHover, today, e
                   onClick={() => actions.onOpen(row)}
                   className={cn('group cursor-pointer transition-colors', selected ? 'bg-teal-50' : 'hover:bg-[#f6fbfb]')}
                 >
-                  <td className={cn(TD, 'sticky left-0 z-10 whitespace-nowrap font-bold text-teal-700 shadow-[1px_0_0_0_#e2e8f0]', stickyBg, selected && 'shadow-[inset_3px_0_0_0_#0d9488,1px_0_0_0_#e2e8f0]')}>
-                    {row.noInv || '-'}
+                  <td className={cn(TD, 'sticky left-0 z-10 shadow-[1px_0_0_0_#e2e8f0]', stickyBg, selected && 'shadow-[inset_3px_0_0_0_#0d9488,1px_0_0_0_#e2e8f0]')}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        actions.onOpen(row);
+                      }}
+                      title="Detail order"
+                      className="cursor-pointer whitespace-nowrap font-mono font-bold text-teal-700 underline-offset-2 hover:underline"
+                    >
+                      {row.noInv || '-'}
+                    </button>
                   </td>
                   <td className={cn(TD, TEXT, 'font-semibold text-slate-900')}>{row.namaCustomer || '-'}</td>
                   <td className={cn(TD, TEXT, 'text-slate-600')}>{row.namaProject || '-'}</td>
-                  <td className={cn(TD, 'whitespace-nowrap tabular-nums')}>
+                  <td className={cn(TD, 'tabular-nums')}>
                     <span className={cn(overdue && 'font-bold text-rose-700')}>{row.deadline ? formatShortIsoDate(row.deadline) : '-'}</span>
-                    {overdue && <span className="mt-0.5 block text-[10px] font-bold uppercase text-rose-600">Lewat deadline</span>}
+                    {overdue && <span className="mt-0.5 block text-[9px] font-bold uppercase leading-tight text-rose-600">Lewat deadline</span>}
                   </td>
                   <td className={cn(TD, TEXT)}>{row.jenisMetodeProduksi || '-'}</td>
                   <td className={cn(TD, TEXT)}>{row.kategoriOrder || '-'}</td>
                   <td className={cn(TD, TEXT)}>{row.jenisBahan || '-'}</td>
                   <td className={cn(TD, TEXT)}>{row.warna || '-'}</td>
-                  <td className={cn(TD, TEXT, 'text-slate-600')}>{row.createdBy || '-'}</td>
+                  <td className={cn(TD, TEXT)}>
+                    <CreatorLabel audit={row} className="text-[10.5px]" />
+                  </td>
                   <td className={cn(TD, 'text-center')} onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-center">
                       <AccImageThumb url={row.accCustUrl} label={`${row.noInv} - ${row.namaCustomer}`} />
@@ -115,13 +145,13 @@ export function DataCustomerTable({ rows, loading, selectedId, onHover, today, e
                   <td className={cn(TD, NUM)}>{row.qtyTigaPerempat}</td>
                   <td className={cn(TD, NUM)}>{row.qtyPanjang}</td>
                   <td className={cn(TD, TEXT)}>{row.vendorName}</td>
-                  <td className={cn(TD, 'whitespace-nowrap text-slate-600')} title={formatDateTime(row.createdAt)}>
+                  <td className={cn(TD, TEXT, 'text-slate-600')} title={formatDateTime(row.createdAt)}>
                     {formatRelativeTime(row.createdAt)}
                   </td>
-                  <td className={cn(TD, 'sticky right-[188px] z-10 text-center shadow-[-1px_0_0_0_#e2e8f0]', stickyBg)}>
-                    <OrderStatusBadge status={row.status} />
+                  <td className={cn(TD, 'sticky z-10 px-1 text-center shadow-[-1px_0_0_0_#e2e8f0]', stickyBg)} style={{ right: STATUS_RIGHT }}>
+                    <OrderStatusBadge status={row.status} compact className="gap-1 px-1.5 text-[9.5px]" />
                   </td>
-                  <td className={cn(TD, 'sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]', stickyBg)} onClick={(e) => e.stopPropagation()}>
+                  <td className={cn(TD, 'sticky right-0 z-10 px-1 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]', stickyBg)} onClick={(e) => e.stopPropagation()}>
                     <RowActions row={row} {...actions} />
                   </td>
                 </tr>
@@ -134,7 +164,7 @@ export function DataCustomerTable({ rows, loading, selectedId, onHover, today, e
   );
 }
 
-const ACTION_BTN = 'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-transform duration-150 active:scale-[0.96]';
+const ACTION_BTN = 'flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-transform duration-150 active:scale-[0.96]';
 // Versi HP: ikon + label agar maksud tombol jelas tanpa tooltip.
 const ACTION_BTN_LG = 'flex h-12 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border text-[10px] font-bold transition-transform duration-150 active:scale-[0.96]';
 
@@ -143,12 +173,8 @@ export function RowActions({ row, onOpen, onEdit, onTechpack, onInvoice, onDelet
   const btn = lg ? ACTION_BTN_LG : ACTION_BTN;
   const label = (text: string) => (lg ? <span className="truncate">{text}</span> : null);
   return (
-    <div className={cn('flex items-center gap-1.5', lg ? 'w-full' : 'justify-center')}>
-      {!lg && (
-        <button type="button" onClick={() => onOpen(row)} title="Detail order" aria-label={`Detail ${row.noInv}`} className={cn(btn, 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900')}>
-          <Eye className="h-3.5 w-3.5" />
-        </button>
-      )}
+    // Versi tabel memakai grid 2×2 agar kolom aksi sempit; detail dibuka lewat klik baris atau No Inv.
+    <div className={cn(lg ? 'flex w-full items-center gap-1.5' : 'grid grid-cols-2 justify-items-center gap-0.5')}>
       {!row.archived && (
         <button type="button" onClick={() => onEdit(row)} title="Edit order" aria-label={`Edit ${row.noInv}`} className={cn(btn, 'border-teal-200 bg-teal-50/90 text-teal-700 hover:bg-teal-100')}>
           <Pencil className="h-3.5 w-3.5" />

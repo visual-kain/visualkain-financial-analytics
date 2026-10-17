@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { collection, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { createdStamp, pickAudit, updatedStamp } from '@/lib/audit';
+import { currentActor } from '@/lib/firestore/actor';
 import {
   DEFAULT_REKENING,
   REKENING_COLLECTION,
@@ -43,6 +45,7 @@ export function useRekeningMaster(): UseRekeningMasterResult {
                   namaBank: String(data.namaBank || ''),
                   nomor: String(data.nomor || ''),
                   atasNama: String(data.atasNama || ''),
+                  ...pickAudit(data),
                 };
               })
               .filter((d) => d.kode && d.namaBank)
@@ -59,6 +62,8 @@ export function useRekeningMaster(): UseRekeningMasterResult {
   const accounts = useMemo(() => mergeRekening(DEFAULT_REKENING, docs), [docs]);
   const accountsRef = useRef(accounts);
   accountsRef.current = accounts;
+  const docsRef = useRef(docs);
+  docsRef.current = docs;
   const options = useMemo(() => toAccountOptions(accounts), [accounts]);
 
   const saveRekening = useCallback(async (input: RekeningInput, editingKode?: string | null): Promise<RekeningAccount> => {
@@ -72,7 +77,14 @@ export function useRekeningMaster(): UseRekeningMasterResult {
     };
     const kode = editingKode || clean.namaBank;
     const existing = accountsRef.current.find((a) => a.kode === kode);
-    await setDoc(doc(db, REKENING_COLLECTION, rekeningDocId(kode)), { kode, ...clean, updatedAt: serverTimestamp() });
+    // merge menjaga createdBy dokumen lama; pembuat dicatat hanya saat rekening pertama kali tersimpan di Firestore.
+    const actor = currentActor();
+    const isNewDoc = !docsRef.current.some((d) => d.kode === kode);
+    await setDoc(
+      doc(db, REKENING_COLLECTION, rekeningDocId(kode)),
+      { kode, ...clean, updatedAt: serverTimestamp(), ...(isNewDoc ? createdStamp(actor) : {}), ...updatedStamp(actor) },
+      { merge: true }
+    );
 
     const saved: RekeningAccount = { ...(existing ?? { isDefault: false }), kode, ...clean };
     setDocs((prev) => [...prev.filter((d) => d.kode !== kode), { kode, ...clean }]);

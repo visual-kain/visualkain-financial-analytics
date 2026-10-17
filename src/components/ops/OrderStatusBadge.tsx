@@ -5,22 +5,18 @@ import { cn } from '@/lib/utils';
 // Warna mengikuti kelompok tint baris visualkaindb: menunggu (amber), produksi (sky), kirim (teal), selesai (emerald).
 const STATUS_TONE: Record<OrderStatus, string> = {
   received: 'bg-amber-50 text-amber-800 border-amber-200',
-  payment: 'bg-amber-50 text-amber-800 border-amber-200',
+  payment: 'bg-orange-50 text-orange-800 border-orange-200',
+  approval: 'bg-violet-50 text-violet-800 border-violet-200',
   production: 'bg-sky-50 text-sky-800 border-sky-200',
-  finishing: 'bg-sky-50 text-sky-800 border-sky-200',
-  qc: 'bg-sky-50 text-sky-800 border-sky-200',
-  packing: 'bg-sky-50 text-sky-800 border-sky-200',
   delivery: 'bg-teal-50 text-teal-800 border-teal-200',
   completed: 'bg-emerald-50 text-emerald-800 border-emerald-200',
 };
 
 const DOT_TONE: Record<OrderStatus, string> = {
   received: 'bg-amber-500',
-  payment: 'bg-amber-500',
+  payment: 'bg-orange-500',
+  approval: 'bg-violet-500',
   production: 'bg-sky-500',
-  finishing: 'bg-sky-500',
-  qc: 'bg-sky-500',
-  packing: 'bg-sky-500',
   delivery: 'bg-teal-500',
   completed: 'bg-emerald-500',
 };

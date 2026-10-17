@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { homeRouteFor } from '@/lib/user-roles';
 import {
   Lock,
   Mail,
@@ -39,7 +40,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (res.success) {
-      router.replace('/');
+      router.replace(homeRouteFor(email));
     } else {
       setError(res.error || 'Autentikasi gagal. Silakan coba kembali.');
     }

@@ -15,10 +15,8 @@ const CATEGORY_COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', 
 const STAGE_COLORS: Record<OrderStatus, string> = {
   received: '#94a3b8',
   payment: '#f59e0b',
+  approval: '#8b5cf6',
   production: '#3b82f6',
-  finishing: '#8b5cf6',
-  qc: '#ec4899',
-  packing: '#06b6d4',
   delivery: '#10b981',
   completed: '#0d9488',
 };
@@ -106,9 +104,9 @@ export function PortfolioPipelineCard({ orders }: { orders: LegacyOrder[] }) {
       <div>
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Alur Pipeline Produksi</span>
-          <span className="text-[11px] text-slate-500">8 stasiun alur kerja</span>
+          <span className="text-[11px] text-slate-500">6 tahap alur kerja</span>
         </div>
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6 sm:gap-2">
           {stages.map((st) => {
             const on = st.count > 0;
             const c = STAGE_COLORS[st.status];

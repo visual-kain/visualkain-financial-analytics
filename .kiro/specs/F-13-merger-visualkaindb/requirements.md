@@ -128,7 +128,7 @@ Permintaan klien:
 3. THE penawaran SHALL disimpan di koleksi `penawaran` dan punya daftar dengan filter tahun dan pencarian.
 
 ### US-13.14 Ringkasan Produksi (Fase 3)
-1. THE halaman `/produksi` SHALL menampilkan KPI Order Aktif, Antrean, Dalam Produksi, Pengiriman, Selesai (jumlah order dan pcs), pipeline 8 tahap yang menaut ke Data Customer terfilter, radar deadline (lewat, H-3, aman) dengan daftar order terurut, qty belum selesai per jenis lengan, serta peringkat kategori, bahan, dan customer berdasarkan jumlah order.
+1. THE halaman `/produksi` SHALL menampilkan KPI Order Aktif, Antrean, Dalam Produksi, Pengiriman, Selesai (jumlah order dan pcs), pipeline 6 tahap (K-31) yang menaut ke Data Customer terfilter, radar deadline (lewat, H-3, aman) dengan daftar order terurut, qty belum selesai per jenis lengan, serta peringkat kategori, bahan, dan customer berdasarkan jumlah order.
 2. THE halaman SHALL NOT menampilkan angka uang (sudah ada di Ringkasan Finansial).
 3. THE periode default SHALL mulai Okt 2026 dengan pilihan "Semua periode" (K-1).
 4. THE halaman SHALL memakai susunan chart dashboard `visualkaindb` fase 4-6 versi volume (K-29): tren bulanan (pcs atau jumlah order, area atau batang, skala adaptif atau linier, pilihan tahun, rincian bulanan), donut kategori dengan pipeline 4×2 dan daftar order di workshop, proporsi qty per jenis lengan dengan radar deadline dan antrean, leaderboard bertab (customer, bahan, vendor), dan distribusi ukuran aktif.
@@ -146,6 +146,24 @@ Permintaan klien:
 ### US-13.17 Cost & Profit (Fase 3)
 1. THE kalkulator SHALL memakai rumus `visualkaindb`: aturan markup pertama dengan qtyMin ≤ qty ≤ qtyMax, harga jual = modal × (1 + persen/100), profit = total jual − total modal.
 2. THE database SHALL mengelola `cp_kategori`, `cp_bahan`, `cp_markup` dengan bentuk dokumen yang sama; hapus kategori diblokir bila masih punya bahan; aturan markup yang tumpang tindih diberi peringatan.
+
+### US-13.18 Akun tim produksi (permintaan Sehan 17 Okt 2026)
+1. THE email akun tim produksi SHALL didaftarkan di env `NEXT_PUBLIC_PRODUKSI_EMAILS` (dipisah koma, tidak peka huruf besar); password tidak disimpan di env atau repo.
+2. WHEN akun yang terdaftar login atau membuka `/login` dalam keadaan sudah login THEN aplikasi SHALL membuka `/produksi`; akun lain tetap ke `/`.
+3. THE akun tim produksi SHALL tetap bisa membuka semua halaman, termasuk Finansial (K-30).
+
+### US-13.19 Feedback klien 17 Okt 2026 (batch kedua)
+1. THE status order SHALL mengikuti 6 tahap `visualkaindb` main (Diterima, Pembayaran, Approval, Produksi, Pengiriman, Selesai); status lama finishing, QC, dan packing dibaca sebagai Produksi tanpa menulis ulang data (K-31).
+2. THE kertas invoice dan PO SHALL memakai angka modul finansial: total invoice = tagihan bersih Data Table termasuk biaya tambahan customer dan hasil Edit Finansial; total PO = HPP finansial termasuk biaya tambahan vendor, dengan pembayaran ke vendor yang sudah tercatat (K-32).
+3. THE kolom kiri footer invoice (rekening dan catatan) SHALL tidak bertumpuk dengan kolom total.
+4. THE tabel Data Customer SHALL muat selebar layar desktop (≥ 1440 px dengan sidebar terbuka) tanpa scroll horizontal (K-33).
+5. THE size chart SHALL tampil sebagai poster Measurement Guide desain klien dan bisa diunduh sebagai JPG (K-34).
+6. THE kredensial Cloudinary SHALL dibaca dari env standar `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`; file catatan kredensial di luar format `.env` SHALL di-ignore git (K-35).
+
+### US-13.20 Jejak pembuat data (permintaan Sehan 17 Okt 2026)
+1. WHEN pengguna menambah data lewat aplikasi (order, Dana Masuk/Keluar, dana investor, pembayaran customer/vendor per termin, vendor, size chart, kategori/bahan/markup Cost & Profit, catatan kalender, rekening, surat) THEN dokumen atau entri SHALL menyimpan `createdBy` dan `createdByEmail` akun yang login.
+2. WHEN data diubah THEN dokumen SHALL menyimpan `updatedBy` dan `updatedByEmail`; entri pembayaran yang diedit di panel termin juga.
+3. THE tabel dan daftar SHALL menampilkan label "dibuat oleh" (dan "diubah" bila pengubah berbeda); data lama atau dari aplikasi lain tanpa jejak ditandai "Tidak tercatat" (K-36).
 
 ### US-13.13 Purchase Order (Fase 2)
 1. THE nomor PO SHALL berformat `PO-{No. Invoice}`.
@@ -185,9 +203,16 @@ Permintaan klien:
 | K-27 | Navigasi dua section: **Produksi** (Ringkasan Produksi, Data Customer, Size Chart, Data Vendor, Kalender, Cost & Profit, dan grup Dokumen) dan **Finansial** (Ringkasan Finansial, Data Table, Dana Masuk, Dana Keluar, Mitra Vendor). Memilih Ringkasan atau halaman dari satu section mengganti bottom nav HP ke section itu: 3 tab tetap + 1 slot halaman aktif + Menu (menggantikan K-26). |
 | K-28 | Kalender: integrasi Google Calendar OAuth visualkaindb tidak dipindah karena client ID terikat domain lama; diganti tautan "Tambah ke Google Calendar" per deadline dan ekspor `.ics` per bulan. |
 | K-29 | Ringkasan Produksi meniru susunan chart dashboard `visualkaindb` fase 4-6 (permintaan Sehan 17 Okt 2026), tetapi tanpa angka uang (US-13.14.2): tren Omzet & Profit menjadi tren volume pcs/jumlah order, bilah HPP vs laba menjadi proporsi qty per jenis lengan, tab Top Margin menjadi Vendor, kartu Arus Kas & Piutang tidak dibawa (sudah di Ringkasan Finansial) dan diganti distribusi ukuran aktif. Peringkat customer berdasarkan jumlah order, bukan omzet. Order tanpa deadline tidak dihitung "aman" seperti di `visualkaindb`, tetapi ditampilkan terpisah di akhir antrean. |
+| K-30 | Akun Raja Purnama (tim produksi): akses penuh, hanya halaman awal setelah login yang diarahkan ke Ringkasan Produksi. Akun dibuat Sehan sendiri di Firebase Console (Authentication), bukan oleh agen, dan password dibagikan lewat jalur pribadi, tidak disimpan di env. Daftar email di env `NEXT_PUBLIC_PRODUKSI_EMAILS` ikut terkirim ke browser, jadi hanya berisi email. |
+| K-31 | Status order 6 tahap mengikuti `visualkaindb` main (commit `e9c841f` dan sebelumnya): `received, payment, approval, production, delivery, completed`. Status lama `finishing`, `qc`, `packing` dinormalisasi ke `production` saat dibaca (seperti `normalizeStatus` visualkaindb); dokumen baru tertulis ulang hanya saat order disimpan. Sebelum perubahan ini, status `approval` dari visualkaindb terbaca sebagai Diterima. |
+| K-32 | Invoice dan PO memakai `calculateOrderTotals` modul finansial, bukan rumus lama `lib/legacy` (menjawab Q-1). Baris "Biaya Tambahan" muncul bila ada biaya tambahan; selisih hasil Edit Finansial ditampilkan sebagai baris "Penyesuaian" agar kertas tetap konsisten. DP vendor di PO diganti "Sudah Dibayar" dari catatan pembayaran vendor finansial. `visualkaindb` main juga sudah memasukkan `biayaTambahanCust` ke total. |
+| K-33 | Tabel Data Customer memakai `table-fixed` dengan lebar dasar kolom 1.086 px; di layar lebih lebar sisa ruang dibagi proporsional, di bawahnya baru muncul scroll horizontal. Label status memakai versi pendek, aksi berupa grid 2×2, detail dibuka lewat klik baris atau No Inv. |
+| K-34 | Poster size chart diambil dari `sizechart.pdf` klien: kaos, panah, logo, dan grid diekspor sebagai SVG statis (`public/size-chart/guide-base.svg`, tabel raster dan teks pill dihapus lewat redaction); nama size chart dan tabel ukuran digambar dari data. JPG dibuat di browser lewat kanvas (2376×1836 px) tanpa dependensi baru. |
+| K-35 | `env.cloudinary` (catatan teks, bukan format `NAMA=nilai`) tidak dibaca Next.js dan belum di-ignore git; `.gitignore` kini mencakup `.env*`, `env.*`, `*.env`. Nilai Cloudinary perlu dipindah Sehan ke `.env.local` dan Vercel dengan tiga nama variabel standar; agen tidak membuka isinya. |
+| K-36 | Jejak pembuat memakai nama field yang sama dengan order (`createdBy`, `createdByEmail`, ditambah `updatedBy`, `updatedByEmail`), diisi dari akun Firebase yang login (nama tampilan, atau nama dari email). Stempel pembuat entri pembayaran dipasang di panel termin saat entri dibuat, bukan saat simpan, agar entri lama tidak keliru tercatat atas nama pengubah. Data lama tidak diisi mundur (tidak ada penulisan massal ke produksi); labelnya "Tidak tercatat". Penghapusan belum dicatat. |
 
 ## 6. Pertanyaan terbuka
-- Q-1 (sebagian terjawab K-24 untuk laporan finansial): Kertas invoice memakai rumus `visualkaindb` (gross − diskon), sedangkan pembayaran dari ledger finansial. Untuk order dengan biaya tambahan customer (F-12) atau gross yang diubah manual di Edit Finansial, Total Tagihan di invoice bisa berbeda dari Data Table. Perlu keputusan: tetap seperti `visualkaindb`, atau tambah baris biaya tambahan dan pakai total finansial.
+- Q-1: terjawab oleh K-32 (feedback klien 17 Okt 2026).
 
 ## 7. Di luar cakupan
 - Perubahan rumus finansial modul yang sudah ada.

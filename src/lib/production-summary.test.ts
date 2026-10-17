@@ -25,7 +25,7 @@ const o = (id: string, extra: Partial<LegacyOrder>): LegacyOrder =>
 const orders = [
   o('01', { status: 'production', deadline: '2026-10-15', pendekM: 10, kategoriOrder: 'Kaos', jenisBahan: 'COMBED 30S' }),
   o('02', { status: 'received', deadline: '2026-10-19', panjangL: 5, kategoriOrder: 'Kemeja', jenisBahan: 'DRILL' }),
-  o('03', { status: 'qc', deadline: '2026-10-30', tigaPerempatS: 4, kategoriOrder: 'Kaos', jenisBahan: 'COMBED 30S' }),
+  o('03', { status: 'production', deadline: '2026-10-30', tigaPerempatS: 4, kategoriOrder: 'Kaos', jenisBahan: 'COMBED 30S' }),
   o('04', { status: 'completed', deadline: '2026-10-01', tanpaLenganM: 2, kategoriOrder: 'Rompi' }),
   o('05', { status: 'delivery', pendekL: 1, kategoriOrder: 'Kaos' }),
 ];
@@ -42,10 +42,10 @@ describe('production summary', () => {
     expect(k.lewatDeadline).toBe(1);
   });
 
-  it('pipeline 8 tahap', () => {
+  it('pipeline 6 tahap', () => {
     const p = pipelineCounts(orders);
-    expect(p).toHaveLength(8);
-    expect(p.find((x) => x.status === 'production')).toMatchObject({ count: 1, pcs: 10 });
+    expect(p).toHaveLength(6);
+    expect(p.find((x) => x.status === 'production')).toMatchObject({ count: 2, pcs: 14 });
   });
 
   it('radar deadline memakai ambang H-3 dan urut dari yang paling mendesak', () => {

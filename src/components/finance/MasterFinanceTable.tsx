@@ -24,6 +24,7 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { toast } from 'sonner';
 import { exportMasterFinanceToExcel } from '@/lib/excel-export';
 import { hasUnitemizedCustomerPayment } from '@/lib/payment-ledger';
+import { CreatorLabel } from '@/components/ui/creator-label';
 
 interface MasterFinanceTableProps {
   rows: MasterFinanceRow[];
@@ -330,6 +331,7 @@ export function MasterFinanceTable({
                 <h4 className="text-xs sm:text-[13px] font-extrabold text-slate-900 leading-snug truncate" title={row.namaCustomer}>
                   {row.namaCustomer}
                 </h4>
+                <CreatorLabel audit={row} />
                 <p className="text-[11px] text-slate-500 font-medium truncate" title={row.namaProject}>
                   {row.namaProject} &bull; <span className="font-bold text-slate-700">{row.totalQty} pcs</span>
                   {row.vendorName && row.vendorName !== '-' ? (
@@ -528,6 +530,7 @@ export function MasterFinanceTable({
                 {/* Frozen Sticky 2: NAMA CUST */}
                 <td className="px-4 py-3.5 font-semibold text-slate-800 w-44 min-w-[176px] max-w-[176px] md:sticky md:left-[128px] bg-white group-hover:bg-[#f6fbfb] z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-normal break-words leading-snug">
                   {row.namaCustomer}
+                  <CreatorLabel audit={row} className="mt-0.5 flex font-normal" />
                 </td>
                 {/* Scrollable Columns */}
                 <td className="px-4 py-3.5 text-slate-600 min-w-[180px] max-w-[240px] whitespace-normal break-words leading-snug">

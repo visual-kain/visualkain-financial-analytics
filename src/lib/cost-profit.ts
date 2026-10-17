@@ -1,4 +1,5 @@
 import type { KategoriDoc } from '@/lib/legacy/types';
+import { pickAudit, type AuditFields } from '@/lib/audit';
 
 export const COST_PROFIT_COLLECTIONS = {
   kategori: 'cp_kategori',
@@ -9,14 +10,14 @@ export const COST_PROFIT_COLLECTIONS = {
 export const DEFAULT_QTY = 12;
 export const DEFAULT_MARKUP_FORM = { qtyMin: 1, qtyMax: 12, persen: 40 } as const;
 
-export interface BahanDoc {
+export interface BahanDoc extends AuditFields {
   id: string;
   kategoriId: string;
   nama: string;
   harga: number;
 }
 
-export interface MarkupDoc {
+export interface MarkupDoc extends AuditFields {
   id: string;
   qtyMin: number;
   qtyMax: number;
@@ -52,6 +53,7 @@ export function normalizeBahan(id: string, data: Record<string, unknown>): Bahan
     kategoriId: typeof data.kategoriId === 'string' ? data.kategoriId : '',
     nama: data.nama,
     harga: finiteNumber(data.harga) ?? 0,
+    ...pickAudit(data),
   };
 }
 
@@ -61,7 +63,7 @@ export function normalizeMarkup(id: string, data: Record<string, unknown>): Mark
   const qtyMax = finiteNumber(data.qtyMax);
   const persen = finiteNumber(data.persen);
   if (qtyMin === null || qtyMax === null || persen === null) return null;
-  return { id, qtyMin, qtyMax, persen };
+  return { id, qtyMin, qtyMax, persen, ...pickAudit(data) };
 }
 
 export function sortBahan(list: readonly BahanDoc[]): BahanDoc[] {

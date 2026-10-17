@@ -1,4 +1,5 @@
 import type { CashTransaction } from '@/types';
+import { pickAudit } from '@/lib/audit';
 import { formatRupiah } from '@/lib/utils';
 
 /** Dana investor menambah kas tetapi wajib dikembalikan, sehingga dicatat terpisah dari pemasukan usaha. */
@@ -37,6 +38,7 @@ export function mapInvestorDoc(id: string, d: Record<string, unknown>, fallbackD
     kategori,
     keterangan: typeof d.keterangan === 'string' && d.keterangan ? d.keterangan : '-',
     koleksi: 'investor',
+    ...pickAudit(d),
   };
   if (typeof d.investorNama === 'string' && d.investorNama.trim()) tx.investorNama = d.investorNama.trim();
   if (typeof d.jatuhTempo === 'string' && d.jatuhTempo) tx.jatuhTempo = d.jatuhTempo;
