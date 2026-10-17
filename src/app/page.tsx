@@ -69,8 +69,6 @@ function FinancialDashboardContent() {
     }
   }, [tab, isDevMode, setTab]);
 
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
   const [selectedOrder, setSelectedOrder] = useState<MasterFinanceRow | null>(null);
   const [previewInvoiceOrder, setPreviewInvoiceOrder] = useState<MasterFinanceRow | null>(null);
   const [activeMetricDrawer, setActiveMetricDrawer] = useState<MetricDrawerType | null>(null);
@@ -222,22 +220,9 @@ function FinancialDashboardContent() {
     <div className="flex min-h-screen bg-[#E8ECF2] text-slate-900">
       <Toaster richColors position="top-right" />
 
-      <Sidebar
-        activeTab={tab}
-        onSelectTab={setTab}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
-        userName={profile?.name || 'Glora Sawita Br Panjaitan'}
-        userRole={profile?.role || 'Head of Finance & Accounting'}
-        onLogout={logout}
-        showHiddenTabs={isDevMode}
-      />
+      <Sidebar />
 
-      <MobileBottomNav
-        activeTab={tab}
-        onSelectTab={setTab}
-        showHiddenTabs={isDevMode}
-      />
+      <MobileBottomNav />
 
       <OrderInspectionDrawer
         order={selectedOrder}
@@ -302,7 +287,7 @@ function FinancialDashboardContent() {
                   <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
                   <span className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-bold text-slate-800 border border-slate-200/90 shadow-2xs">
                     <UserCheck className="h-3.5 w-3.5 text-teal-600 shrink-0" />
-                    <span>Glora Sawita</span>
+                    <span>{profile?.shortName || 'Pengguna'}</span>
                   </span>
                   <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
                   <span className="rounded-lg bg-slate-100/80 px-2 py-0.5 text-[11px] sm:text-xs text-slate-600 font-semibold font-mono">

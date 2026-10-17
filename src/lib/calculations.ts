@@ -14,7 +14,8 @@ import type {
 export const SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'] as const;
 export type SizeType = typeof SIZES[number];
 
-export const CATEGORIES = ['pendek', 'panjang', 'tanpaLengan'] as const;
+// `tigaPerempat` (3/4 Tangan) ditambahkan F-13; order lama tanpa field ini menghasilkan angka yang sama.
+export const CATEGORIES = ['pendek', 'panjang', 'tanpaLengan', 'tigaPerempat'] as const;
 export type CategoryType = typeof CATEGORIES[number];
 
 export function getSizeExtraPrice(size: string): number {

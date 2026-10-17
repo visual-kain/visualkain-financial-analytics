@@ -5,9 +5,9 @@ import type { Order } from '@/types';
 import { formatDate } from '@/lib/formatters';
 import { calculateTotals, SIZES, CATEGORIES, getSizeExtraPrice, deriveVendorPaid } from '@/lib/calculations';
 
-const CAT_LABEL: Record<string, string> = { pendek: 'Pendek', panjang: 'Panjang', tanpaLengan: 'Tanpa Lengan' };
-const JUAL_KEY: Record<string, string> = { pendek: 'hargaPendek', panjang: 'hargaPanjang', tanpaLengan: 'hargaTanpaLengan' };
-const VENDOR_KEY: Record<string, string> = { pendek: 'hargaVendorPendek', panjang: 'hargaVendorPanjang', tanpaLengan: 'hargaVendorTanpaLengan' };
+const CAT_LABEL: Record<string, string> = { pendek: 'Pendek', panjang: 'Panjang', tanpaLengan: 'Tanpa Lengan', tigaPerempat: '3/4 Tangan' };
+const JUAL_KEY: Record<string, string> = { pendek: 'hargaPendek', panjang: 'hargaPanjang', tanpaLengan: 'hargaTanpaLengan', tigaPerempat: 'hargaTigaPerempat' };
+const VENDOR_KEY: Record<string, string> = { pendek: 'hargaVendorPendek', panjang: 'hargaVendorPanjang', tanpaLengan: 'hargaVendorTanpaLengan', tigaPerempat: 'hargaVendorTigaPerempat' };
 const STATUS_TEXT: Record<string, string> = { production: 'Sedang Produksi', waiting: 'Menunggu Pembayaran', completed: 'Selesai' };
 
 interface FinanceReportPaperProps {
