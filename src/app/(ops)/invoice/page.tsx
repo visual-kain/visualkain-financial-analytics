@@ -92,7 +92,7 @@ function InvoiceContent() {
       />
 
       <section className="grid gap-4 rounded-2xl border border-slate-200/90 bg-white p-3 shadow-card-double sm:p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-6">
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3">
           <label className="block text-xs font-bold text-slate-700">Pilih / Cari Invoice</label>
           {ordersState === 'loading' ? (
             <Shimmer className="h-10 w-full rounded-xl" />
@@ -112,7 +112,7 @@ function InvoiceContent() {
         </div>
 
         {order && (
-          <div className="grid gap-3 sm:grid-cols-[150px_minmax(0,1fr)]">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-[150px_minmax(0,1fr)]">
             <div>
               <label htmlFor="target-dp" className="mb-1.5 block text-xs font-bold text-slate-700">
                 Target DP Produksi (%)

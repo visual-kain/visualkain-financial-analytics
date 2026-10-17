@@ -65,7 +65,7 @@ interface BankAccountModalProps {
   onApply: (info: BankAccountInfo) => void;
 }
 
-const FIELD = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10';
+const FIELD = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold text-slate-800 sm:text-xs focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10';
 
 export function BankAccountModal({ open, active, onClose, onApply }: BankAccountModalProps) {
   const { accounts, saveRekening } = useRekeningMaster();

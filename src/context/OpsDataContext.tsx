@@ -160,6 +160,35 @@ export function OpsDataProvider({ children }: { children: React.ReactNode }) {
   return <OpsDataContext.Provider value={value}>{children}</OpsDataContext.Provider>;
 }
 
+interface OpsFixtureData {
+  orders: LegacyOrder[];
+  sizeCharts: SizeChart[];
+  kategoriList: KategoriDoc[];
+  vendors: VendorDoc[];
+}
+
+/** Provider berisi data statis untuk halaman pratinjau dev; tidak membuka listener Firestore. */
+export function OpsDataFixtureProvider({ data, children }: { data: OpsFixtureData; children: React.ReactNode }) {
+  const value = useMemo<OpsDataValue>(() => {
+    const orders = sortOrdersNewestFirst(data.orders);
+    const orderMap = new Map(orders.map((o) => [o.id, o]));
+    const vendorMap = new Map(data.vendors.map((v) => [v.id, v.nama]));
+    const chartMap = new Map(data.sizeCharts.map((c) => [c.id, c]));
+    return {
+      ...data,
+      orders,
+      ordersState: 'ready',
+      sizeChartsState: 'ready',
+      error: null,
+      retry: () => undefined,
+      getOrderById: (id) => orderMap.get(id),
+      getVendorName: (id) => (id ? vendorMap.get(id) || '-' : '-'),
+      getSizeChart: (id) => (id ? chartMap.get(id) : undefined),
+    };
+  }, [data]);
+  return <OpsDataContext.Provider value={value}>{children}</OpsDataContext.Provider>;
+}
+
 export function useOpsData(): OpsDataValue {
   const ctx = useContext(OpsDataContext);
   if (!ctx) throw new Error('useOpsData must be used within OpsDataProvider');

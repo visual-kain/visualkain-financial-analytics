@@ -89,7 +89,7 @@ function SizeChartDialog({ open, chart, onClose }: { open: boolean; chart: SizeC
             value={nama}
             onChange={(e) => setNama(e.target.value)}
             placeholder="Contoh: Kaos Reguler Dewasa"
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10"
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold focus:border-teal-500 sm:text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10"
           />
           {error && <p className="mt-1 text-[11px] font-semibold text-rose-600">{error}</p>}
         </div>

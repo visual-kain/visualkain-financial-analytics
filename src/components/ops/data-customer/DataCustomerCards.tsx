@@ -18,7 +18,7 @@ interface DataCustomerCardsProps extends DataCustomerActions {
 }
 
 const QTY_CELLS: Array<{ key: keyof DataCustomerRow; label: string }> = [
-  { key: 'qtyTanpaLengan', label: 'T. Lengan' },
+  { key: 'qtyTanpaLengan', label: 'Tanpa Lengan' },
   { key: 'qtyPendek', label: 'Pendek' },
   { key: 'qtyTigaPerempat', label: '3/4' },
   { key: 'qtyPanjang', label: 'Panjang' },
@@ -76,13 +76,13 @@ export function DataCustomerCards({ rows, loading, today, emptyState, ...actions
             </div>
 
             <div className="grid grid-cols-5 gap-1.5 text-center">
-              <div className="min-w-0 rounded-xl border border-teal-100 bg-teal-50/70 px-1 py-1.5">
-                <span className="block truncate text-[9.5px] font-semibold text-teal-800">Total</span>
+              <div className="flex min-w-0 flex-col justify-between rounded-xl border border-teal-100 bg-teal-50/70 px-1 py-1.5">
+                <span className="block text-[9.5px] font-semibold leading-tight text-teal-800">Total</span>
                 <span className="block text-sm font-extrabold tabular-nums text-teal-900">{row.qtyTotal}</span>
               </div>
               {QTY_CELLS.map((cell) => (
-                <div key={cell.key} className="min-w-0 rounded-xl border border-slate-200/80 bg-slate-50 px-1 py-1.5">
-                  <span className="block truncate text-[9.5px] font-semibold text-slate-500">{cell.label}</span>
+                <div key={cell.key} className="flex min-w-0 flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50 px-1 py-1.5">
+                  <span className="block text-[9.5px] font-semibold leading-tight text-slate-500">{cell.label}</span>
                   <span className="block text-sm font-bold tabular-nums text-slate-800">{row[cell.key] as number}</span>
                 </div>
               ))}

@@ -39,7 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'data-customer', label: 'Data Customer', shortLabel: 'Customer', href: '/data-customer', icon: Users, group: 'operasional' },
   { id: 'size-chart', label: 'Size Chart', shortLabel: 'Size Chart', href: '/size-chart', icon: Ruler, group: 'operasional' },
   { id: 'invoice', label: 'Invoice', shortLabel: 'Invoice', href: '/invoice', icon: FileText, group: 'dokumen' },
-  { id: 'purchase-order', label: 'Purchase Order', shortLabel: 'PO', href: '/purchase-order', icon: ClipboardList, group: 'dokumen' },
+  { id: 'purchase-order', label: 'Purchase Order', shortLabel: 'Purchase Order', href: '/purchase-order', icon: ClipboardList, group: 'dokumen' },
   { id: 'penawaran', label: 'Penawaran Harga', shortLabel: 'Penawaran', href: '/penawaran', icon: FileSignature, group: 'dokumen' },
   { id: 'kerjasama', label: 'Pengajuan Kerjasama', shortLabel: 'Kerjasama', href: '/kerjasama', icon: Handshake, group: 'dokumen' },
   { id: 'datatable', label: 'Data Table (Master Order)', shortLabel: 'Data Table', href: '/?tab=datatable', icon: Table2, group: 'finansial' },

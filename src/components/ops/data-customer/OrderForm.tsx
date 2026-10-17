@@ -31,7 +31,7 @@ import { cn, formatRupiah } from '@/lib/utils';
 
 const LABEL = 'mb-1.5 block text-xs font-bold text-slate-700';
 const FIELD =
-  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 placeholder-slate-400 placeholder:font-normal focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10';
+  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold text-slate-800 sm:text-xs placeholder-slate-400 placeholder:font-normal focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10';
 const CARD = 'rounded-2xl border border-slate-200/90 bg-white p-4 shadow-card-double sm:p-5';
 
 function invoiceDate(tanggal: string): Date {
@@ -189,7 +189,7 @@ export function OrderForm({ mode, order }: OrderFormProps) {
       />
 
       <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
-        <div className="space-y-4 lg:space-y-6">
+        <div className="min-w-0 space-y-4 lg:space-y-6">
           <section className={CARD}>
             <h2 className="mb-4 text-sm font-bold text-slate-900">Informasi Customer &amp; Project</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -337,7 +337,7 @@ export function OrderForm({ mode, order }: OrderFormProps) {
                   rows={3}
                   value={form.notes}
                   onChange={(e) => set('notes', e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-medium text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base font-medium text-slate-800 sm:text-xs focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -370,14 +370,14 @@ export function OrderForm({ mode, order }: OrderFormProps) {
                   <label htmlFor={`harga-${cat}`} className={LABEL}>
                     Harga Jual {CATEGORY_LABELS[cat]}
                   </label>
-                  <CurrencyInput id={`harga-${cat}`} value={form.harga[cat] || ''} onValueChange={(v) => setHarga(cat, v)} className="h-11 sm:h-10" />
+                  <CurrencyInput id={`harga-${cat}`} value={form.harga[cat] || ''} onValueChange={(v) => setHarga(cat, v)} className="h-11 text-base sm:h-10 sm:text-xs" />
                 </div>
               ))}
               <div>
                 <label htmlFor="diskonHarga" className={LABEL}>
                   Diskon (Rp)
                 </label>
-                <CurrencyInput id="diskonHarga" value={form.diskonHarga || ''} onValueChange={(v) => set('diskonHarga', v)} className="h-11 sm:h-10" />
+                <CurrencyInput id="diskonHarga" value={form.diskonHarga || ''} onValueChange={(v) => set('diskonHarga', v)} className="h-11 text-base sm:h-10 sm:text-xs" />
               </div>
               <div>
                 <label htmlFor="status" className={LABEL}>
@@ -415,7 +415,7 @@ export function OrderForm({ mode, order }: OrderFormProps) {
           </section>
         </div>
 
-        <section className={cn(CARD, 'h-fit space-y-4')}>
+        <section className={cn(CARD, 'h-fit min-w-0 space-y-4')}>
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-bold text-slate-900">Qty per Jenis Lengan</h2>
             <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-extrabold tabular-nums text-teal-800">{summary.totalPesanan} pcs</span>

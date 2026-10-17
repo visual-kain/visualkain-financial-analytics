@@ -29,8 +29,10 @@ export function PaperViewport({ children, paperWidthMm = 210, className }: Paper
     if (!el) return;
     const update = () => {
       const styles = window.getComputedStyle(el);
-      const inner = el.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight);
-      setZoom(Math.min(1, Math.max(0.2, inner / paperPx)));
+      const padding = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+      const inner = el.clientWidth - padding;
+      // clientWidth 0 (jsdom, tab tersembunyi) tidak boleh menghasilkan zoom tidak valid.
+      setZoom(inner > 0 ? Math.min(1, Math.max(0.2, inner / paperPx)) : 1);
     };
     update();
     const ro = new ResizeObserver(update);

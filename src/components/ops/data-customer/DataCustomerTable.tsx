@@ -135,12 +135,16 @@ export function DataCustomerTable({ rows, loading, selectedId, onHover, today, e
 }
 
 const ACTION_BTN = 'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border transition-transform duration-150 active:scale-[0.96]';
+// Versi HP: ikon + label agar maksud tombol jelas tanpa tooltip.
+const ACTION_BTN_LG = 'flex h-12 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border text-[10px] font-bold transition-transform duration-150 active:scale-[0.96]';
 
 export function RowActions({ row, onOpen, onEdit, onTechpack, onInvoice, onDelete, size = 'sm' }: DataCustomerActions & { row: DataCustomerRow; size?: 'sm' | 'lg' }) {
-  const btn = size === 'lg' ? ACTION_BTN.replace('h-8 w-8', 'h-11 w-11') : ACTION_BTN;
+  const lg = size === 'lg';
+  const btn = lg ? ACTION_BTN_LG : ACTION_BTN;
+  const label = (text: string) => (lg ? <span className="truncate">{text}</span> : null);
   return (
-    <div className="flex items-center justify-center gap-1.5">
-      {size === 'sm' && (
+    <div className={cn('flex items-center gap-1.5', lg ? 'w-full' : 'justify-center')}>
+      {!lg && (
         <button type="button" onClick={() => onOpen(row)} title="Detail order" aria-label={`Detail ${row.noInv}`} className={cn(btn, 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900')}>
           <Eye className="h-3.5 w-3.5" />
         </button>
@@ -148,17 +152,21 @@ export function RowActions({ row, onOpen, onEdit, onTechpack, onInvoice, onDelet
       {!row.archived && (
         <button type="button" onClick={() => onEdit(row)} title="Edit order" aria-label={`Edit ${row.noInv}`} className={cn(btn, 'border-teal-200 bg-teal-50/90 text-teal-700 hover:bg-teal-100')}>
           <Pencil className="h-3.5 w-3.5" />
+          {label('Edit')}
         </button>
       )}
       <button type="button" onClick={() => onTechpack(row)} title="Tech Pack" aria-label={`Tech Pack ${row.noInv}`} className={cn(btn, 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100')}>
         <Shirt className="h-3.5 w-3.5" />
+        {label('Techpack')}
       </button>
       <button type="button" onClick={() => onInvoice(row)} title="Invoice" aria-label={`Invoice ${row.noInv}`} className={cn(btn, 'border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100')}>
         <FileText className="h-3.5 w-3.5" />
+        {label('Invoice')}
       </button>
       {!row.archived && (
         <button type="button" onClick={() => onDelete(row)} title="Hapus order" aria-label={`Hapus ${row.noInv}`} className={cn(btn, 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100')}>
           <Trash2 className="h-3.5 w-3.5" />
+          {label('Hapus')}
         </button>
       )}
     </div>

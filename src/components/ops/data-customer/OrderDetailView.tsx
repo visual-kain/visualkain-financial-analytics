@@ -126,7 +126,7 @@ export function OrderDetailView({ order }: { order: LegacyOrder }) {
       )}
 
       <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
-        <div className="space-y-4 lg:col-span-2 lg:space-y-6">
+        <div className="min-w-0 space-y-4 lg:col-span-2 lg:space-y-6">
           <Section title="Customer & Project">
             <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <Field label="Tanggal Invoice">{formatIsoDateLong(order.tanggalInv)}</Field>
@@ -266,7 +266,7 @@ export function OrderDetailView({ order }: { order: LegacyOrder }) {
           </Section>
         </div>
 
-        <div className="space-y-4 lg:space-y-6">
+        <div className="min-w-0 space-y-4 lg:space-y-6">
           <Section title="Ringkasan Finansial" className={cn(hasNegative && 'border-rose-200')}>
             <div className="divide-y divide-slate-100">
               <MoneyRow label="Total Tagihan Customer" value={finance.totalJumlah} />

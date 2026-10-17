@@ -10,7 +10,7 @@ import { addKategori } from '@/lib/firestore/master-repo';
 import type { VendorDoc } from '@/lib/legacy/types';
 import { formatRupiah } from '@/lib/utils';
 
-const FIELD = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10';
+const FIELD = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold text-slate-800 sm:text-xs placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10';
 const BTN_SECONDARY = 'inline-flex h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 sm:h-10';
 const BTN_PRIMARY = 'inline-flex h-11 cursor-pointer items-center justify-center rounded-xl bg-teal-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-teal-700 disabled:opacity-60 sm:h-10';
 
@@ -81,7 +81,7 @@ export function VendorPriceModal({ open, vendors, vendorId, prices, onClose, onS
               <label htmlFor={`modal-${cat}`} className="mb-1.5 block text-xs font-bold text-slate-700">
                 Harga Modal {CATEGORY_LABELS[cat]} (per pcs)
               </label>
-              <CurrencyInput id={`modal-${cat}`} value={draft[cat] || ''} onValueChange={(v) => setDraft((d) => ({ ...d, [cat]: v }))} className="h-11 sm:h-10" />
+              <CurrencyInput id={`modal-${cat}`} value={draft[cat] || ''} onValueChange={(v) => setDraft((d) => ({ ...d, [cat]: v }))} className="h-11 text-base sm:h-10 sm:text-xs" />
             </div>
           ))}
         </div>
