@@ -36,3 +36,5 @@ Status: `[ ]` belum, `[x]` selesai.
 - [x] 23. Kalender Produksi (`/kalender`). _US-13.16, K-28_
 - [x] 24. Cost & Profit (`/cost-profit`). _US-13.17_
 - [x] 25. Ringkasan Produksi (`/produksi`) + navigasi dua section. _US-13.14, K-27_
+- [x] 26. Chart Ringkasan Produksi mengikuti layout dashboard `visualkaindb` (tren, donut + pipeline, radar + antrean, leaderboard, distribusi ukuran). _US-13.14.4, K-29_
+- [x] 27. Header halaman versi desktop (tile ikon, badge sebaris judul, aksi rata kanan); tampilan HP tidak berubah.

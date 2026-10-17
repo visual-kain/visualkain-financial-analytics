@@ -131,6 +131,7 @@ Permintaan klien:
 1. THE halaman `/produksi` SHALL menampilkan KPI Order Aktif, Antrean, Dalam Produksi, Pengiriman, Selesai (jumlah order dan pcs), pipeline 8 tahap yang menaut ke Data Customer terfilter, radar deadline (lewat, H-3, aman) dengan daftar order terurut, qty belum selesai per jenis lengan, serta peringkat kategori, bahan, dan customer berdasarkan jumlah order.
 2. THE halaman SHALL NOT menampilkan angka uang (sudah ada di Ringkasan Finansial).
 3. THE periode default SHALL mulai Okt 2026 dengan pilihan "Semua periode" (K-1).
+4. THE halaman SHALL memakai susunan chart dashboard `visualkaindb` fase 4-6 versi volume (K-29): tren bulanan (pcs atau jumlah order, area atau batang, skala adaptif atau linier, pilihan tahun, rincian bulanan), donut kategori dengan pipeline 4×2 dan daftar order di workshop, proporsi qty per jenis lengan dengan radar deadline dan antrean, leaderboard bertab (customer, bahan, vendor), dan distribusi ukuran aktif.
 
 ### US-13.15 Data Vendor (Fase 3)
 1. THE daftar vendor SHALL bisa dicari dan menampilkan nama, alamat, WA, PIC, dan jumlah order.
@@ -183,6 +184,7 @@ Permintaan klien:
 | K-26 | Bottom nav HP mengikuti section halaman aktif (menggantikan K-4): Finansial menampilkan Data Table, Dana Masuk, Dana Keluar, Mitra Vendor; Dokumen menampilkan Invoice, PO, Penawaran, Kerjasama; Operasional menampilkan Customer dan Size Chart; Ringkasan menampilkan satu pintasan per section. Slot terakhir selalu Menu. |
 | K-27 | Navigasi dua section: **Produksi** (Ringkasan Produksi, Data Customer, Size Chart, Data Vendor, Kalender, Cost & Profit, dan grup Dokumen) dan **Finansial** (Ringkasan Finansial, Data Table, Dana Masuk, Dana Keluar, Mitra Vendor). Memilih Ringkasan atau halaman dari satu section mengganti bottom nav HP ke section itu: 3 tab tetap + 1 slot halaman aktif + Menu (menggantikan K-26). |
 | K-28 | Kalender: integrasi Google Calendar OAuth visualkaindb tidak dipindah karena client ID terikat domain lama; diganti tautan "Tambah ke Google Calendar" per deadline dan ekspor `.ics` per bulan. |
+| K-29 | Ringkasan Produksi meniru susunan chart dashboard `visualkaindb` fase 4-6 (permintaan Sehan 17 Okt 2026), tetapi tanpa angka uang (US-13.14.2): tren Omzet & Profit menjadi tren volume pcs/jumlah order, bilah HPP vs laba menjadi proporsi qty per jenis lengan, tab Top Margin menjadi Vendor, kartu Arus Kas & Piutang tidak dibawa (sudah di Ringkasan Finansial) dan diganti distribusi ukuran aktif. Peringkat customer berdasarkan jumlah order, bukan omzet. Order tanpa deadline tidak dihitung "aman" seperti di `visualkaindb`, tetapi ditampilkan terpisah di akhir antrean. |
 
 ## 6. Pertanyaan terbuka
 - Q-1 (sebagian terjawab K-24 untuk laporan finansial): Kertas invoice memakai rumus `visualkaindb` (gross − diskon), sedangkan pembayaran dari ledger finansial. Untuk order dengan biaya tambahan customer (F-12) atau gross yang diubah manual di Edit Finansial, Total Tagihan di invoice bisa berbeda dari Data Table. Perlu keputusan: tetap seperti `visualkaindb`, atau tambah baris biaya tambahan dan pakai total finansial.

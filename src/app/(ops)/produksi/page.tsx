@@ -3,26 +3,22 @@
 import React, { Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { parseAsStringLiteral, useQueryState } from 'nuqs';
-import { AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, ClipboardList, Hourglass, Plus, Scissors, Truck } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardList, Hourglass, Plus, Scissors, Truck } from 'lucide-react';
 import { PageHeader, EyebrowBadge } from '@/components/layout/PageHeader';
-import { OrderStatusBadge } from '@/components/ops/OrderStatusBadge';
+import { LeaderboardCard } from '@/components/ops/produksi/LeaderboardCard';
+import { PortfolioPipelineCard } from '@/components/ops/produksi/PortfolioPipelineCard';
+import { ProductionTrendCard } from '@/components/ops/produksi/ProductionTrendCard';
+import { QueueRadarCard } from '@/components/ops/produksi/QueueRadarCard';
+import { SizeDistributionCard } from '@/components/ops/produksi/SizeDistributionCard';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Shimmer } from '@/components/ui/shimmer';
 import { useOpsData } from '@/context/OpsDataContext';
 import { todayInJakarta } from '@/lib/constants';
-import { formatShortIsoDate } from '@/lib/data-customer';
-import { STATUS_FILTER_LABELS } from '@/lib/legacy/types';
 import { isArchivedOrder } from '@/lib/order-form';
-import { computeKpi, deadlineRadar, pipelineCounts, rankBy, sleeveTotals, type DeadlineTone, type ShareRow } from '@/lib/production-summary';
+import { computeKpi } from '@/lib/production-summary';
 import { cn } from '@/lib/utils';
 
 const SCOPES = ['current', 'all'] as const;
-
-const TONE: Record<DeadlineTone, { chip: string; text: string; label: string }> = {
-  lewat: { chip: 'border-rose-200 bg-rose-50 text-rose-700', text: 'text-rose-700', label: 'Lewat' },
-  mendesak: { chip: 'border-amber-200 bg-amber-50 text-amber-800', text: 'text-amber-700', label: 'H-3' },
-  aman: { chip: 'border-emerald-200 bg-emerald-50 text-emerald-700', text: 'text-emerald-700', label: 'Aman' },
-};
 
 function KpiCard({ icon: Icon, tone, title, value, hint, href }: { icon: typeof Scissors; tone: string; title: string; value: React.ReactNode; hint: string; href: string }) {
   return (
@@ -43,62 +39,12 @@ function KpiCard({ icon: Icon, tone, title, value, hint, href }: { icon: typeof 
   );
 }
 
-function ShareList({ rows, emptyText, pcsOnly = false }: { rows: ShareRow[]; emptyText: string; pcsOnly?: boolean }) {
-  if (rows.length === 0) return <p className="text-xs text-slate-500">{emptyText}</p>;
-  return (
-    <ul className="space-y-2.5">
-      {rows.map((r) => (
-        <li key={r.label}>
-          <div className="flex items-baseline justify-between gap-2 text-xs">
-            <span className="min-w-0 truncate font-semibold text-slate-800" title={r.label}>
-              {r.label}
-            </span>
-            <span className="shrink-0 tabular-nums text-slate-500">
-              {pcsOnly ? (
-                <>
-                  <strong className="text-slate-900">{r.pcs}</strong> pcs
-                </>
-              ) : (
-                <>
-                  <strong className="text-slate-900">{r.count}</strong> order &bull; {r.pcs} pcs
-                </>
-              )}
-            </span>
-          </div>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-teal-500" style={{ width: `${Math.max(4, Math.round(r.share * 100))}%` }} />
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Panel({ title, action, children, className }: { title: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
-  return (
-    <section className={cn('min-w-0 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-card-double sm:p-5', className)}>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-slate-900">{title}</h2>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 function ProduksiContent() {
-  const { orders, ordersState } = useOpsData();
+  const { orders, ordersState, getVendorName } = useOpsData();
   const [scope, setScope] = useQueryState('scope', parseAsStringLiteral(SCOPES).withDefault('current'));
   const today = todayInJakarta();
   const scoped = useMemo(() => (scope === 'all' ? orders : orders.filter((o) => !isArchivedOrder(o))), [orders, scope]);
   const kpi = useMemo(() => computeKpi(scoped, today), [scoped, today]);
-  const pipeline = useMemo(() => pipelineCounts(scoped), [scoped]);
-  const radar = useMemo(() => deadlineRadar(scoped, today), [scoped, today]);
-  const kategori = useMemo(() => rankBy(scoped, (o) => String(o.kategoriOrder || '')), [scoped]);
-  const bahan = useMemo(() => rankBy(scoped, (o) => String(o.jenisBahan || '')), [scoped]);
-  const customer = useMemo(() => rankBy(scoped, (o) => String(o.namaCustomer || '')), [scoped]);
-  const sleeve = useMemo(() => sleeveTotals(scoped.filter((o) => o.status !== 'completed')), [scoped]);
-  const pipelineMax = Math.max(1, ...pipeline.map((p) => p.count));
 
   return (
     <>
@@ -138,7 +84,11 @@ function ProduksiContent() {
               <Shimmer key={i} className="h-28 w-full rounded-2xl" />
             ))}
           </div>
-          <Shimmer className="h-64 w-full rounded-2xl" />
+          <Shimmer className="h-[420px] w-full rounded-2xl" />
+          <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
+            <Shimmer className="h-96 w-full rounded-2xl" />
+            <Shimmer className="h-96 w-full rounded-2xl" />
+          </div>
         </div>
       ) : scoped.length === 0 ? (
         <EmptyState className="min-h-[300px] bg-white" title="Belum ada order pada periode ini" description="Order baru akan muncul di ringkasan setelah disimpan di Data Customer." />
@@ -155,100 +105,20 @@ function ProduksiContent() {
           {kpi.lewatDeadline > 0 && (
             <div role="alert" className="flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-semibold text-rose-800">
               <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
-              {kpi.lewatDeadline} order aktif sudah lewat deadline. Cek daftar Radar Deadline di bawah.
+              {kpi.lewatDeadline} order aktif sudah lewat deadline. Cek Antrean Produksi Aktif di bawah.
             </div>
           )}
 
-          <Panel title="Pipeline 8 Tahap">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
-              {pipeline.map((p) => (
-                <Link
-                  key={p.status}
-                  href={`/data-customer?status=${p.status}`}
-                  className="flex min-w-0 flex-col justify-between gap-2 rounded-xl border border-slate-200 p-3 transition-colors hover:border-teal-300 hover:bg-teal-50/40"
-                >
-                  <span className="truncate text-[11px] font-semibold text-slate-500">{STATUS_FILTER_LABELS[p.status]}</span>
-                  <span className="text-xl font-bold tabular-nums text-slate-900">{p.count}</span>
-                  <span className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-                    <span className="block h-full rounded-full bg-teal-500" style={{ width: `${p.count === 0 ? 0 : Math.max(6, Math.round((p.count / pipelineMax) * 100))}%` }} />
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </Panel>
+          <ProductionTrendCard orders={scoped} />
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-6">
-            <Panel
-              title="Radar Deadline"
-              action={
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <CalendarClock className="h-3.5 w-3.5" /> Hari ini {formatShortIsoDate(today)}
-                </span>
-              }
-            >
-              <div className="mb-3 grid grid-cols-3 gap-2">
-                {(['lewat', 'mendesak', 'aman'] as DeadlineTone[]).map((t) => (
-                  <div key={t} className={cn('rounded-xl border px-2.5 py-2 text-center', TONE[t].chip)}>
-                    <span className="block text-lg font-bold tabular-nums">{radar.counts[t]}</span>
-                    <span className="block truncate text-[10.5px] font-semibold">{TONE[t].label}</span>
-                  </div>
-                ))}
-              </div>
-              {radar.items.length === 0 ? (
-                <p className="text-xs text-slate-500">Tidak ada order aktif dengan deadline.</p>
-              ) : (
-                <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
-                  {radar.items.slice(0, 8).map(({ order, label, tone }) => (
-                    <li key={order.id}>
-                      <Link href={`/data-customer/${order.id}`} className="flex min-w-0 items-center gap-3 px-3 py-2.5 text-xs hover:bg-slate-50">
-                        <span className="shrink-0 font-extrabold text-teal-700">{order.noInv}</span>
-                        <span className="min-w-0 flex-1 truncate text-slate-700">
-                          {order.namaCustomer}
-                          {order.namaProject ? <span className="text-slate-400"> &bull; {order.namaProject}</span> : null}
-                        </span>
-                        <span className="hidden shrink-0 sm:block">
-                          <OrderStatusBadge status={order.status} compact />
-                        </span>
-                        <span className={cn('shrink-0 text-right font-bold tabular-nums', TONE[tone].text)}>
-                          {label}
-                          <span className="block text-[10px] font-medium text-slate-400">{formatShortIsoDate(String(order.deadline))}</span>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {radar.tanpaDeadline > 0 && <p className="mt-2 text-[11px] text-slate-500">{radar.tanpaDeadline} order aktif belum punya deadline.</p>}
-            </Panel>
-
-            <Panel title="Qty Belum Selesai per Jenis Lengan">
-              <div className="mb-4 rounded-xl border border-teal-100 bg-teal-50/60 px-3 py-2.5">
-                <span className="block text-[11px] font-semibold text-teal-800">Total pcs aktif</span>
-                <span className="block text-2xl font-bold tabular-nums text-teal-900">{sleeve.total}</span>
-              </div>
-              <ShareList
-                rows={[
-                  { label: 'Pendek', count: sleeve.pendek, pcs: sleeve.pendek, share: sleeve.total ? sleeve.pendek / sleeve.total : 0 },
-                  { label: '3/4 Tangan', count: sleeve.tigaPerempat, pcs: sleeve.tigaPerempat, share: sleeve.total ? sleeve.tigaPerempat / sleeve.total : 0 },
-                  { label: 'Panjang', count: sleeve.panjang, pcs: sleeve.panjang, share: sleeve.total ? sleeve.panjang / sleeve.total : 0 },
-                  { label: 'Tanpa Lengan', count: sleeve.tanpaLengan, pcs: sleeve.tanpaLengan, share: sleeve.total ? sleeve.tanpaLengan / sleeve.total : 0 },
-                ]}
-                emptyText="Belum ada qty aktif."
-                pcsOnly
-              />
-            </Panel>
+          <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
+            <PortfolioPipelineCard orders={scoped} />
+            <QueueRadarCard orders={scoped} today={today} />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3 lg:gap-6">
-            <Panel title="Portofolio Kategori">
-              <ShareList rows={kategori} emptyText="Belum ada kategori." />
-            </Panel>
-            <Panel title="Bahan Terbanyak">
-              <ShareList rows={bahan} emptyText="Belum ada data bahan." />
-            </Panel>
-            <Panel title="Customer Teraktif">
-              <ShareList rows={customer} emptyText="Belum ada customer." />
-            </Panel>
+          <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
+            <LeaderboardCard orders={scoped} getVendorName={getVendorName} />
+            <SizeDistributionCard orders={scoped} />
           </div>
         </>
       )}
