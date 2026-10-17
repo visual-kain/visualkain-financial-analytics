@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { countByStatus, filterDataCustomerRows, formatShortIsoDate, isDeadlineOverdue, summarizeQty, toDataCustomerRow } from './data-customer';
 import { buildDataCustomerWorkbook, DATA_CUSTOMER_EXPORT_COLUMNS } from './excel-export-ops';
-import { resolveActiveNavId } from './navigation';
+import { mobileNavItemsFor, resolveActiveNavId } from './navigation';
 import { formatIsoDateLong, generateInvoiceNumber, getUserDisplayName, formatRelativeTime } from './legacy/formatters';
 import type { LegacyOrder } from './legacy/types';
 
@@ -69,6 +69,13 @@ describe('navigasi', () => {
     expect(resolveActiveNavId('/cash-out/new', null)).toBe('cashout');
     expect(resolveActiveNavId('/orders/x/edit', null)).toBe('datatable');
     expect(resolveActiveNavId('/kerjasama/new', null)).toBe('kerjasama');
+  });
+
+  it('bottom nav HP hanya berisi tab section yang aktif', () => {
+    expect(mobileNavItemsFor('cashout').map((i) => i.id)).toEqual(['datatable', 'cashin', 'cashout', 'vendor']);
+    expect(mobileNavItemsFor('penawaran').map((i) => i.id)).toEqual(['invoice', 'purchase-order', 'penawaran', 'kerjasama']);
+    expect(mobileNavItemsFor('size-chart').map((i) => i.id)).toEqual(['data-customer', 'size-chart']);
+    expect(mobileNavItemsFor('dashboard').map((i) => i.id)).toEqual(['dashboard', 'data-customer', 'invoice', 'datatable']);
   });
 });
 

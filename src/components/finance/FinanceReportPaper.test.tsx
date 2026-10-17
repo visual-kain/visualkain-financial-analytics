@@ -46,4 +46,16 @@ describe('FinanceReportPaper', () => {
     );
     expect(rowText(container, 'DP Konsumen')).toMatch(/\(25(,0)?%\)/);
   });
+
+  it('menampilkan biaya tambahan customer sehingga subtotal − diskon + tambahan = total tagihan', () => {
+    const { container } = render(
+      <FinanceReportPaper
+        order={{ ...baseOrder, grossTotal: 7_935_000, totalInvoice: 8_835_000, biayaTambahanCustomer: 900_000, totalUangMasukCustomer: 0, dpNominal: 0 }}
+      />
+    );
+    expect(rowText(container, 'Nilai Tagihan Kotor')).toContain('7.935.000');
+    expect(rowText(container, 'Biaya Tambahan Customer')).toContain('900.000');
+    expect(rowText(container, 'Biaya Tambahan Customer')).toContain('+');
+    expect(rowText(container, 'Total Tagihan')).toContain('8.835.000');
+  });
 });

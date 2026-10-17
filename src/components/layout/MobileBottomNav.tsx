@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LayoutGrid, LogOut, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { MOBILE_PRIMARY_IDS, NAV_ITEMS, groupedNavItems, resolveActiveNavId } from '@/lib/navigation';
+import { NAV_GROUP_LABELS, groupedNavItems, mobileNavItemsFor, resolveActiveNavId } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
 function MenuSheet({ open, activeId, onClose }: { open: boolean; activeId: string; onClose: () => void }) {
@@ -108,7 +108,7 @@ function MenuSheet({ open, activeId, onClose }: { open: boolean; activeId: strin
                 onClose();
                 void logout();
               }}
-              className="mt-5 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 text-xs font-bold text-rose-700 active:scale-[0.98]"
+              className="mt-5 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 text-xs text-rose-700 active:scale-[0.98] shadow-btn-secondary font-medium"
             >
               <LogOut className="h-4 w-4" />
               Keluar dari Sesi
@@ -126,8 +126,10 @@ function MobileBottomNavInner() {
   const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const activeId = resolveActiveNavId(pathname, searchParams.get('tab'));
-  const primary = MOBILE_PRIMARY_IDS.map((id) => NAV_ITEMS.find((item) => item.id === id)!);
-  const activeInMenu = !(MOBILE_PRIMARY_IDS as readonly string[]).includes(activeId);
+  const primary = mobileNavItemsFor(activeId);
+  const activeInMenu = !primary.some((item) => item.id === activeId);
+  const section = primary[0]?.group === 'ringkasan' ? null : NAV_GROUP_LABELS[primary[0].group];
+  const gridCols = { 1: 'grid-cols-2', 2: 'grid-cols-3', 3: 'grid-cols-4', 4: 'grid-cols-5' }[primary.length] ?? 'grid-cols-5';
 
   useEffect(() => {
     setMenuOpen(false);
@@ -139,7 +141,10 @@ function MobileBottomNavInner() {
         aria-label="Navigasi bawah"
         className="no-print fixed bottom-0 left-0 right-0 z-40 select-none border-t border-slate-200/90 bg-white/95 px-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] pt-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] backdrop-blur-md md:hidden"
       >
-        <div className="mx-auto grid max-w-md grid-cols-5 items-center gap-0.5">
+        {section && (
+          <p className="mx-auto mb-0.5 max-w-md px-2 text-[9.5px] font-bold uppercase tracking-wider text-slate-400">{section}</p>
+        )}
+        <div className={cn('mx-auto grid max-w-md items-center gap-0.5', gridCols)}>
           {primary.map((item) => {
             const Icon = item.icon;
             const isActive = activeId === item.id;
@@ -162,7 +167,7 @@ function MobileBottomNavInner() {
                   <Icon className="h-4 w-4" />
                 </span>
                 <span className={cn('mt-0.5 max-w-full truncate text-[10px] leading-tight', isActive ? 'font-extrabold text-teal-800' : 'text-slate-500')}>
-                  {item.shortLabel}
+                  {item.tabLabel ?? item.shortLabel}
                 </span>
               </Link>
             );

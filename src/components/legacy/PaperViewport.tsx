@@ -4,6 +4,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import '@/styles/legacy-base.css';
 import '@/styles/legacy-papers.css';
+import '@/styles/legacy-overrides.css';
 import { cn } from '@/lib/utils';
 
 const MM_TO_PX = 96 / 25.4;

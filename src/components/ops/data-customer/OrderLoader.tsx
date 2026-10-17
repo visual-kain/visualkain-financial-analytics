@@ -32,11 +32,11 @@ export function OrderLoader({ orderId, children }: { orderId: string; children: 
         description={ordersState === 'error' ? 'Periksa koneksi lalu coba lagi.' : 'Order mungkin sudah dihapus.'}
         action={
           ordersState === 'error' ? (
-            <button type="button" onClick={retry} className="mt-1 inline-flex h-10 cursor-pointer items-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700">
+            <button type="button" onClick={retry} className="mt-1 inline-flex h-10 cursor-pointer items-center rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-700 shadow-btn-secondary font-medium">
               Coba lagi
             </button>
           ) : (
-            <Link href="/data-customer" className="mt-1 inline-flex h-10 items-center rounded-xl bg-teal-600 px-3 text-xs font-bold text-white">
+            <Link href="/data-customer" className="mt-1 inline-flex h-10 items-center rounded-xl bg-teal-600 px-3 text-xs text-white border border-teal-700 shadow-btn-primary font-medium">
               Kembali ke Data Customer
             </Link>
           )

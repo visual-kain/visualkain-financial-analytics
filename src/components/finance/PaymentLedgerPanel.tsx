@@ -544,7 +544,7 @@ export function PaymentLedgerPanel({
               <button
                 type="button"
                 onClick={resetForm}
-                className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs text-slate-700 hover:bg-slate-50 cursor-pointer shadow-btn-secondary font-medium"
               >
                 Batal edit
               </button>

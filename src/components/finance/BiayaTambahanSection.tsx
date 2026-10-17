@@ -147,7 +147,7 @@ export function BiayaTambahanSection({ items, onChange, onPendingChange }: Biaya
             <button
               type="button"
               onClick={reset}
-              className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-xs text-slate-700 hover:bg-slate-50 cursor-pointer shadow-btn-secondary font-medium"
             >
               Batal edit
             </button>
@@ -156,7 +156,7 @@ export function BiayaTambahanSection({ items, onChange, onPendingChange }: Biaya
             type="button"
             onClick={submit}
             disabled={!canSubmit}
-            className="inline-flex h-10 items-center rounded-xl bg-teal-600 px-4 text-xs font-bold text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="inline-flex h-10 items-center rounded-xl bg-teal-600 px-4 text-xs text-white hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border border-teal-700 shadow-btn-primary font-medium"
           >
             {editingId ? 'Perbarui biaya' : 'Tambahkan biaya'}
           </button>

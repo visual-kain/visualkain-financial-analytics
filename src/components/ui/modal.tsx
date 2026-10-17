@@ -128,7 +128,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 sm:h-10"
+            className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 sm:h-10 shadow-btn-secondary font-medium"
           >
             {blockedReason ? 'Tutup' : cancelLabel}
           </button>

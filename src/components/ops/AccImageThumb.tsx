@@ -61,7 +61,7 @@ export function AccImageThumb({ url: rawUrl, label, size = 'sm', className }: Ac
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 sm:h-10"
+            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs text-slate-700 hover:bg-slate-50 sm:h-10 shadow-btn-secondary font-medium"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             Buka ukuran asli

@@ -165,12 +165,12 @@ function DataCustomerContent() {
           <button
             type="button"
             onClick={() => setQuery({ q: '', status: 'all', page: 1 })}
-            className="mt-1 inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
+            className="mt-1 inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-700 hover:bg-slate-50 shadow-btn-secondary font-medium"
           >
             <X className="h-3.5 w-3.5" /> Reset filter
           </button>
         ) : query.scope === 'current' ? (
-          <Link href="/data-customer/new" className="mt-1 inline-flex h-10 items-center gap-1.5 rounded-xl bg-teal-600 px-3 text-xs font-bold text-white hover:bg-teal-700">
+          <Link href="/data-customer/new" className="mt-1 inline-flex h-10 items-center gap-1.5 rounded-xl bg-teal-600 px-3 text-xs text-white hover:bg-teal-700 border border-teal-700 shadow-btn-primary font-medium">
             <Plus className="h-4 w-4" /> Order Baru
           </Link>
         ) : undefined
@@ -190,7 +190,7 @@ function DataCustomerContent() {
               type="button"
               onClick={handleExport}
               disabled={loading || filtered.length === 0}
-              className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10"
+              className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 shadow-btn-secondary font-medium"
             >
               <Download className="h-3.5 w-3.5 text-slate-500" />
               Ekspor Excel
@@ -198,7 +198,7 @@ function DataCustomerContent() {
             <Link
               href="/data-customer/new"
               title="Order baru (Ctrl+N)"
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.98] sm:h-10"
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs text-white hover:bg-teal-700 active:scale-[0.98] sm:h-10 border border-teal-700 shadow-btn-primary font-medium"
             >
               <Plus className="h-4 w-4" />
               Order Baru

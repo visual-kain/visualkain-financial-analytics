@@ -161,7 +161,7 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
                     <button
                       type="button"
                       onClick={() => onEditFinance(order)}
-                      className="h-10 flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/80 px-2.5 text-xs font-bold text-teal-800 shadow-2xs hover:bg-teal-100 hover:border-teal-300 active:scale-[0.98] transition-all duration-150 cursor-pointer whitespace-nowrap"
+                      className="h-10 flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/80 px-2.5 text-xs text-teal-800 hover:bg-teal-100 hover:border-teal-300 active:scale-[0.98] transition-all duration-150 cursor-pointer whitespace-nowrap shadow-btn-secondary font-medium"
                     >
                       <Pencil className="h-3.5 w-3.5 text-teal-700 shrink-0" />
                       <span className="sm:hidden">Edit &amp; DP</span>

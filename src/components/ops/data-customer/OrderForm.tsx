@@ -497,13 +497,13 @@ export function OrderForm({ mode, order }: OrderFormProps) {
             </div>
           </dl>
           <div className="grid grid-cols-2 gap-2 xl:flex">
-            <button type="button" onClick={handleCancel} className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50">
+            <button type="button" onClick={handleCancel} className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs text-slate-700 hover:bg-slate-50 shadow-btn-secondary font-medium">
               Batal
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 disabled:opacity-60"
+              className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-5 text-xs text-white hover:bg-teal-700 disabled:opacity-60 border border-teal-700 shadow-btn-primary font-medium"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {saving ? 'Menyimpan...' : 'Simpan Order'}

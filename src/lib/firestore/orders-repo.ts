@@ -135,7 +135,3 @@ export async function deleteOrder(order: LegacyOrder): Promise<void> {
     }
   }
 }
-
-export async function saveTargetDp(orderId: string, targetDpPersen: number): Promise<void> {
-  await updateDoc(doc(db, 'orders', orderId), { targetDpPersen, updatedAt: Timestamp.now() });
-}

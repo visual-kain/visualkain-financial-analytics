@@ -143,14 +143,14 @@ export function BankAccountModal({ open, active, onClose, onApply }: BankAccount
           <button
             type="button"
             onClick={() => apply(DEFAULT_BANK_INFO)}
-            className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 sm:mr-auto sm:h-10"
+            className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs text-slate-700 hover:bg-slate-50 sm:mr-auto sm:h-10 shadow-btn-secondary font-medium"
           >
             <RotateCcw className="h-3.5 w-3.5" /> Reset Default BCA
           </button>
-          <button type="button" onClick={onClose} className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 sm:h-10">
+          <button type="button" onClick={onClose} className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs text-slate-700 hover:bg-slate-50 sm:h-10 shadow-btn-secondary font-medium">
             Tutup
           </button>
-          <button type="button" onClick={submitManual} disabled={saving} className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl bg-teal-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-teal-700 disabled:opacity-60 sm:h-10">
+          <button type="button" onClick={submitManual} disabled={saving} className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl bg-teal-600 px-4 text-xs text-white hover:bg-teal-700 disabled:opacity-60 sm:h-10 border border-teal-700 shadow-btn-primary font-medium">
             {saving ? 'Menyimpan...' : 'Simpan & Terapkan'}
           </button>
         </>

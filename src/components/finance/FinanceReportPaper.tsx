@@ -139,6 +139,8 @@ export default function FinanceReportPaper({ order, getVendorById }: FinanceRepo
           <h3>Ringkasan Pendapatan</h3>
           <div className="tp-row"><span>Nilai Tagihan Kotor (Subtotal):</span> <strong>{formatIdr(t.grossTotal)}</strong></div>
           <div className="tp-row"><span>Diskon:</span> <strong>- {formatIdr(t.diskon)}</strong></div>
+          {/* Biaya tambahan customer (F-12) menjelaskan selisih Total Tagihan terhadap tagihan kotor. */}
+          <div className="tp-row"><span>Biaya Tambahan Customer:</span> <strong>+ {formatIdr(t.biayaTambahanCust)}</strong></div>
           <div className="tp-row"><span>Total Tagihan:</span> <strong>{formatIdr(t.jumlahSemua)}</strong></div>
           <div className="tp-row"><span>DP Konsumen ({dpPersenAktual.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%):</span> <strong>{formatIdr(dp)}</strong></div>
           <div className="tp-row"><span>Sisa Pelunasan:</span> <strong>{formatIdr(Math.max(0, t.jumlahSemua - dp))}</strong></div>

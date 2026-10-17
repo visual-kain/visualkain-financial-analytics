@@ -412,7 +412,7 @@ export function MasterFinanceTable({
                   onClick={() => onEditFinance?.(row)}
                   title="Edit Finansial & Termin DP"
                   aria-label="Edit Finansial Order"
-                  className="h-10 px-2.5 shrink-0 inline-flex items-center justify-center gap-1 rounded-xl border border-teal-200 bg-teal-50 text-[11px] font-bold text-teal-800 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                  className="h-10 px-2.5 shrink-0 inline-flex items-center justify-center gap-1 rounded-xl border border-teal-200 bg-teal-50 text-[11px] text-teal-800 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer shadow-btn-secondary font-medium"
                 >
                   <Pencil className="h-3.5 w-3.5 shrink-0" />
                   <span>Edit &amp; DP</span>

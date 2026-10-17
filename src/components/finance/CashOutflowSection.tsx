@@ -602,7 +602,7 @@ export function CashOutflowSection({
                   onBulanChange?.('all');
                   onTahunChange?.('all');
                 }}
-                className="inline-flex h-10 w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-rose-600 hover:bg-rose-50 active:scale-[0.98] transition-all cursor-pointer"
+                className="inline-flex h-10 w-full sm:w-auto items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs text-rose-600 hover:bg-rose-50 active:scale-[0.98] transition-all cursor-pointer shadow-btn-secondary font-medium"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 <span>Reset Filter</span>

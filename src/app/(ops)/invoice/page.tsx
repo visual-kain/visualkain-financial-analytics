@@ -3,7 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQueryState } from 'nuqs';
-import { Landmark, Plus, Printer, Save } from 'lucide-react';
+import { Landmark, Plus, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader, EyebrowBadge } from '@/components/layout/PageHeader';
 import { OrderSearchCombobox } from '@/components/ops/OrderSearchCombobox';
@@ -13,7 +13,6 @@ import { PaperViewport, PrintPortal, printWithTitle } from '@/components/legacy/
 import InvoicePaper, { DEFAULT_BANK_INFO } from '@/components/legacy/InvoicePaper';
 import { Shimmer } from '@/components/ui/shimmer';
 import { useOpsData } from '@/context/OpsDataContext';
-import { saveTargetDp } from '@/lib/firestore/orders-repo';
 import { invoicePaymentDateLabel, invoicePaymentsForOrder } from '@/lib/invoice-payments';
 import { isArchivedOrder } from '@/lib/order-form';
 import type { BankAccountInfo, LegacyOrder } from '@/lib/legacy/types';
@@ -24,36 +23,12 @@ function InvoiceContent() {
   const [orderId, setOrderId] = useQueryState('order');
   const [bank, setBank] = useState<BankAccountInfo>(DEFAULT_BANK_INFO);
   const [bankOpen, setBankOpen] = useState(false);
-  const [targetDraft, setTargetDraft] = useState('70');
-  const [savingTarget, setSavingTarget] = useState(false);
 
   useEffect(() => setBank(readStoredBank()), []);
 
   const order = orderId ? getOrderById(orderId) : undefined;
   const archived = order ? isArchivedOrder(order) : false;
-  const savedTarget = Number(order?.targetDpPersen) || 70;
-
-  useEffect(() => {
-    setTargetDraft(String(savedTarget));
-  }, [order?.id, savedTarget]);
-
-  const targetValue = Math.min(100, Math.max(1, Number(targetDraft) || 70));
-  const effectiveOrder = useMemo<LegacyOrder | undefined>(() => (order ? { ...order, targetDpPersen: targetValue } : undefined), [order, targetValue]);
   const payments = useMemo(() => (order ? invoicePaymentsForOrder(order) : undefined), [order]);
-
-  const handleSaveTarget = async () => {
-    if (!order) return;
-    setSavingTarget(true);
-    try {
-      await saveTargetDp(order.id, targetValue);
-      toast.success(`Target DP ${targetValue}% disimpan ke ${order.noInv}`);
-    } catch (err) {
-      console.error('[invoice] Gagal simpan target DP:', err);
-      toast.error('Gagal menyimpan target DP');
-    } finally {
-      setSavingTarget(false);
-    }
-  };
 
   const handlePrint = () => {
     if (!order) {
@@ -68,13 +43,13 @@ function InvoiceContent() {
       <PageHeader
         eyebrow={<EyebrowBadge>Dokumen</EyebrowBadge>}
         title="Invoice"
-        subtitle="Pilih order untuk menampilkan invoice. Tampilan kertas sama dengan VisualKainDB; pembayaran diambil dari Dana Masuk."
+        subtitle="Pilih order untuk menampilkan invoice formal. DP yang tercetak adalah pembayaran yang sudah tercatat di Dana Masuk."
         actions={
           <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
             <button
               type="button"
               onClick={() => setBankOpen(true)}
-              className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 sm:h-10"
+              className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-700 hover:bg-slate-50 sm:h-10 shadow-btn-secondary font-medium"
             >
               <Landmark className="h-3.5 w-3.5 text-slate-500" />
               <span className="truncate">Rekening ({bank.bankName})</span>
@@ -83,7 +58,7 @@ function InvoiceContent() {
               type="button"
               onClick={handlePrint}
               disabled={!order}
-              className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10"
+              className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 text-xs text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 border border-teal-700 shadow-btn-primary font-medium"
             >
               <Printer className="h-4 w-4" /> Cetak / Print
             </button>
@@ -112,36 +87,7 @@ function InvoiceContent() {
         </div>
 
         {order && (
-          <div className="grid min-w-0 gap-3 sm:grid-cols-[150px_minmax(0,1fr)]">
-            <div>
-              <label htmlFor="target-dp" className="mb-1.5 block text-xs font-bold text-slate-700">
-                Target DP Produksi (%)
-              </label>
-              <div className="flex gap-1.5">
-                <input
-                  id="target-dp"
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={100}
-                  value={targetDraft}
-                  disabled={archived}
-                  onChange={(e) => setTargetDraft(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-center text-sm font-bold tabular-nums focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 disabled:bg-slate-100 sm:h-10"
-                />
-                {!archived && targetValue !== savedTarget && (
-                  <button
-                    type="button"
-                    onClick={handleSaveTarget}
-                    disabled={savingTarget}
-                    aria-label="Simpan target DP"
-                    className="inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-60 sm:h-10 sm:w-10"
-                  >
-                    <Save className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
+          <div className="grid min-w-0 gap-3">
             <div className="min-w-0">
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <span className="text-xs font-bold text-slate-700">Pembayaran Diterima</span>
@@ -171,11 +117,11 @@ function InvoiceContent() {
       </section>
 
       <PaperViewport>
-        <InvoicePaper order={effectiveOrder} payments={payments} bankInfo={bank} />
+        <InvoicePaper order={order} payments={payments} bankInfo={bank} />
       </PaperViewport>
-      {effectiveOrder && (
+      {order && (
         <PrintPortal>
-          <InvoicePaper order={effectiveOrder} payments={payments} bankInfo={bank} />
+          <InvoicePaper order={order} payments={payments} bankInfo={bank} />
         </PrintPortal>
       )}
 

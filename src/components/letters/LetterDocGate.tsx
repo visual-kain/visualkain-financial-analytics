@@ -78,7 +78,7 @@ export function LetterDocGate<T>({ result, noun, listHref, listLabel, children }
         </Button>
         <Link
           href={listHref}
-          className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 sm:h-10"
+          className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs text-slate-700 hover:bg-slate-50 sm:h-10 shadow-btn-secondary font-medium"
         >
           {listLabel}
         </Link>

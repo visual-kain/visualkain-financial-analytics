@@ -731,7 +731,7 @@ export function CashInflowSection({
               <button
                 onClick={handleExportExcel}
                 title="Unduh Laporan Excel"
-                className="flex-1 sm:flex-none h-10 px-3 flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold active:scale-95 transition-all shadow-2xs cursor-pointer whitespace-nowrap"
+                className="flex-1 sm:flex-none h-10 px-3 flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap shadow-btn-secondary font-medium"
               >
                 <Download className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                 <span>Ekspor Excel</span>
@@ -740,7 +740,7 @@ export function CashInflowSection({
               {onOpenAddIncome && (
                 <button
                   onClick={onOpenAddIncome}
-                  className="flex-1 sm:flex-none h-10 px-3.5 flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 text-white hover:bg-teal-700 text-xs font-bold active:scale-95 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                  className="flex-1 sm:flex-none h-10 px-3.5 flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 text-white hover:bg-teal-700 text-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap border border-teal-700 shadow-btn-primary font-medium"
                 >
                   <Plus className="h-3.5 w-3.5 shrink-0" />
                   <span>Catat Kas</span>

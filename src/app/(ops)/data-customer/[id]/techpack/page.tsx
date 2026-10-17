@@ -24,7 +24,7 @@ function TechpackView({ order }: { order: LegacyOrder }) {
           <button
             type="button"
             onClick={() => printWithTitle(`TechPack_${order.noInv}_${order.namaCustomer}`)}
-            className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-teal-700 sm:h-10 sm:w-auto"
+            className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 text-xs text-white hover:bg-teal-700 sm:h-10 sm:w-auto border border-teal-700 shadow-btn-primary font-medium"
           >
             <Printer className="h-4 w-4" /> Cetak Tech Pack
           </button>

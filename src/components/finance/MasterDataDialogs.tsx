@@ -135,7 +135,7 @@ function MasterFormDialog({ open, title, description, fields, initialValues, onC
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+            className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3.5 text-xs text-slate-700 hover:bg-slate-50 cursor-pointer shadow-btn-secondary font-medium"
           >
             Batal
           </button>
@@ -143,7 +143,7 @@ function MasterFormDialog({ open, title, description, fields, initialValues, onC
             type="button"
             onClick={() => void submit()}
             disabled={saving}
-            className="inline-flex h-10 items-center rounded-xl bg-teal-600 px-4 text-xs font-bold text-white hover:bg-teal-700 disabled:opacity-50 cursor-pointer"
+            className="inline-flex h-10 items-center rounded-xl bg-teal-600 px-4 text-xs text-white hover:bg-teal-700 disabled:opacity-50 cursor-pointer border border-teal-700 shadow-btn-primary font-medium"
           >
             {saving ? 'Menyimpan...' : 'Simpan'}
           </button>
