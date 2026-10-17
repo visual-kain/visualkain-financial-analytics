@@ -8,6 +8,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { getInitials, getUserDisplayName } from '@/lib/legacy/formatters';
 import { useRouter } from 'next/navigation';
 
 export interface UserProfile {
@@ -30,14 +31,16 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Identitas diambil dari akun login (K-3, F-13) karena aplikasi kini dipakai lebih dari satu orang.
 function buildProfile(firebaseUser: User): UserProfile {
+  const name = getUserDisplayName(firebaseUser) || 'Pengguna VisualKain';
   return {
-    name: firebaseUser.displayName || 'Glora Sawita Br Panjaitan',
-    shortName: 'Glora Sawita',
-    role: 'Head of Finance & Accounting',
+    name,
+    shortName: name.split(/\s+/).slice(0, 2).join(' '),
+    role: 'Tim VisualKain',
     email: firebaseUser.email || '',
-    initials: 'GS',
-    department: 'Finance & Cashflow Intelligence',
+    initials: getInitials(name),
+    department: 'VisualKain',
   };
 }
 

@@ -1,0 +1,47 @@
+/*
+ * Dimuat sebelum legacy-papers.css. Tailwind preflight mereset beberapa default browser yang diandalkan
+ * kertas visualkaindb; di dalam .vk-legacy default itu dikembalikan dengan `revert`. Selector :where()
+ * menjaga spesifisitas tetap rendah sehingga aturan kertas legacy selalu menang.
+ */
+.vk-legacy :where(*, ::before, ::after) {
+  border-width: revert;
+  border-style: revert;
+  border-color: revert;
+}
+.vk-legacy :where(h1, h2, h3, h4, h5, h6) {
+  font-size: revert;
+  font-weight: revert;
+}
+.vk-legacy :where(ul, ol) {
+  list-style: revert;
+}
+.vk-legacy :where(img, svg, video) {
+  display: revert;
+  vertical-align: revert;
+  max-width: revert;
+  height: revert;
+}
+.vk-legacy :where(table) {
+  border-collapse: revert;
+  border-spacing: revert;
+  border-color: revert;
+  text-indent: revert;
+}
+.vk-legacy :where(a) {
+  color: revert;
+  text-decoration: revert;
+}
+
+/* Inline style kertas memakai bobot 800, padahal visualkaindb hanya memuat Open Sans sampai 700. */
+.vk-legacy [style*='font-weight: 800'],
+.vk-legacy [style*='font-weight:800'],
+.vk-legacy [style*='font-weight: 900'],
+.vk-legacy [style*='font-weight:900'] {
+  font-weight: 700 !important;
+}
+
+@media screen {
+  .vk-print-root {
+    display: none !important;
+  }
+}

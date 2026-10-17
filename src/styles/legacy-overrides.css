@@ -1,0 +1,89 @@
+/*
+ * Dimuat setelah legacy-papers.css. Permintaan klien 17 Okt 2026 (K-22): tipografi invoice dan kop PO disamakan
+ * dengan kertas penawaran/surat (Open Sans, ukuran pt), tanpa mengubah tata letak. Selector ID dipakai agar
+ * menang dari aturan kelas bersama; !important hanya untuk menahan override print bawaan visualkaindb.
+ */
+.vk-legacy #invoicePaper .company-info h1,
+.vk-legacy #poPaper .company-info h1 {
+  font-family: var(--font-open-sans), 'Open Sans', Arial, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px;
+  color: #0d9488;
+}
+
+.vk-legacy #invoicePaper {
+  font-family: var(--font-open-sans), 'Open Sans', sans-serif;
+  color: #1e293b;
+}
+.vk-legacy #invoicePaper .company-info h1 {
+  font-size: 22pt;
+  line-height: 1;
+  margin: 0 0 1mm 0;
+}
+.vk-legacy #invoicePaper .company-info p {
+  font-size: 9pt;
+  line-height: 1.4;
+  color: #475569;
+}
+.vk-legacy #invoicePaper .invoice-meta h2 {
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #0f172a;
+}
+.vk-legacy #invoicePaper .invoice-meta p {
+  font-size: 9pt;
+  color: #475569;
+}
+.vk-legacy #invoicePaper .client-col-left > strong,
+.vk-legacy #invoicePaper .client-col-right > strong {
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.vk-legacy #invoicePaper .client-col-left > p,
+.vk-legacy #invoicePaper .client-col-right > p {
+  font-size: 11pt;
+  font-weight: 700;
+}
+.vk-legacy #invoicePaper .client-detail-row {
+  font-size: 9.5pt;
+}
+.vk-legacy #invoicePaper .invoice-items th {
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 3mm;
+}
+.vk-legacy #invoicePaper .invoice-items td {
+  font-size: 9.5pt;
+  padding: 2.5mm 3mm;
+}
+.vk-legacy #invoicePaper .invoice-pay-box,
+.vk-legacy #invoicePaper .invoice-notes {
+  font-size: 8.5pt;
+}
+.vk-legacy #invoicePaper .total-row {
+  font-size: 9.5pt;
+}
+.vk-legacy #invoicePaper .total-row.grand-total {
+  font-size: 11pt;
+}
+
+@media print {
+  .vk-legacy #invoicePaper .company-info h1 {
+    font-size: 20pt !important;
+  }
+  .vk-legacy #invoicePaper .invoice-meta h2 {
+    font-size: 20pt !important;
+    font-weight: 700 !important;
+  }
+  .vk-legacy #invoicePaper .total-row.grand-total {
+    font-size: 11pt !important;
+  }
+}
+
+/* Detail DP menambah baris di kolom total; 250px membuat label pecah dua baris. */
+.vk-legacy #invoicePaper .invoice-totals {
+  width: 280px;
+}

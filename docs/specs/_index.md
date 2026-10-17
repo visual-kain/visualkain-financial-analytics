@@ -3,7 +3,7 @@ id: FEATURE-REGISTRY
 title: Feature Registry
 status: active
 owner: Developer
-last_updated: 2026-10-11
+last_updated: 2026-10-17
 ---
 
 # Feature Registry — VisualKain Financial Data & Analytics 2026
@@ -18,6 +18,7 @@ Durable navigation registry for feature specifications in VisualKain Financial &
 | `F-04` | Vendor Performance Intelligence & Cost Grouped Bar Chart | `.kiro/specs/F-04-vendor-performance-intelligence/` | P1 | implemented | Vendor Procurement |
 | `F-05` | Profit & HPP Aktual Reconciliation (Variance Waterfall) | `.kiro/specs/F-05-profit-aktual-reconciliation/` | P1 | implemented | Profit Audit |
 | `F-06` | Financial Order Editor & Document Preview Modal (Aksi Edit & Invoice) | `.kiro/specs/F-06-financial-order-editor/` | P1 | implemented | Financial Control |
+| `F-13` | Merger VisualKainDB: Data Customer, Invoice, Size Chart, Techpack, Kerjasama, Penawaran, PO | `.kiro/specs/F-13-merger-visualkaindb/` | P1 | in_progress | Operasional |
 
 ## Lifecycle gate meaning
 

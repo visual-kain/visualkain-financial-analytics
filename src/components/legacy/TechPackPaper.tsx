@@ -1,0 +1,253 @@
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
+import { formatDate, timestampToDate } from '@/lib/legacy/formatters';
+import { SIZES, CATEGORIES, CATEGORY_TECHPACK_LABELS } from '@/lib/legacy/calculations';
+import type { LegacyOrder, SizeChart } from '@/lib/legacy/types';
+
+/**
+ * Salinan apa adanya `visualkaindb/src/components/techpack/TechPackPaper.tsx`. Perubahan: size chart diterima
+ * lewat prop (bukan DataContext), gambar memakai <img> biasa, dan grup Lengan 3/4 ikut tampil (K-13).
+ */
+interface TechPackPaperProps {
+  order: LegacyOrder | undefined;
+  sizeChart?: SizeChart;
+}
+
+export default function TechPackPaper({ order, sizeChart }: TechPackPaperProps) {
+  if (!order) {
+    return (
+      <div className="techpack-paper" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Order tidak ditemukan</p>
+      </div>
+    );
+  }
+
+  const created = timestampToDate(order.createdAt);
+  const dateStr = created ? formatDate(created) : '-';
+
+  let deadlineStr = 'Belum ditentukan';
+  if (order.deadline) {
+    deadlineStr = new Date(order.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  const renderSizeGroups = () => {
+    const groups: React.ReactNode[] = [];
+
+    CATEGORIES.forEach((cat) => {
+      let totalCat = 0;
+      const sizeData: Array<{ size: string; qty: number }> = [];
+
+      SIZES.forEach((s) => {
+        const qty = (order[`${cat}${s}`] as number) || 0;
+        if (qty > 0) {
+          sizeData.push({ size: s, qty });
+          totalCat += qty;
+        }
+      });
+
+      if (totalCat > 0) {
+        groups.push(
+          <div className="tp-size-group" key={cat}>
+            <div className="tp-size-header">
+              <span>{CATEGORY_TECHPACK_LABELS[cat]}</span>
+              <span>Total: {totalCat} pcs</span>
+            </div>
+            <div className="tp-size-body">
+              {sizeData.map((sd) => (
+                <div className="tp-size-item" key={sd.size}>
+                  <label>{sd.size}</label>
+                  <strong>{sd.qty}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+    });
+
+    return groups;
+  };
+
+  const renderProdList = () => {
+    const items: React.ReactNode[] = [];
+    for (let i = 1; i <= 4; i++) {
+      const detail = order[`prodDetail${i}`] as string | undefined;
+      if (detail) {
+        items.push(
+          <div className="tp-prod-item" key={i}>
+            <div className="num">{i}</div>
+            <div>{detail}</div>
+          </div>
+        );
+      }
+    }
+    return items.length > 0 ? items : <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', gridColumn: 'span 2' }}>Tidak ada detail produksi spesifik.</p>;
+  };
+
+  return (
+    <>
+      <div className="techpack-paper" id="techpackMainPaper">
+        <div className="tp-header">
+          <div className="tp-logo">
+            <h1>VisualKain</h1>
+            <p>Production Sheet / Tech Pack</p>
+          </div>
+          <div className="tp-info">
+            <div className="tp-id"><span>No. Invoice:</span> <strong>{order.noInv}</strong></div>
+            <div className="tp-date"><span>Tanggal:</span> <strong>{dateStr}</strong></div>
+            <div className="tp-deadline"><span>Deadline:</span> <strong>{deadlineStr}</strong></div>
+          </div>
+        </div>
+
+        <div className="tp-grid-info">
+          <div className="tp-section">
+            <h3>Customer Detail</h3>
+            <div className="tp-row"><span>Nama:</span> <strong>{order.namaCustomer}</strong></div>
+            <div className="tp-row"><span>Telepon:</span> <strong>{order.noWaCustomer || '-'}</strong></div>
+            <div className="tp-row"><span>Project:</span> <strong>{order.namaProject || '-'}</strong></div>
+          </div>
+          <div className="tp-section">
+            <h3>Product Specification</h3>
+            <div className="tp-row"><span>Kategori:</span> <strong>{order.kategoriOrder || '-'}</strong></div>
+            <div className="tp-row"><span>Bahan:</span> <strong>{order.jenisBahan || '-'}</strong></div>
+            <div className="tp-row"><span>Warna:</span> <strong>{order.warna || '-'}</strong></div>
+          </div>
+        </div>
+
+        <div className="tp-section full-width">
+          <h3>Production Details</h3>
+          <div className="tp-prod-list">{renderProdList()}</div>
+        </div>
+
+        <div className="tp-section full-width">
+          <h3>Order Quantity Breakdown</h3>
+          <div className="tp-size-container">{renderSizeGroups()}</div>
+        </div>
+
+        <div className="tp-section full-width">
+          <h3>Additional Notes</h3>
+          <div className="tp-notes-box">{order.notes || 'Tidak ada catatan tambahan.'}</div>
+        </div>
+
+        <div className="tp-footer-print">
+          <p>Generated by VisualKain System — Halaman 1</p>
+        </div>
+      </div>
+
+      {order.accCustUrl && <AccPaper order={order} />}
+
+      {order.sizeChartId && sizeChart && <SizeChartPaper order={order} sc={sizeChart} />}
+    </>
+  );
+}
+
+function AccPaper({ order }: { order: LegacyOrder }) {
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape' | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setOrientation(img.naturalWidth > img.naturalHeight ? 'landscape' : 'portrait');
+    }
+  }, [order.accCustUrl]);
+
+  const handleImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setOrientation(img.naturalWidth > img.naturalHeight ? 'landscape' : 'portrait');
+  };
+
+  return (
+    <div className="techpack-paper" id="tpAccPaper">
+      <div className="tp-header">
+        <div className="tp-logo">
+          <h1>VisualKain</h1>
+          <p>ACC Customer</p>
+        </div>
+        <div className="tp-info">
+          <div className="tp-id"><span>No. Invoice:</span> <strong>{order.noInv}</strong></div>
+          <div className="tp-date"><span>Customer:</span> <strong>{order.namaCustomer}</strong></div>
+        </div>
+      </div>
+
+      <div className="tp-section full-width tp-acc-section">
+        <h3>ACC Customer (Approved Design)</h3>
+        <div className="tp-acc-frame">
+          <img
+            ref={imgRef}
+            src={order.accCustUrl ?? undefined}
+            alt="ACC Customer"
+            className={orientation ?? ''}
+            onLoad={handleImgLoad}
+          />
+        </div>
+        {orientation === 'landscape' && (
+          <p className="tp-acc-rotate-hint">
+            * Gambar landscape — otomatis diputar 90° agar memenuhi halaman (miringkan kertas saat membaca).
+          </p>
+        )}
+      </div>
+
+      <div className="tp-footer-print">
+        <p>Generated by VisualKain System — Halaman 2</p>
+      </div>
+    </div>
+  );
+}
+
+function SizeChartPaper({ order, sc }: { order: LegacyOrder; sc: SizeChart }) {
+  return (
+    <div className="techpack-paper" id="tpSizeChartPaper">
+      <div className="tp-header">
+        <div className="tp-logo">
+          <h1>VisualKain</h1>
+          <p>Size Chart Reference</p>
+        </div>
+        <div className="tp-info">
+          <div className="tp-id"><span>No. Invoice:</span> <strong>{order.noInv}</strong></div>
+          <div className="tp-date"><span>Customer:</span> <strong>{order.namaCustomer}</strong></div>
+        </div>
+      </div>
+
+      <div className="tp-sc-page-title">SIZE CHART: {sc.nama.toUpperCase()}</div>
+
+      <div className="tp-sc-layout">
+        <div className="tp-sc-image">
+          <img src="/img/shirt.jpg" alt="Size Chart Diagram" width={200} height={280} style={{ objectFit: 'contain' }} />
+        </div>
+        <div className="tp-sc-table-wrap">
+          <table className="tp-sc-table">
+            <thead>
+              <tr>
+                <th>Size</th>
+                <th>Lebar (cm)</th>
+                <th>Panjang (cm)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SIZES.map((s) => {
+                const d = sc.sizes && sc.sizes[s] ? sc.sizes[s] : { panjang: 0, lebar: 0 };
+                return (
+                  <tr key={s}>
+                    <td>{s}</td>
+                    <td>{d.lebar} cm</td>
+                    <td>{d.panjang} cm</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="tp-sc-note">
+        <p>* Ukuran dapat berbeda ±1-2 cm dari spesifikasi di atas.</p>
+      </div>
+
+      <div className="tp-footer-print">
+        <p>Generated by VisualKain System — {order.accCustUrl ? 'Halaman 3' : 'Halaman 2'}</p>
+      </div>
+    </div>
+  );
+}

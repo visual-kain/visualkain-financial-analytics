@@ -11,7 +11,8 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { calculateOrderTotals } from '@/lib/calculations';
+import { isPinjamanEntry } from '@/lib/order-payments';
+import { mapFinanceOrderDoc } from '@/lib/finance-order-mapper';
 import { isFromFinanceStartDate, normalizeKategoriKasMasuk, todayInJakarta } from '@/lib/constants';
 import { toPersistedLabel } from '@/lib/payment-ledger';
 import { validateVendorName } from '@/lib/vendor-ref';
@@ -32,11 +33,6 @@ export class FinanceWriteError extends Error {
     this.operation = operation;
     this.cause = cause;
   }
-}
-
-// Entri riwayat berlabel pinjaman bukan pembayaran customer: dikecualikan saat dibaca, tetapi wajib dipertahankan saat ditulis ulang.
-function isPinjamanEntry(p: { catatan?: unknown } | null | undefined): boolean {
-  return String(p?.catatan || '').toLowerCase().includes('pinjaman');
 }
 
 type ListenerName = 'orders' | 'kas' | 'investor' | 'vendors' | 'init';
@@ -153,191 +149,9 @@ export function useFirebaseFinance(): UseFirebaseFinanceResult {
       unsubscribeOrders = onSnapshot(
         ordersRef,
         (snapshot) => {
-          const mappedOrders: Order[] = snapshot.docs.map((docSnap) => {
-            const d = docSnap.data();
-            const totals = calculateOrderTotals(d);
-
-            const totalInv = totals.jumlahSemua;
-            const totalHpp = totals.totalHpp;
-
-            // Prioritaskan nilai positif antara totalDibayarKeVendor dan dpNominalPO agar nilai 0 salah satu field tidak menimpa pembayaran vendor yang sah.
-            const rawPaidVendor = Number(d.totalDibayarKeVendor || 0);
-            const rawDpPo = Number(d.dpNominalPO || 0);
-            const dpVendor = Array.isArray(d.vendorPembayaranList) && d.totalDibayarKeVendor !== undefined
-              ? rawPaidVendor
-              : rawPaidVendor > 0
-              ? rawPaidVendor
-              : rawDpPo > 0
-              ? rawDpPo
-              : d.totalDibayarKeVendor !== undefined
-              ? rawPaidVendor
-              : Math.round(totalHpp * (Number(d.dpPersenPO || 0) / 100));
-
-            const payments: CustomerPayment[] = [];
-            let hasModernPaymentRecord = false;
-
-            const validPembayaranList = Array.isArray(d.pembayaranList)
-              ? d.pembayaranList.filter((p: any) => Number(p?.nominal || p?.jumlah || 0) > 0)
-              : [];
-            const validRiwayatList = Array.isArray(d.riwayatPembayaran)
-              ? d.riwayatPembayaran.filter((p: any) => {
-                  const nom = Number(p?.jumlah || p?.nominal || 0);
-                  return nom > 0 && !isPinjamanEntry(p);
-                })
-              : [];
-
-            // Gunakan array pembayaran yang memiliki entri bernominal > 0 agar riwayatPembayaran: [] tidak mengabaikan pembayaranList yang terisi.
-            if (validPembayaranList.length > 0 && validPembayaranList.length >= validRiwayatList.length) {
-              hasModernPaymentRecord = true;
-              validPembayaranList.forEach((p: any, idx: number) => {
-                const nominal = Number(p.nominal || p.jumlah || 0);
-                payments.push({
-                  id: p.id || `${docSnap.id}-p-${idx}`,
-                  orderId: docSnap.id,
-                  noInv: d.noInv || 'INV',
-                  tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
-                  nominal,
-                  jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
-                  terminKe: typeof p.terminKe === 'number' ? p.terminKe : undefined,
-                  label: typeof p.label === 'string' ? p.label : undefined,
-                  keterangan: p.keterangan || p.catatan || 'Pembayaran Termin',
-                  createdAt: p.createdAt || new Date().toISOString(),
-                });
-              });
-            } else if (validRiwayatList.length > 0) {
-              hasModernPaymentRecord = true;
-              validRiwayatList.forEach((p: any, idx: number) => {
-                const nominal = Number(p.jumlah || p.nominal || 0);
-                payments.push({
-                  id: `${docSnap.id}-p-${idx}`,
-                  orderId: docSnap.id,
-                  noInv: d.noInv || 'INV',
-                  tanggal: p.tanggal || d.tanggalInv || '2026-10-01',
-                  nominal,
-                  jenis: (p.jenis as any) || (idx === 0 ? 'dp' : 'termin'),
-                  terminKe: typeof p.terminKe === 'number' ? p.terminKe : undefined,
-                  label: typeof p.label === 'string' ? p.label : undefined,
-                  keterangan: p.catatan || (idx === 0 ? 'DP Pembayaran' : 'Pembayaran Termin'),
-                  createdAt: new Date().toISOString(),
-                });
-              });
-            } else if (Array.isArray(d.riwayatPembayaran) || Array.isArray(d.pembayaranList)) {
-              hasModernPaymentRecord = true;
-            }
-
-            if (!hasModernPaymentRecord) {
-              const dp1 = Number(d.dp1Nominal || 0);
-              const dp2 = Number(d.dp2Nominal || 0);
-              const pelunasan = Number(d.pelunasanNominal || 0);
-              const legacyDp = Number(d.dpNominal || totals.nominalDP || 0);
-
-              if (dp1 > 0) {
-                payments.push({
-                  id: `${docSnap.id}-dp1`,
-                  orderId: docSnap.id,
-                  noInv: d.noInv || 'INV',
-                  tanggal: d.dp1Tanggal || d.tanggalInv || '2026-10-07',
-                  nominal: dp1,
-                  jenis: 'dp',
-                  keterangan: d.dp1Notes || 'DP 1 Transfer',
-                  createdAt: new Date().toISOString(),
-                });
-              }
-
-              if (dp2 > 0) {
-                payments.push({
-                  id: `${docSnap.id}-dp2`,
-                  orderId: docSnap.id,
-                  noInv: d.noInv || 'INV',
-                  tanggal: d.dp2Tanggal || d.tanggalInv || '2026-10-07',
-                  nominal: dp2,
-                  jenis: 'termin',
-                  keterangan: d.dp2Notes || 'DP 2 (70% Produksi)',
-                  createdAt: new Date().toISOString(),
-                });
-              }
-
-              if (pelunasan > 0) {
-                payments.push({
-                  id: `${docSnap.id}-pelunasan`,
-                  orderId: docSnap.id,
-                  noInv: d.noInv || 'INV',
-                  tanggal: d.pelunasanTanggal || d.tanggalInv || '2026-10-07',
-                  nominal: pelunasan,
-                  jenis: 'pelunasan',
-                  keterangan: 'Pelunasan Penuh',
-                  createdAt: new Date().toISOString(),
-                });
-              }
-
-              if (payments.length === 0 && legacyDp > 0) {
-                payments.push({
-                  id: `${docSnap.id}-dp-legacy`,
-                  orderId: docSnap.id,
-                  noInv: d.noInv || 'INV',
-                  tanggal: d.tanggalInv || '2026-10-07',
-                  nominal: legacyDp,
-                  jenis: 'dp',
-                  keterangan: 'DP Terkunci',
-                  createdAt: new Date().toISOString(),
-                });
-              }
-            }
-
-            const sumPayments = payments.reduce((acc, p) => acc + p.nominal, 0);
-            const fallbackPaidCust = Number(d.totalUangMasukCustomer || d.dpNominal || 0);
-            const lockedDpCustomer = hasModernPaymentRecord
-              ? (sumPayments > 0 ? sumPayments : fallbackPaidCust)
-              : (d.dpNominal !== undefined && Number(d.dpNominal) >= 0
-                  ? Number(d.dpNominal)
-                  : (sumPayments > 0 ? sumPayments : totals.nominalDP));
-            const isOrderCompleted = (d.status === 'completed' || d.statusOrder === 'SELESAI' || d.statusPembayaran === 'lunas') && lockedDpCustomer >= totalInv;
-            const totalMasuk = isOrderCompleted ? totalInv : lockedDpCustomer;
-
-            const resolvedVendorName =
-              (d.vendorId && vendorsMapRef.current.get(d.vendorId)) ||
-              d.vendorName ||
-              (d.vendorId ? 'Vendor Mitra' : 'Tanpa Vendor');
-
-            const tanggalInv = d.tanggalInv || d.tanggalOrder || '2026-10-01';
-
-            return {
-              ...d,
-              rawOrder: d,
-              id: docSnap.id,
-              noInv: d.noInv || `INV-${docSnap.id.slice(0, 6)}`,
-              customerName: d.namaCustomer || d.customerName || 'Customer',
-              projectName: d.namaProject || d.projectName || '-',
-              noWaCustomer: d.noWaCustomer || '',
-              tanggalOrder: tanggalInv,
-              grossTotal: totals.grossTotal,
-              totalInvoice: totalInv,
-              totalHpp: totalHpp,
-              targetMargin: totals.profit,
-              totalQty: totals.totalPesanan,
-              biayaOperasional: Number(d.biayaOperasional || 0),
-              biayaTambahanVendor: Number(d.biayaTambahanVendor || d.biayaLainnya || 0),
-              biayaTambahanCustomer: Number(d.biayaTambahanCustomer || d.biayaTambahanCust || 0),
-              diskon: totals.diskon,
-              kategoriOrder: (d.kategoriOrder || '').trim(),
-              hargaVendorPendek: Number(d.hargaVendorPendek || 0),
-              hargaVendorPanjang: Number(d.hargaVendorPanjang || 0),
-              hargaVendorTanpaLengan: Number(d.hargaVendorTanpaLengan || 0),
-              hppAktual: d.hppAktual !== undefined ? Number(d.hppAktual) : totalHpp,
-              profitAktual: d.profitAktual !== undefined && d.profitAktual !== null ? Number(d.profitAktual) : totals.profit,
-              catatanFinance: d.catatanFinance || '',
-              vendorId: d.vendorId || '',
-              vendorName: resolvedVendorName,
-              pembayaranList: payments,
-              dpNominal: lockedDpCustomer,
-              dpNominalPO: dpVendor,
-              totalUangMasukCustomer: totalMasuk,
-              statusPembayaran: totalMasuk >= totalInv && totalInv > 0 ? 'lunas' : totalMasuk > 0 ? 'parsial' : 'belum_bayar',
-              totalDibayarKeVendor: dpVendor,
-              statusPembayaranVendor: dpVendor >= totalHpp && totalHpp > 0 ? 'lunas_vendor' : dpVendor > 0 ? 'dp_vendor' : 'belum_bayar',
-              statusOrder: d.status || d.statusOrder || 'production',
-            };
-          });
+          const mappedOrders: Order[] = snapshot.docs.map((docSnap) =>
+            mapFinanceOrderDoc(docSnap.id, docSnap.data(), (id) => vendorsMapRef.current.get(id))
+          );
 
           // Saring hanya pesanan mulai 1 Oktober 2026 ke atas sesuai kesepakatan pembukuan klien.
           const filteredByCutoff = mappedOrders

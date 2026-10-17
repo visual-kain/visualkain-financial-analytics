@@ -14,6 +14,7 @@ import {
   Legend,
 } from 'recharts';
 import { EmptyState } from '@/components/ui/empty-state';
+import { NegativeAwareValue } from '@/components/ui/negative-value';
 
 interface VendorPerformanceSectionProps {
   vendors?: VendorPerformanceItem[];
@@ -325,15 +326,15 @@ export function VendorPerformanceSection({
                   </div>
                   <div className="min-w-0">
                     <span className="text-emerald-800 block text-[9.5px] truncate">Profit Bersih</span>
-                    <span className="font-mono font-bold text-emerald-700 truncate block mt-0.5">
+                    <NegativeAwareValue value={item.profit} reason="Profit minus" className="font-mono font-bold mt-0.5 text-[11px]" positiveClassName="text-emerald-700 truncate block">
                       {formatCompactRupiah(item.profit)}
-                    </span>
+                    </NegativeAwareValue>
                   </div>
                   <div className="min-w-0">
                     <span className="text-slate-500 block text-[9.5px] truncate">Margin</span>
-                    <span className={`font-mono font-extrabold block mt-0.5 ${item.marginPercent < 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+                    <NegativeAwareValue value={item.marginPercent} reason="Margin minus" className="font-mono font-extrabold mt-0.5 text-[11px]" positiveClassName="text-slate-900 block">
                       {item.marginPercent.toFixed(1)}%
-                    </span>
+                    </NegativeAwareValue>
                   </div>
                 </div>
               </div>
@@ -449,20 +450,14 @@ export function VendorPerformanceSection({
                     )}
                   </td>
                   <td className="px-4 py-3.5 font-mono tabular-num font-bold">
-                    {item.profit < 0 ? (
-                      <span className="text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                        {formatRupiah(item.profit)}
-                      </span>
-                    ) : (
-                      <span className="text-emerald-600">{formatRupiah(item.profit)}</span>
-                    )}
+                    <NegativeAwareValue value={item.profit} reason="Profit minus: HPP vendor melebihi harga jual" positiveClassName="text-emerald-600">
+                      {formatRupiah(item.profit)}
+                    </NegativeAwareValue>
                   </td>
                   <td className="px-4 py-3.5 font-mono tabular-num text-center font-bold">
-                    {item.marginPercent < 0 ? (
-                      <span className="text-rose-600">{item.marginPercent.toFixed(1)}%</span>
-                    ) : (
-                      <span className="text-slate-800">{item.marginPercent.toFixed(1)}%</span>
-                    )}
+                    <NegativeAwareValue value={item.marginPercent} reason="Margin minus" positiveClassName="text-slate-800">
+                      {item.marginPercent.toFixed(1)}%
+                    </NegativeAwareValue>
                   </td>
                 </tr>
               )))}

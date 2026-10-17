@@ -22,6 +22,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { NegativeAwareValue } from '@/components/ui/negative-value';
 
 interface OrderInspectionDrawerProps {
   order: MasterFinanceRow | null;
@@ -160,7 +161,7 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
                     <button
                       type="button"
                       onClick={() => onEditFinance(order)}
-                      className="h-10 flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/80 px-2.5 text-xs font-bold text-teal-800 shadow-2xs hover:bg-teal-100 hover:border-teal-300 active:scale-[0.98] transition-all duration-150 cursor-pointer whitespace-nowrap"
+                      className="h-10 flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/80 px-2.5 text-xs text-teal-800 hover:bg-teal-100 hover:border-teal-300 active:scale-[0.98] transition-all duration-150 cursor-pointer whitespace-nowrap shadow-btn-secondary font-medium"
                     >
                       <Pencil className="h-3.5 w-3.5 text-teal-700 shrink-0" />
                       <span className="sm:hidden">Edit &amp; DP</span>
@@ -349,9 +350,9 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
 
                 <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 font-bold">
                   <span className="text-emerald-700">Estimasi Margin Laba:</span>
-                  <span className="font-mono text-emerald-600">
+                  <NegativeAwareValue value={order.profitBersih} reason="Profit minus: harga jual di bawah HPP vendor + biaya" className="font-mono" positiveClassName="text-emerald-600">
                     {formatRupiah(order.profitBersih)} ({order.profitPercent.toFixed(1)}%)
-                  </span>
+                  </NegativeAwareValue>
                 </div>
               </div>
 

@@ -5,9 +5,9 @@ import type { Order } from '@/types';
 import { formatDate } from '@/lib/formatters';
 import { calculateTotals, SIZES, CATEGORIES, getSizeExtraPrice, deriveVendorPaid } from '@/lib/calculations';
 
-const CAT_LABEL: Record<string, string> = { pendek: 'Pendek', panjang: 'Panjang', tanpaLengan: 'Tanpa Lengan' };
-const JUAL_KEY: Record<string, string> = { pendek: 'hargaPendek', panjang: 'hargaPanjang', tanpaLengan: 'hargaTanpaLengan' };
-const VENDOR_KEY: Record<string, string> = { pendek: 'hargaVendorPendek', panjang: 'hargaVendorPanjang', tanpaLengan: 'hargaVendorTanpaLengan' };
+const CAT_LABEL: Record<string, string> = { pendek: 'Pendek', panjang: 'Panjang', tanpaLengan: 'Tanpa Lengan', tigaPerempat: '3/4 Tangan' };
+const JUAL_KEY: Record<string, string> = { pendek: 'hargaPendek', panjang: 'hargaPanjang', tanpaLengan: 'hargaTanpaLengan', tigaPerempat: 'hargaTigaPerempat' };
+const VENDOR_KEY: Record<string, string> = { pendek: 'hargaVendorPendek', panjang: 'hargaVendorPanjang', tanpaLengan: 'hargaVendorTanpaLengan', tigaPerempat: 'hargaVendorTigaPerempat' };
 const STATUS_TEXT: Record<string, string> = { production: 'Sedang Produksi', waiting: 'Menunggu Pembayaran', completed: 'Selesai' };
 
 interface FinanceReportPaperProps {
@@ -139,6 +139,8 @@ export default function FinanceReportPaper({ order, getVendorById }: FinanceRepo
           <h3>Ringkasan Pendapatan</h3>
           <div className="tp-row"><span>Nilai Tagihan Kotor (Subtotal):</span> <strong>{formatIdr(t.grossTotal)}</strong></div>
           <div className="tp-row"><span>Diskon:</span> <strong>- {formatIdr(t.diskon)}</strong></div>
+          {/* Biaya tambahan customer (F-12) menjelaskan selisih Total Tagihan terhadap tagihan kotor. */}
+          <div className="tp-row"><span>Biaya Tambahan Customer:</span> <strong>+ {formatIdr(t.biayaTambahanCust)}</strong></div>
           <div className="tp-row"><span>Total Tagihan:</span> <strong>{formatIdr(t.jumlahSemua)}</strong></div>
           <div className="tp-row"><span>DP Konsumen ({dpPersenAktual.toLocaleString('id-ID', { maximumFractionDigits: 1 })}%):</span> <strong>{formatIdr(dp)}</strong></div>
           <div className="tp-row"><span>Sisa Pelunasan:</span> <strong>{formatIdr(Math.max(0, t.jumlahSemua - dp))}</strong></div>

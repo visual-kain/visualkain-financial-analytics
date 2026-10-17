@@ -10,9 +10,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
+  // Pratinjau fixture hanya ada di `next dev`; di build produksi route ini notFound dan tetap di balik login.
+  const isDevPreview = process.env.NODE_ENV === 'development' && pathname.startsWith('/dev-preview');
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || isDevPreview) return;
 
     if (!isAuthenticated && !isLoginPage) {
       router.replace('/login');
@@ -20,7 +22,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     if (isAuthenticated && isLoginPage) {
       router.replace('/');
     }
-  }, [isAuthenticated, loading, isLoginPage, router]);
+  }, [isAuthenticated, loading, isLoginPage, isDevPreview, router]);
+
+  if (isDevPreview) return <>{children}</>;
 
   // Loading state with executive styling
   if (loading) {

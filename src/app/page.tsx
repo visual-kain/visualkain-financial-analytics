@@ -69,8 +69,6 @@ function FinancialDashboardContent() {
     }
   }, [tab, isDevMode, setTab]);
 
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-
   const [selectedOrder, setSelectedOrder] = useState<MasterFinanceRow | null>(null);
   const [previewInvoiceOrder, setPreviewInvoiceOrder] = useState<MasterFinanceRow | null>(null);
   const [activeMetricDrawer, setActiveMetricDrawer] = useState<MetricDrawerType | null>(null);
@@ -222,22 +220,9 @@ function FinancialDashboardContent() {
     <div className="flex min-h-screen bg-[#E8ECF2] text-slate-900">
       <Toaster richColors position="top-right" />
 
-      <Sidebar
-        activeTab={tab}
-        onSelectTab={setTab}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
-        userName={profile?.name || 'Glora Sawita Br Panjaitan'}
-        userRole={profile?.role || 'Head of Finance & Accounting'}
-        onLogout={logout}
-        showHiddenTabs={isDevMode}
-      />
+      <Sidebar />
 
-      <MobileBottomNav
-        activeTab={tab}
-        onSelectTab={setTab}
-        showHiddenTabs={isDevMode}
-      />
+      <MobileBottomNav />
 
       <OrderInspectionDrawer
         order={selectedOrder}
@@ -302,7 +287,7 @@ function FinancialDashboardContent() {
                   <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
                   <span className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-bold text-slate-800 border border-slate-200/90 shadow-2xs">
                     <UserCheck className="h-3.5 w-3.5 text-teal-600 shrink-0" />
-                    <span>Glora Sawita</span>
+                    <span>{profile?.shortName || 'Pengguna'}</span>
                   </span>
                   <span className="text-xs text-slate-300 hidden sm:inline">&bull;</span>
                   <span className="rounded-lg bg-slate-100/80 px-2 py-0.5 text-[11px] sm:text-xs text-slate-600 font-semibold font-mono">
@@ -341,7 +326,7 @@ function FinancialDashboardContent() {
                   <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
                     <button
                       onClick={() => router.push('/cash-in/new')}
-                      className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer whitespace-nowrap"
+                      className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3.5 text-xs text-white hover:bg-teal-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer whitespace-nowrap border border-teal-700 shadow-btn-primary font-medium"
                     >
                       <Plus className="h-4 w-4 shrink-0" />
                       <span>Dana Masuk</span>
@@ -349,7 +334,7 @@ function FinancialDashboardContent() {
 
                     <button
                       onClick={() => router.push('/cash-out/new')}
-                      className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3.5 text-xs font-bold text-white shadow-sm hover:bg-rose-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer whitespace-nowrap"
+                      className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3.5 text-xs text-white hover:bg-rose-700 active:scale-[0.98] transition-transform duration-150 cursor-pointer whitespace-nowrap border border-rose-700 shadow-btn-primary font-medium"
                     >
                       <Minus className="h-4 w-4 shrink-0" />
                       <span>Dana Keluar</span>
@@ -368,7 +353,7 @@ function FinancialDashboardContent() {
                       <span className="truncate">Gagal sinkron, coba lagi</span>
                     </button>
                   ) : syncState === 'connecting' ? (
-                    <div className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 sm:px-3.5 text-xs font-semibold text-slate-600 shadow-2xs min-w-0">
+                    <div className="flex-1 sm:flex-none inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 sm:px-3.5 text-xs text-slate-600 min-w-0 shadow-btn-secondary font-medium">
                       <ShieldCheck className="h-4 w-4 shrink-0" />
                       <span className="truncate">Menghubungkan...</span>
                     </div>
@@ -377,7 +362,7 @@ function FinancialDashboardContent() {
                   {(tab === 'dashboard' || tab === 'datatable') && (
                     <button
                       onClick={handleExportExcel}
-                      className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 active:scale-[0.98] transition-transform duration-150 cursor-pointer shrink-0 whitespace-nowrap"
+                      className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-700 hover:bg-slate-50 active:scale-[0.98] transition-transform duration-150 cursor-pointer shrink-0 whitespace-nowrap shadow-btn-secondary font-medium"
                     >
                       <Download className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                       <span>Ekspor Excel</span>
@@ -387,7 +372,7 @@ function FinancialDashboardContent() {
                   <button
                     onClick={logout}
                     title="Keluar dari Sesi"
-                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.98] transition-transform duration-150 cursor-pointer shrink-0 whitespace-nowrap"
+                    className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 active:scale-[0.98] transition-transform duration-150 cursor-pointer shrink-0 whitespace-nowrap shadow-btn-secondary font-medium"
                   >
                     <LogOut className="h-3.5 w-3.5 shrink-0" />
                     <span>Keluar</span>
@@ -473,7 +458,7 @@ function FinancialDashboardContent() {
                 <button
                   type="button"
                   onClick={() => setTab('datatable')}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-teal-700 active:scale-[0.98] transition-all cursor-pointer shrink-0"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 text-xs text-white hover:bg-teal-700 active:scale-[0.98] transition-all cursor-pointer shrink-0 border border-teal-700 shadow-btn-primary font-medium"
                 >
                   <span>Buka Master Data Order (Data Table)</span>
                   <ArrowRight className="h-4 w-4" />

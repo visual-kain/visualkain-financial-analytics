@@ -1,0 +1,1506 @@
+/* Generated from visualkaindb src/app/globals.css by extract-legacy-css.mjs. Do not edit by hand; regenerate instead. */
+
+.vk-legacy {
+    --font-primary: var(--font-open-sans), 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --bg-primary: #e8ecf2;
+    --bg-secondary: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-hover: #e2e8f0;
+    --accent: #0d9488;
+    --accent-hover: #0f766e;
+    --accent-light: rgba(13, 148, 136, 0.1);
+    --accent-glow: rgba(13, 148, 136, 0.15);
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --border: #cbd5e1;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --success: #10b981;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    --radius: 0.5rem;
+}
+.vk-legacy * { margin: 0; padding: 0; box-sizing: border-box; }
+.vk-legacy {
+    font-family: var(--font-open-sans), 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text-primary);
+    line-height: 1.5; 
+}
+.vk-legacy h1, .vk-legacy h2, .vk-legacy h3, .vk-legacy h4, .vk-legacy h5, .vk-legacy h6 {
+    font-family: var(--font-open-sans), 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
+.vk-legacy .invoice-paper {
+    padding: 12mm 15mm;
+    min-height: auto;
+}
+
+.vk-legacy .invoice-header {
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.25rem;
+    align-items: flex-start; /* Pastikan alignment atas */
+}
+
+.vk-legacy .company-info h1 {
+    font-size: 1.8rem;
+    margin: 0;
+    line-height: 1;
+}
+
+.vk-legacy .company-info p {
+    font-size: 0.75rem;
+    margin: 0;
+    line-height: 1.25;
+}
+
+.vk-legacy .invoice-meta {
+    text-align: right;
+    padding-top: 0; /* Hapus padding atas jika ada */
+}
+
+.vk-legacy .invoice-meta h2 {
+    font-size: 1.6rem;
+    margin: 0 0 0.2rem 0;
+    line-height: 1;
+}
+
+.vk-legacy .invoice-meta p {
+    font-size: 0.75rem;
+    margin: 0;
+    line-height: 1.25;
+}
+.vk-legacy .invoice-client {
+    margin-bottom: 0.35rem;
+    padding: 0.3rem;
+}
+
+.vk-legacy .invoice-client strong {
+    margin-bottom: 0.1rem;
+    font-size: 0.8rem;
+}
+
+.vk-legacy .invoice-client p,
+.vk-legacy .client-detail-row {
+    font-size: 0.8rem;
+    margin-bottom: 0.1rem;
+}
+.vk-legacy .invoice-paper { background: #ffffff; width: 210mm; min-height: 297mm; padding: 20mm; box-shadow: 0 0 15px rgba(0,0,0,0.1); font-family: var(--font-open-sans), 'Open Sans', sans-serif; color: #1e293b; position: relative; transform-origin: top center; }
+.vk-legacy .invoice-header { display: flex; justify-content: space-between; border-bottom: 2px solid #0d9488; padding-bottom: 0.5rem; margin-bottom: 0.5rem; }
+.vk-legacy .company-info h1 { font-family: 'Arial', sans-serif; font-size: 2rem; color: #0d9488; margin-bottom: 0.1rem; font-weight: 500; }
+.vk-legacy .company-info h2 { font-family: 'Arial', sans-serif; font-size: 2rem; color: #0d9488; margin-bottom: 0.1rem; font-weight: 500; }
+.vk-legacy .company-info p { font-size: 0.9rem; }
+.vk-legacy .invoice-meta { text-align: right; }
+.vk-legacy .invoice-meta strong{ font-size: 1rem; }
+.vk-legacy .invoice-meta span{ font-size: 1rem; }
+.vk-legacy .invoice-meta h2 { font-size: 2.5rem; color: #0f172a; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 2px; }
+
+.vk-legacy .invoice-client { 
+    display: flex; 
+    justify-content: space-between; 
+    margin-bottom: 0.5rem; 
+    background: #f8fafc; 
+    padding: 0.4rem; 
+    border-radius: 6px; 
+    gap: 1rem;
+}
+.vk-legacy .client-col-left, .vk-legacy .client-col-right { flex: 1; }
+.vk-legacy .invoice-client strong { display: block; margin-bottom: 0.2rem; color: #0d9488; font-size: 0.95rem; text-transform: uppercase; }
+.vk-legacy .invoice-client p { margin-bottom: 0.15rem; font-size: 0.95rem; }
+.vk-legacy .client-detail-row { margin-bottom: 0.15rem; font-size: 0.9rem; color: #475569; }
+.vk-legacy .client-detail-row strong { display: inline; font-size: 0.85rem; color: #0f172a; margin-right: 0.25rem; }
+
+.vk-legacy .invoice-items { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+.vk-legacy .invoice-items th { background: #0f172a; color: white; padding: 0.55rem; font-size: 0.8rem; text-transform: uppercase; }
+.vk-legacy .invoice-items th:nth-child(1) { text-align: left; }
+.vk-legacy .invoice-items th:nth-child(2) { text-align: center; }
+.vk-legacy .invoice-items th:nth-child(3), .vk-legacy .invoice-items th:nth-child(4) { text-align: right; }
+
+.vk-legacy .invoice-items td { padding: 0.55rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+.vk-legacy .invoice-items td:nth-child(1) { text-align: left; }
+.vk-legacy .invoice-items td:nth-child(2) { text-align: center; }
+.vk-legacy .invoice-items td:nth-child(3), .vk-legacy .invoice-items td:nth-child(4) { text-align: right; }
+.vk-legacy .invoice-footer { position: absolute; bottom: 20mm; left: 20mm; right: 20mm; display: flex; justify-content: space-between; align-items: flex-start; /* ✅ DIUBAH: Mulai dari atas agar tidak dorong dari bawah */ }
+.vk-legacy .invoice-footer-left {
+    display: flex;
+    flex-direction: column;
+    max-width: 55%;
+}
+.vk-legacy .invoice-notes { 
+    font-size: 0.75rem; 
+    color: #475569; 
+}
+.vk-legacy .invoice-pay-box {
+    font-size: 0.75rem;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem 0.75rem;
+    margin-top: 1.5rem;    /* ✅ DIUBAH: Tambah jarak ke atas agar tidak nempel garis */
+    margin-bottom: 0.75rem;
+    display: inline-block;
+    min-width: 200px;
+}
+.vk-legacy .invoice-pay-box strong {
+    display: block;
+    margin-bottom: 0.15rem;
+}
+.vk-legacy .invoice-pay-box p {
+    margin: 0;
+}
+.vk-legacy .invoice-notes ul { padding-left: 1rem; margin-top: 0.25rem; list-style-type: decimal; }
+.vk-legacy .invoice-notes li { margin-bottom: 0.25rem; }
+
+.vk-legacy .invoice-totals { width: 250px; align-self: flex-end; /* ✅ DIUBAH: Paksa total tagihan tetap menempel di bawah */ }
+.vk-legacy .total-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; }
+.vk-legacy .total-row.grand-total { border-top: 2px solid #0f172a; padding-top: 0.75rem; margin-top: 0.75rem; font-weight: 700; font-size: 1.1rem; color: #0d9488; }
+.vk-legacy .tp-acc-section { page-break-inside: avoid; }
+
+.vk-legacy .tp-acc-frame {
+    position: relative;
+    width: 100%;
+    height: 215mm;             /* tinggi frame = hampir full A4 */
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #f8fafc;
+    overflow: hidden;
+    padding: 2mm;              /* margin tipis biar gak nempel border */
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.vk-legacy .tp-acc-frame img.portrait {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.vk-legacy .tp-acc-frame img.landscape {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 211mm;              /* = tinggi area konten → jadi TINGGI visual setelah diputar */
+    height: 166mm;             /* = lebar area konten di layar → jadi LEBAR visual */
+    transform: translate(-50%, -50%) rotate(90deg);
+    object-fit: contain;
+}
+@media print {
+    .vk-legacy .tp-acc-frame img.landscape {
+        width: 211mm;
+        height: 176mm;
+    }
+}
+
+.vk-legacy .tp-acc-rotate-hint {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+}
+
+.vk-legacy .techpack-paper {
+    background: #ffffff;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 15mm 20mm;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    font-family: var(--font-open-sans), 'Open Sans', sans-serif;
+    color: #1e293b;
+    position: relative;
+    transform-origin: top center;
+    border: none;
+    border-radius: 0;
+    margin: 0;
+}
+.vk-legacy .tp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;       /* Tambahkan ini */
+    border-bottom: 2px solid var(--accent);  /* Kurangi dari 3px */
+    padding-bottom: 0.5rem;        /* Kurangi dari 1.5rem */
+    margin-bottom: 0.75rem;        /* Kurangi dari 2rem */
+}
+
+.vk-legacy .tp-logo h1 {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 1.4rem;             /* Kurangi dari 1.8rem */
+    color: var(--accent);
+    margin: 0;
+    line-height: 1.1;              /* Tambahkan */
+}
+
+.vk-legacy .tp-logo p {
+    margin: 0.1rem 0 0 0;          /* Kurangi jarak */
+    font-size: 0.78rem;            /* Kurangi dari 0.9rem */
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;         /* Tambahkan agar tetap terbaca */
+}
+
+.vk-legacy .tp-info { 
+    text-align: right; 
+    padding-top: 0.15rem;          /* Tambahkan agar sejajar atas */
+}
+.vk-legacy .tp-info > div { 
+    margin-bottom: 0.1rem;         /* Kurangi dari 0.25rem */
+    font-size: 0.8rem;             /* Kurangi dari 0.85rem */
+    line-height: 1.2;              /* Tambahkan */
+}
+.vk-legacy .tp-grid-info { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 0.75rem;                   /* Kurangi dari 2rem */
+    margin-bottom: 0.75rem;         /* Kurangi dari 2rem */
+}
+
+.vk-legacy .tp-section {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem;          /* Kurangi dari 1.25rem */
+    border-radius: 6px;
+}
+.vk-legacy .tp-section.full-width {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 0.75rem;         /* Kurangi dari 2rem */
+}
+.vk-legacy .tp-section h3 {
+    font-size: 12pt !important;        /* Kurangi dari 0.9rem */
+    font-weight: 400pt !important;
+    letter-spacing: 0.5px !important;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.5rem 0;           /* Rapatkan */
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.35rem;        /* Kurangi dari 0.5rem */
+}
+.vk-legacy .tp-row { 
+    display: flex; 
+    justify-content: space-between; 
+    margin-bottom: 0.25rem;         /* Kurangi dari 0.5rem */
+    font-size: 0.8rem;              /* Kurangi dari 0.9rem */
+}
+.vk-legacy .tp-row span { font-weight: 400; color: var(--text-secondary); }
+.vk-legacy .tp-row strong { font-weight: 600; color: var(--text-primary); text-align: right; }
+
+.vk-legacy .tp-prod-list { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 0.5rem;                     /* Kurangi dari 1rem */
+}
+.vk-legacy .tp-prod-item {
+    background: #fff;
+    padding: 0.5rem 0.6rem;          /* Kurangi dari 0.75rem */
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;               /* Tambahkan */
+}
+
+.vk-legacy .tp-size-container { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 0.5rem;                     /* Kurangi dari 1.5rem */
+}
+
+.vk-legacy .tp-size-group { 
+    border: 1px solid #e2e8f0; 
+    border-radius: 6px; 
+    overflow: hidden; 
+}
+.vk-legacy .tp-size-header {
+    background: var(--accent);
+    color: white;
+    padding: 0.35rem 0.75rem;       /* Kurangi dari 0.5rem 1rem */
+    font-weight: 700;
+    font-size: 0.78rem;             /* Kurangi dari 0.85rem */
+    display: flex;
+    justify-content: space-between;
+}
+.vk-legacy .tp-size-body { 
+    display: flex; 
+    flex-wrap: wrap; 
+    padding: 0.35rem;               /* Kurangi dari 0.5rem */
+    background: #fff; 
+}
+.vk-legacy .tp-size-item {
+    flex: 1;
+    min-width: 55px;
+    border-right: 1px solid #f1f5f9;
+    text-align: center;
+    padding: 0.35rem;               /* Kurangi dari 0.5rem */
+}
+.vk-legacy .tp-size-item label { 
+    display: block; 
+    font-size: 0.65rem;             /* Kurangi dari 0.7rem */
+    color: var(--text-muted); 
+    font-weight: 600; 
+}
+.vk-legacy .tp-size-item strong { 
+    display: block; 
+    font-size: 0.95rem; 
+    margin-top: 0.1rem;             /* Kurangi dari 0.25rem */
+}
+
+.vk-legacy .tp-notes-box {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    padding: 0.6rem 0.75rem;        /* Kurangi dari 1rem */
+    border-radius: 6px;
+    min-height: 40px;               /* Kurangi dari 60px */
+    font-size: 0.8rem;              /* Kurangi dari 0.9rem */
+    white-space: pre-wrap;
+}
+
+.vk-legacy .tp-footer-print { 
+    margin-top: 1rem;               /* Kurangi dari 3rem */
+    text-align: center; 
+    border-top: 1px solid #e2e8f0; 
+    padding-top: 0.5rem;            /* Kurangi dari 1rem */
+    font-size: 0.65rem;             /* Kurangi dari 0.7rem */
+    color: var(--text-muted); 
+}
+
+@media print {
+
+    .vk-legacy {
+        margin: 0;
+        padding: 0;
+        -webkit-print-color-adjust: exact; 
+        print-color-adjust: exact;
+        font-size: 7pt; /* Ukuran font default untuk cetak */
+    }
+    .vk-legacy .invoice-paper, .vk-legacy .techpack-paper, .vk-legacy .po-paper {
+        width: 100% !important; 
+        height: auto !important; /* Biarkan tinggi mengikuti konten */
+        min-height: auto !important; /* Hapus tinggi minimum */
+        margin: 0 !important; 
+        padding: 0 !important; /* Padding diatur oleh @page margin */
+        box-shadow: none !important; border: none !important;
+        transform: none !important;
+        background: white !important;
+    }
+    .vk-legacy h1 { font-size: 26pt !important; }
+    .vk-legacy h2 { font-size: 28pt !important; }
+    .vk-legacy h3 { font-size: 14pt !important; }
+    .vk-legacy .company-info h1 { font-size: 26pt; font-weight: 500 !important; }
+     .vk-legacy .invoice-meta h2 {
+        font-size: 28pt !important;
+        color: #0f172a !important; /* Paksa warna hitam */
+        text-transform: uppercase !important;
+        letter-spacing: 2px !important;
+        line-height: 1.1 !important; /* Agar jarak baris tidak terlalu jauh */
+    }
+    .vk-legacy .invoice-items {
+        width: 100% !important;
+        border-collapse: collapse;
+    }
+    
+    .vk-legacy tr, .vk-legacy th, .vk-legacy td {
+        page-break-inside: avoid !important; /* Jangan potong baris tabel */
+    }
+    
+    .vk-legacy thead { display: table-header-group !important; }
+    .vk-legacy .invoice-footer {
+        position: absolute !important;
+        bottom: 18mm !important; /* ✅ IKUTI MARGIN BAWAH @PAGE */
+        left: 15mm !important;  /* ✅ DIUBAH: 15mm agar sejajar dengan margin @page, tidak menyempit */
+        right: 15mm !important; /* ✅ DIUBAH: 15mm agar sejajar dengan margin @page, tidak menyempit */
+        background: #fff !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important; /* ✅ Paksa kanan-kiri sejajar di bawah */
+    }
+
+        .vk-legacy .invoice-totals {
+        width: 250px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-end !important; /* ✅ DIUBAH: Dorong Total Tagihan ke bawah agar sejajar dengan tanda tangan */
+    }
+    .vk-legacy .invoice-footer-left {
+        max-width: 55% !important;
+        width: 55% !important;
+    }
+    .vk-legacy .invoice-notes {
+        max-width: 100% !important;
+        font-size: 8pt !important;
+    }
+    .vk-legacy .invoice-footer-left div[style*="border"] {
+        border: 1px solid #e2e8f0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .vk-legacy .tp-grid-info {
+        page-break-inside: avoid !important;
+    }
+    .vk-legacy .tp-section.full-width {
+        page-break-inside: avoid !important;
+    }
+    .vk-legacy .tp-footer-print {
+        position: relative !important;
+        margin-top: 10mm !important;
+    }
+    .vk-legacy .tp-section h3 {
+        font-size: 12pt !important;            /* Sebelumnya lebih besar */
+        font-weight: 400pt !important ;
+        margin-bottom: 1mm !important;
+        padding-bottom: 0.5mm !important;
+        letter-spacing: 0.5px !important;
+    }
+.vk-legacy .po-paper .po-paper-footer {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    margin-top: 2.5rem !important;
+    padding-top: 1rem !important;
+    border-top: 1px solid #ccc !important;
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    background: transparent !important;
+}
+.vk-legacy .po-paper .po-spacer {
+    display: none !important;
+}
+.vk-legacy .po-paper .po-paper-footer .invoice-totals {
+    width: 250px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+.vk-legacy .po-paper .po-paper-footer .invoice-footer-left div[style*="border"] {
+    border: 1px solid #ccc !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+.vk-legacy .po-paper .po-vendor-bar {
+    display: flex !important;
+    gap: 6pt !important;
+    padding: 2pt 4pt !important;
+    border: 1px solid #000 !important; /* ✅ DIUBAH: Stroke hitam */
+    background: transparent !important; /* ✅ DIUBAH: Tanpa background */
+    font-size: 7.5pt !important;
+    color: #000 !important;
+}
+.vk-legacy .po-paper .po-vbar-sep {
+    color: #000 !important;
+}
+
+.vk-legacy .po-paper .po-note-line {
+    font-size: 7pt !important;
+    margin-bottom: 6pt !important;
+}
+
+.vk-legacy .po-paper .po-sig-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 12pt !important;
+}
+.vk-legacy .po-paper .po-sig-block {
+    text-align: center !important;
+    width: 48% !important;
+}
+.vk-legacy .po-paper .po-sig-label {
+    font-size: 7pt !important;
+}
+.vk-legacy .po-paper .po-sig-company {
+    font-size: 7.5pt !important;
+    color: #000000 !important;
+}
+.vk-legacy .po-paper .po-sig-space {
+    height: 28pt !important;
+}
+.vk-legacy .po-paper .po-sig-name {
+    font-size: 7pt !important;
+    border-top: 1px solid #000 !important;
+    padding-top: 1pt !important;
+}
+.vk-legacy .po-paper .po-paper-footer {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    margin-top: 10pt !important;
+    padding-top: 6pt !important;
+    border-top: 1px solid #ccc !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+}
+.vk-legacy .po-paper .po-paper-footer .invoice-footer-left {
+    max-width: 60% !important;
+    width: 60% !important;
+}
+.vk-legacy .po-paper .po-paper-footer .invoice-totals {
+    width: 200px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+.vk-legacy .po-paper .invoice-meta h2 {
+    color: #000000 !important;
+    font-size: 22pt !important;
+    font-weight: 600 !important;
+    line-height: 1.15 !important;
+    letter-spacing: 1px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+.vk-legacy .po-paper .po-items-compact th,
+.vk-legacy .po-paper .po-items-compact td {
+    padding: 8pt 6pt !important; /* ✅ DIUBAH: Dari 4pt jadi 8pt (atas-bawah) agar tidak mepet */
+    font-size: 9.5pt !important; /* ✅ DIUBAH: Dari 8pt jadi 9.5pt agar lebih jelas terbaca */
+    line-height: 1.4 !important; /* ✅ DIUBAH: Jarak antar baris dalam 1 sel sedikit lebih longgar */
+}
+.vk-legacy .po-paper .po-identity-bar {
+    display: flex !important;
+    gap: 6pt !important;
+    padding: 2pt 4pt !important;
+    border: 1px solid #000 !important; /* ✅ DIUBAH: Stroke hitam */
+    background: transparent !important; /* ✅ DIUBAH: Tanpa background */
+    font-size: 7.5pt !important;
+    color: #000 !important;
+}
+.vk-legacy .po-paper .company-info p {
+    font-size: 8pt !important;
+    line-height: 1.3 !important;
+    white-space: nowrap !important;
+}
+
+.vk-legacy .po-paper .po-kop-label {
+    display: inline-block !important;
+    width: 52pt !important;
+}
+.vk-legacy .po-paper .po-dp-row {
+    font-size: 8pt !important;
+    color: #333 !important;
+}
+}
+.vk-legacy .po-kop-label {
+    display: inline-block;
+    width: 62px;
+    font-weight: 600;
+    color: #334155;
+}
+.vk-legacy .po-paper {
+    display: flex !important;
+    flex-direction: column !important;
+}
+.vk-legacy .po-vendor-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    background: transparent;
+    border: 1px solid #000;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    font-size: 0.78rem;
+    color: #000;
+    flex-wrap: wrap;
+}
+.vk-legacy .po-vendor-bar strong {
+    color: #000;
+    margin-right: 0.15rem;
+}
+.vk-legacy .po-vbar-sep {
+    color: #000;
+}
+.vk-legacy .po-identity-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    background: transparent;
+    border: 1px solid #000;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    font-size: 0.78rem;
+    color: #000;
+    flex-wrap: wrap;
+}
+.vk-legacy .po-identity-bar strong {
+    color: #000;
+    margin-right: 0.15rem;
+}
+.vk-legacy .po-items-compact th,
+.vk-legacy .po-items-compact td {
+    padding: 8px 8px !important;
+    font-size: 0.85rem !important;
+    vertical-align: middle !important;
+}
+.vk-legacy .po-items-compact td:nth-child(1) {
+    text-align: center !important;
+}
+.vk-legacy .po-items-compact td:nth-child(2),
+.vk-legacy .po-items-compact td:nth-child(3) {
+    text-align: left !important;
+}
+.vk-legacy .po-items-compact td:nth-child(4),
+.vk-legacy .po-items-compact td:nth-child(5) {
+    text-align: right !important;
+}
+.vk-legacy .po-note-line {
+    font-size: 0.7rem;
+    color: #475569;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+.vk-legacy .po-note-line strong {
+    color: #0f172a;
+}
+.vk-legacy .po-sig-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.vk-legacy .po-sig-block {
+    text-align: center;
+    width: 48%;
+}
+.vk-legacy .po-sig-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.1rem;
+}
+.vk-legacy .po-sig-company {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #0d9488;
+    margin-bottom: 0.25rem;
+}
+.vk-legacy .po-sig-space {
+    height: 40px;
+}
+.vk-legacy .po-sig-name {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #334155;
+    border-top: 1px solid #cbd5e1;
+    padding-top: 0.15rem;
+}
+.vk-legacy .po-paper-footer {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    margin-top: 0 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+}
+.vk-legacy .po-paper-footer .invoice-footer-left {
+    max-width: 60% !important;
+    width: 60% !important;
+}
+.vk-legacy .po-paper-footer .invoice-totals {
+    width: 220px !important;
+    flex-shrink: 0 !important;
+}
+.vk-legacy .po-dp-row {
+    color: #475569;
+    font-size: 0.85rem;
+}
+.vk-legacy .po-dp-row span:first-child {
+    font-weight: 500;
+}
+.vk-legacy .po-paper .company-info p {
+    font-size: 0.78rem !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+}
+.vk-legacy .po-dp-row {
+    color: #475569;
+    font-size: 0.85rem;
+}
+.vk-legacy .po-dp-row span:first-child {
+    font-weight: 500;
+}
+.vk-legacy .po-paper .company-info p {
+    font-size: 0.78rem !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+}
+
+.vk-legacy .po-paper .po-kop-label {
+    display: inline-block;
+    width: 62px;
+    font-weight: 600;
+    color: #334155;
+}
+.vk-legacy .po-identity-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    background: transparent; /* ✅ DIUBAH: Hilangkan background hijau muda */
+    border: 1px solid #000; /* ✅ DIUBAH: Stroke hitam */
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    font-size: 0.78rem;
+    color: #000; /* ✅ DIUBAH: Font hitam */
+    flex-wrap: wrap;
+}
+.vk-legacy .po-identity-bar strong {
+    color: #000;
+    margin-right: 0.15rem;
+}
+.vk-legacy .po-kop-label {
+    display: inline-block;
+    width: 52px;
+    font-weight: 600;
+    color: #334155;
+}
+.vk-legacy .po-vendor-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    background: transparent; /* ✅ DIUBAH: Hilangkan background abu */
+    border: 1px solid #000; /* ✅ DIUBAH: Stroke hitam */
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    font-size: 0.78rem;
+    color: #000; /* ✅ DIUBAH: Font hitam */
+    flex-wrap: wrap;
+}
+.vk-legacy .po-vendor-bar strong {
+    color: #000;
+    margin-right: 0.15rem;
+}
+.vk-legacy .po-vbar-sep {
+    color: #000; /* ✅ DIUBAH: Pemisah hitam */
+}
+.vk-legacy .po-note-line {
+    font-size: 0.7rem;
+    color: #475569;
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+.vk-legacy .po-note-line strong {
+    color: #0f172a;
+}
+.vk-legacy .po-sig-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.vk-legacy .po-sig-block {
+    text-align: center;
+    width: 48%;
+}
+.vk-legacy .po-sig-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.1rem;
+}
+.vk-legacy .po-sig-company {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #0d9488;
+    margin-bottom: 0.25rem;
+}
+.vk-legacy .po-sig-space {
+    height: 40px;
+}
+.vk-legacy .po-sig-name {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #334155;
+    border-top: 1px solid #cbd5e1;
+    padding-top: 0.15rem;
+}
+.vk-legacy .po-paper-footer {
+    position: relative !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    margin-top: 1rem !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+}
+.vk-legacy .po-paper-footer .invoice-footer-left {
+    max-width: 60% !important;
+    width: 60% !important;
+}
+.vk-legacy .po-paper-footer .invoice-totals {
+    width: 220px !important;
+    flex-shrink: 0 !important;
+}
+.vk-legacy .po-items-compact th,
+.vk-legacy .po-items-compact td {
+    padding: 10px 8px !important; /* ✅ DIUBAH: Dari 6px jadi 10px agar tidak mepet vertical */
+    font-size: 0.9rem !important; /* ✅ DIUBAH: Dari 0.85rem jadi 0.9rem agar lebih jelas */
+    vertical-align: middle; /* ✅ DIUBAH: Dari top ke middle agar teks sejajar tengah */
+}
+.vk-legacy .po-items-compact th {
+    background-color: #0f172a !important;
+    color: #fff !important;
+}
+.vk-legacy .po-items-compact tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.vk-legacy .tp-sc-page-title {
+    text-align: center;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--accent);
+}
+
+.vk-legacy .tp-sc-layout {
+    display: flex;
+    gap: 2rem;
+    align-items: center !important;
+    margin-bottom: 1rem;
+}
+
+.vk-legacy .tp-sc-table-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.vk-legacy .tp-sc-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.vk-legacy .tp-sc-table th {
+    background: var(--accent) !important;
+    color: #fff !important;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.75rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+}
+.vk-legacy .tp-sc-table td {
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.85rem !important;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+}
+.vk-legacy .tp-sc-table td:first-child {
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+}
+
+.vk-legacy .tp-sc-note {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #fffbeb;
+    border-radius: 6px;
+    border: 1px solid #fde68a;
+}
+.vk-legacy .tp-sc-note p {
+    font-size: 0.75rem;
+    color: #92400e;
+    margin: 0;
+}
+.vk-legacy .tp-sc-image {
+    flex: 0 0 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.vk-legacy .tp-sc-image img {
+    max-width: 100%;
+    max-height: 280px;
+    object-fit: contain;
+}
+@media print {
+    .vk-legacy .po-items-compact {
+        page-break-inside: auto;
+    }
+    .vk-legacy .po-items-compact tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+    .vk-legacy .po-items-compact thead {
+        display: table-header-group !important;
+    }
+    .vk-legacy .po-paper h1 {
+        font-size: 33pt !important;
+    }
+    .vk-legacy .po-paper h2 {
+        font-size: 20pt !important;
+        font-weight: 500 !important;
+        color: #0f766e !important;
+        margin-top: 0 !important;
+    }
+.vk-legacy #tpSizeChartPaper {
+    page-break-before: always !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+    .vk-legacy .tp-sc-page-title {
+        font-size: 14pt !important;
+        margin-bottom: 5mm !important;
+        padding-bottom: 2mm !important;
+    }
+    .vk-legacy .tp-sc-layout {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    .vk-legacy .tp-sc-table th {
+        background: var(--accent) !important;
+        color: #fff !important;
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.75rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        text-align: center;
+    }
+    .vk-legacy .tp-sc-table td {
+        font-size: 9pt !important;
+        padding: 2mm 3mm !important;
+    }
+    .vk-legacy .tp-sc-note {
+        margin-top: 3mm !important;
+        padding: 2mm 3mm !important;
+    }
+    .vk-legacy .tp-sc-note p {
+        font-size: 7pt !important;
+    }
+    .vk-legacy .tp-sc-table tr {
+        page-break-inside: avoid !important;
+    }
+.vk-legacy .tp-sc-image {
+    flex: 0 0 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.vk-legacy .tp-sc-image img {
+    max-width: 100%;
+    max-height: 280px;
+    object-fit: contain;
+}
+}
+@media print and (max-width: 9999px) {
+    .vk-legacy .invoice-paper,
+    .vk-legacy .po-paper,
+    .vk-legacy .techpack-paper {
+        transform: none !important;
+        transform-origin: top center !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        min-height: auto !important;
+        height: auto !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        flex-shrink: 0;
+        background: white !important;
+    }
+    .vk-legacy .invoice-header {
+        padding-bottom: 3mm !important;
+        margin-bottom: 3mm !important;
+    }
+    .vk-legacy .company-info h1 {
+        font-size: 22pt !important;
+    }
+    .vk-legacy .invoice-meta h2 {
+        font-size: 24pt !important;
+    }
+    .vk-legacy .invoice-client {
+        padding: 2mm !important;
+        margin-bottom: 3mm !important;
+    }
+    .vk-legacy .invoice-items th {
+        padding: 2mm 3mm !important;
+        font-size: 8pt !important;
+    }
+    .vk-legacy .invoice-items td {
+        padding: 2mm 3mm !important;
+        font-size: 9pt !important;
+    }
+    .vk-legacy .invoice-footer {
+        position: relative !important;
+        bottom: auto !important;
+        left: auto !important;
+        right: auto !important;
+        top: auto !important;
+        margin-top: 5mm !important;
+        padding: 0 !important;
+        border-top: 1px solid #e2e8f0 !important;
+    }
+    .vk-legacy .invoice-totals {
+        width: 45% !important;
+        margin-left: auto !important;
+    }
+    .vk-legacy .total-row.grand-total {
+        font-size: 12pt !important;
+    }
+    .vk-legacy .po-items-compact th,
+    .vk-legacy .po-items-compact td {
+        padding: 2mm 3mm !important;
+        font-size: 9pt !important;
+    }
+    .vk-legacy .po-paper h1 {
+        font-size: 28pt !important;
+    }
+    .vk-legacy .po-paper h2 {
+        font-size: 18pt !important;
+    }
+    .vk-legacy .tp-header {
+        padding-bottom: 2mm !important;
+        margin-bottom: 3mm !important;
+    }
+    .vk-legacy .tp-logo h1 {
+        font-size: 16pt !important;
+    }
+    .vk-legacy .tp-logo p {
+        font-size: 8pt !important;
+    }
+    .vk-legacy .tp-info > div {
+        font-size: 9pt !important;
+    }
+    .vk-legacy .tp-grid-info {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 3mm !important;
+        margin-bottom: 3mm !important;
+    }
+    .vk-legacy .tp-section {
+        padding: 2mm 3mm !important;
+    }
+    .vk-legacy .tp-section h3 {
+        font-size: 10pt !important;
+        margin-bottom: 1mm !important;
+        padding-bottom: 1mm !important;
+    }
+    .vk-legacy .tp-row {
+        font-size: 9pt !important;
+        margin-bottom: 1mm !important;
+    }
+    .vk-legacy .tp-prod-list {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 2mm !important;
+    }
+    .vk-legacy .tp-prod-item {
+        padding: 2mm !important;
+        font-size: 9pt !important;
+    }
+    .vk-legacy .tp-size-header {
+        padding: 2mm 3mm !important;
+        font-size: 9pt !important;
+    }
+    .vk-legacy .tp-size-body {
+        padding: 2mm !important;
+    }
+    .vk-legacy .tp-size-item {
+        padding: 2mm !important;
+    }
+    .vk-legacy .tp-size-item label {
+        font-size: 7pt !important;
+    }
+    .vk-legacy .tp-size-item strong {
+        font-size: 10pt !important;
+    }
+    .vk-legacy .tp-notes-box {
+        padding: 2mm 3mm !important;
+        font-size: 9pt !important;
+    }
+    .vk-legacy .tp-footer-print {
+        position: relative !important;
+        margin-top: 5mm !important;
+        font-size: 7pt !important;
+    }
+
+.vk-legacy #tpSizeChartPaper {
+    page-break-before: always !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+    .vk-legacy .tp-sc-page-title {
+        font-size: 14pt !important;
+        margin-bottom: 4mm !important;
+    }
+    .vk-legacy .tp-sc-layout {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 5mm !important;
+        align-items: center !important;
+    }
+    .vk-legacy .tp-sc-image {
+        flex: 0 0 180px !important;
+        width: 180px !important;
+        margin: 0 !important;
+    }
+    .vk-legacy .tp-sc-image img {
+        max-width: 180px !important;
+        max-height: 250px !important;
+    }
+    .vk-legacy .tp-sc-table th {
+        padding: 2mm 3mm !important;
+        font-size: 8pt !important;
+    }
+    .vk-legacy .tp-sc-table td {
+        padding: 2mm 3mm !important;
+        font-size: 9pt !important;
+    }
+    .vk-legacy .tp-sc-note {
+        margin-top: 2mm !important;
+        padding: 2mm 3mm !important;
+    }
+    .vk-legacy .tp-sc-note p {
+        font-size: 7pt !important;
+    }
+}
+.vk-legacy .kop-surat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8mm;
+}
+.vk-legacy .kop-left {
+    display: flex;
+    align-items: center;
+    gap: 4mm;
+}
+.vk-legacy .kop-logo {
+    width: 22mm;
+    height: 22mm;
+    border-radius: 2mm;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid #0d9488;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.vk-legacy .kop-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.vk-legacy .kop-text h1 {
+    font-family: 'Open Sans', Arial, sans-serif;
+    font-size: 22pt;
+    font-weight: 700;
+    color: #0d9488;
+    margin: 0;
+    line-height: 1;
+    letter-spacing: 1px;
+}
+.vk-legacy .kop-text p {
+    font-size: 9pt;
+    color: #475569;
+    margin: 1mm 0 0 0;
+    line-height: 1.3;
+}
+.vk-legacy .kop-right {
+    text-align: right;
+    flex-shrink: 0;
+}
+.vk-legacy .kop-qr-text {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #0d9488;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    line-height: 1.3;
+}
+.vk-legacy .kop-garis {
+    border: none;
+    border-top: 3px solid #0d9488;
+    margin-bottom: 8mm;
+}
+.vk-legacy .letter-paper {
+    background: #ffffff;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 20mm 25mm;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    font-family: var(--font-open-sans), 'Open Sans', sans-serif;
+    color: #1e293b;
+    position: relative;
+    transform-origin: top center;
+    font-size: 10pt;
+    line-height: 1.5;
+}
+.vk-legacy .ph-doc-header {
+    margin-bottom: 6mm;
+}
+.vk-legacy .ph-meta-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.vk-legacy .ph-meta-table td {
+    padding: 1mm 2mm;
+    font-size: 10pt;
+    vertical-align: top;
+}
+.vk-legacy .ph-meta-table td:first-child {
+    width: 65px;
+    color: #64748b;
+    font-weight: 600;
+}
+.vk-legacy .ph-meta-table td strong {
+    color: #0f172a;
+}
+.vk-legacy .ph-meta-table td:nth-child(3) {
+    width: 60px;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.vk-legacy .ph-kepada {
+    margin-bottom: 5mm;
+    padding: 3mm 4mm;
+    background: #f8fafc;
+    border-left: 3px solid #0d9488;
+    border-radius: 0 4px 4px 0;
+}
+.vk-legacy .ph-kepada-label {
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #0d9488;
+    margin: 0 0 1mm 0;
+    letter-spacing: 0.5px;
+}
+.vk-legacy .ph-kepada-nama {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+.vk-legacy .ph-kepada p {
+    font-size: 10pt;
+    color: #475569;
+    margin: 0.5mm 0;
+}
+
+.vk-legacy .ph-salam {
+    margin: 3mm 0;
+    font-size: 10pt;
+}
+.vk-legacy .ph-isi-awal {
+    margin: 2mm 0 5mm 0;
+    font-size: 10pt;
+    text-align: justify;
+}
+.vk-legacy .ph-items-print {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 5mm;
+}
+.vk-legacy .ph-items-print th {
+    background: #0f172a;
+    color: #fff;
+    padding: 3mm 3mm;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    font-weight: 700;
+}
+.vk-legacy .ph-items-print th:nth-child(3),
+.vk-legacy .ph-items-print th:nth-child(4) {
+    text-align: center;
+}
+.vk-legacy .ph-items-print th:nth-child(5),
+.vk-legacy .ph-items-print th:nth-child(6) {
+    text-align: right;
+}
+.vk-legacy .ph-items-print td {
+    padding: 2.5mm 3mm;
+    font-size: 9.5pt;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+}
+.vk-legacy .ph-items-print td:nth-child(1) {
+    text-align: center;
+    color: #64748b;
+    font-weight: 600;
+}
+.vk-legacy .ph-items-print td:nth-child(3),
+.vk-legacy .ph-items-print td:nth-child(4) {
+    text-align: center;
+}
+.vk-legacy .ph-items-print td:nth-child(5),
+.vk-legacy .ph-items-print td:nth-child(6) {
+    text-align: right;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.vk-legacy .ph-catatan-box {
+    margin-bottom: 5mm;
+    padding: 3mm 4mm;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 4px;
+    font-size: 9pt;
+    color: #92400e;
+    line-height: 1.5;
+}
+.vk-legacy .ph-catatan-box p { margin: 0.5mm 0; }
+.vk-legacy .ph-catatan-box p:first-child { margin-top: 0; }
+
+.vk-legacy .ph-penutup {
+    margin: 3mm 0 8mm 0;
+    font-size: 10pt;
+    text-align: justify;
+}
+.vk-legacy .ph-ttd-layout {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10mm;
+}
+.vk-legacy .ph-ttd-spacer { flex: 1; }
+.vk-legacy .ph-ttd-block {
+    width: 200px;
+    text-align: center;
+}
+.vk-legacy .ph-ttd-block p { margin: 0; font-size: 10pt; color: #334155; }
+.vk-legacy .ph-ttd-company {
+    font-size: 11pt !important;
+    font-weight: 700;
+    color: #0d9488 !important;
+    margin-top: 1mm !important;
+}
+.vk-legacy .ph-ttd-space { height: 50px; }
+.vk-legacy .ph-ttd-line {
+    font-size: 10pt !important;
+    border-bottom: 1px solid #000;
+    padding-bottom: 1mm;
+    display: inline-block;
+    min-width: 140px;
+}
+.vk-legacy .ph-ttd-sub {
+    font-size: 8pt !important;
+    color: #64748b !important;
+    margin-top: 1mm !important;
+}
+
+.vk-legacy .letter-footer-print {
+    margin-top: 1.5mm;
+    padding-top: 1.5mm;
+    border-top: 1px solid #e2e8f0;
+    text-align: center;
+}
+.vk-legacy .letter-footer-print p {
+    font-size: 7pt;
+    color: #94a3b8;
+    margin: 0;
+}
+.vk-legacy .ks-isi-surat {
+    text-align: justify;
+}
+.vk-legacy .ks-paragraph {
+    margin-bottom: 4mm;
+    font-size: 10pt;
+    line-height: 1.6;
+}
+.vk-legacy .ks-paragraph strong {
+    color: #0f172a;
+}
+.vk-legacy .ks-paragraph ul {
+    margin: 2mm 0 2mm 6mm;
+    padding: 0;
+}
+.vk-legacy .ks-paragraph li {
+    margin-bottom: 1.5mm;
+    font-size: 10pt;
+    line-height: 1.5;
+}
+.vk-legacy .ks-paragraph li::marker {
+    color: #0d9488;
+}
+@media print and (max-width: 9999px) {
+
+    .vk-legacy .letter-paper {
+        transform: none !important;
+        transform-origin: top center !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        min-height: auto !important;
+        height: auto !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        background: white !important;
+    }
+    .vk-legacy .kop-surat {
+        padding-bottom: 5mm !important;
+    }
+    .vk-legacy .kop-logo {
+        width: 18mm !important;
+        height: 18mm !important;
+    }
+    .vk-legacy .kop-text h1 {
+        font-size: 20pt !important;
+    }
+    .vk-legacy .kop-text p {
+        font-size: 8.5pt !important;
+    }
+    .vk-legacy .kop-garis {
+        margin-bottom: 6mm !important;
+    }
+    .vk-legacy .ph-meta-table td {
+        font-size: 9.5pt !important;
+    }
+    .vk-legacy .ph-kepada {
+        padding: 2mm 3mm !important;
+        margin-bottom: 4mm !important;
+    }
+    .vk-legacy .ph-kepada-nama {
+        font-size: 11pt !important;
+    }
+    .vk-legacy .ph-items-print th {
+        font-size: 8pt !important;
+        padding: 2mm 2mm !important;
+    }
+    .vk-legacy .ph-items-print td {
+        font-size: 9pt !important;
+        padding: 2mm 2mm !important;
+    }
+    .vk-legacy .ph-catatan-box { font-size: 8pt !important; }
+    .vk-legacy .ph-salam, .vk-legacy .ph-isi-awal, .vk-legacy .ph-penutup { font-size: 9.5pt !important; }
+    .vk-legacy .ph-ttd-block { width: 170px !important; }
+    .vk-legacy .ph-ttd-block p { font-size: 9pt !important; }
+    .vk-legacy .ph-ttd-company { font-size: 10pt !important; }
+    .vk-legacy .ph-ttd-space { height: 45px !important; }
+    .vk-legacy .ks-paragraph { font-size: 9.5pt !important; margin-bottom: 3mm !important; }
+    .vk-legacy .ks-paragraph li { font-size: 9pt !important; }
+    .vk-legacy .ph-kepada,
+    .vk-legacy .ph-items-print,
+    .vk-legacy .ph-ttd-layout {
+        page-break-inside: avoid !important;
+    }
+    .vk-legacy .ph-items-print thead {
+        display: table-header-group !important;
+    }
+    .vk-legacy .ph-ttd-space { height: 30px !important; }
+    .vk-legacy .letter-footer-print { margin-top: 1mm !important; padding-top: 1mm !important; }
+}

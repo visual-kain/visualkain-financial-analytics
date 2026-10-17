@@ -80,3 +80,9 @@ features:
     status: in_progress
     spec_path: .kiro/specs/F-12-client-feedback-laba-investor
     active_phase: verification
+  - id: F-13
+    name: Merger VisualKainDB (Data Customer, Invoice, Size Chart, Techpack, Kerjasama, Penawaran, PO)
+    track: engineering
+    status: in_progress
+    spec_path: .kiro/specs/F-13-merger-visualkaindb
+    active_phase: implementation

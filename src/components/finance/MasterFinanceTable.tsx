@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { formatRupiah, formatCompactRupiah, cn } from '@/lib/utils';
+import { NegativeAwareValue, NEGATIVE_ROW_STRIP, isNegativeValue } from '@/components/ui/negative-value';
 import type { MasterFinanceRow } from '@/types';
 import {
   TableProperties,
@@ -306,7 +307,10 @@ export function MasterFinanceTable({
             <div
               key={row.id}
               onClick={() => onSelectRow?.(row)}
-              className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-card-double hover:border-teal-300 transition-colors duration-150 gap-2.5 overflow-hidden cursor-pointer"
+              className={cn(
+                'flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-card-double hover:border-teal-300 transition-colors duration-150 gap-2.5 overflow-hidden cursor-pointer',
+                isNegativeValue(row.profitBersih) && 'border-rose-200 ' + NEGATIVE_ROW_STRIP
+              )}
             >
               <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
@@ -378,9 +382,14 @@ export function MasterFinanceTable({
                     {row.sisaPembayaranVendor > 0 ? formatCompactRupiah(row.sisaPembayaranVendor) : 'Lunas'}
                   </strong>
                 </span>
-                <span className="font-mono font-bold text-emerald-700 shrink-0">
-                  Profit +{formatCompactRupiah(row.profitBersih)} ({row.profitPercent.toFixed(0)}%)
-                </span>
+                <NegativeAwareValue
+                  value={row.profitBersih}
+                  reason="Profit minus: harga jual di bawah HPP vendor + biaya"
+                  className="font-mono shrink-0 text-[10.5px]"
+                  positiveClassName="font-bold text-emerald-700"
+                >
+                  Profit {row.profitBersih >= 0 ? '+' : ''}{formatCompactRupiah(row.profitBersih)} ({row.profitPercent.toFixed(0)}%)
+                </NegativeAwareValue>
               </div>
 
               <div
@@ -403,7 +412,7 @@ export function MasterFinanceTable({
                   onClick={() => onEditFinance?.(row)}
                   title="Edit Finansial & Termin DP"
                   aria-label="Edit Finansial Order"
-                  className="h-10 px-2.5 shrink-0 inline-flex items-center justify-center gap-1 rounded-xl border border-teal-200 bg-teal-50 text-[11px] font-bold text-teal-800 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer"
+                  className="h-10 px-2.5 shrink-0 inline-flex items-center justify-center gap-1 rounded-xl border border-teal-200 bg-teal-50 text-[11px] text-teal-800 hover:bg-teal-100 active:scale-[0.96] transition-transform duration-150 cursor-pointer shadow-btn-secondary font-medium"
                 >
                   <Pencil className="h-3.5 w-3.5 shrink-0" />
                   <span>Edit &amp; DP</span>
@@ -513,15 +522,15 @@ export function MasterFinanceTable({
                   className="hover:bg-teal-50/40 transition-colors cursor-pointer group"
                 >
                 {/* Frozen Sticky 1: NO INV */}
-                <td className="px-4 py-3.5 font-bold text-teal-700 w-32 min-w-[128px] max-w-[128px] md:sticky md:left-0 bg-white group-hover:bg-[#f6fbfb] z-20 shadow-[1px_0_0_0_#e2e8f0]">
+                <td className={cn('px-4 py-3.5 font-bold text-teal-700 w-32 min-w-[128px] max-w-[128px] md:sticky md:left-0 bg-white group-hover:bg-[#f6fbfb] z-20', isNegativeValue(row.profitBersih) ? 'shadow-[inset_3px_0_0_0_#e11d48,1px_0_0_0_#e2e8f0]' : 'shadow-[1px_0_0_0_#e2e8f0]')}>
                   {row.noInv}
                 </td>
                 {/* Frozen Sticky 2: NAMA CUST */}
-                <td className="px-4 py-3.5 font-semibold text-slate-800 w-44 min-w-[176px] max-w-[176px] md:sticky md:left-[128px] bg-white group-hover:bg-[#f6fbfb] z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] truncate" title={row.namaCustomer}>
+                <td className="px-4 py-3.5 font-semibold text-slate-800 w-44 min-w-[176px] max-w-[176px] md:sticky md:left-[128px] bg-white group-hover:bg-[#f6fbfb] z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.08)] whitespace-normal break-words leading-snug">
                   {row.namaCustomer}
                 </td>
                 {/* Scrollable Columns */}
-                <td className="px-4 py-3.5 text-slate-600 min-w-[180px]">
+                <td className="px-4 py-3.5 text-slate-600 min-w-[180px] max-w-[240px] whitespace-normal break-words leading-snug">
                   {row.namaProject}
                 </td>
                 <td className="px-4 py-3.5 tabular-nums">
@@ -569,11 +578,15 @@ export function MasterFinanceTable({
                 <td className="px-4 py-3.5 tabular-nums">
                   {row.diskon > 0 ? formatRupiah(row.diskon) : 'Rp 0'}
                 </td>
-                <td className="px-4 py-3.5 tabular-nums font-bold text-emerald-600">
-                  {formatRupiah(row.profitBersih)}
+                <td className={cn('px-4 py-3.5', isNegativeValue(row.profitBersih) && 'bg-rose-50/60')}>
+                  <NegativeAwareValue value={row.profitBersih} reason="Profit minus: harga jual di bawah HPP vendor + biaya" positiveClassName="font-bold text-emerald-600">
+                    {formatRupiah(row.profitBersih)}
+                  </NegativeAwareValue>
                 </td>
-                <td className="px-4 py-3.5 tabular-nums font-bold text-emerald-600">
-                  {row.profitPercent.toFixed(1)}%
+                <td className={cn('px-4 py-3.5', isNegativeValue(row.profitPercent) && 'bg-rose-50/60')}>
+                  <NegativeAwareValue value={row.profitPercent} reason="Margin minus" positiveClassName="font-bold text-emerald-600">
+                    {row.profitPercent.toFixed(1)}%
+                  </NegativeAwareValue>
                 </td>
 
                 {/* Frozen Sticky Right 1: Aksi Kompak */}
