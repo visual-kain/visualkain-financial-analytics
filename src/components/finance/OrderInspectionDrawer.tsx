@@ -22,6 +22,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { NegativeAwareValue } from '@/components/ui/negative-value';
 
 interface OrderInspectionDrawerProps {
   order: MasterFinanceRow | null;
@@ -349,9 +350,9 @@ Pesanan saat ini siap dikirimkan ke alamat kakak. Terima kasih atas kepercayaan 
 
                 <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 font-bold">
                   <span className="text-emerald-700">Estimasi Margin Laba:</span>
-                  <span className="font-mono text-emerald-600">
+                  <NegativeAwareValue value={order.profitBersih} reason="Profit minus: harga jual di bawah HPP vendor + biaya" className="font-mono" positiveClassName="text-emerald-600">
                     {formatRupiah(order.profitBersih)} ({order.profitPercent.toFixed(1)}%)
-                  </span>
+                  </NegativeAwareValue>
                 </div>
               </div>
 
