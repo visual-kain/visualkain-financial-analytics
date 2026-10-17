@@ -147,6 +147,11 @@ Permintaan klien:
 1. THE kalkulator SHALL memakai rumus `visualkaindb`: aturan markup pertama dengan qtyMin ≤ qty ≤ qtyMax, harga jual = modal × (1 + persen/100), profit = total jual − total modal.
 2. THE database SHALL mengelola `cp_kategori`, `cp_bahan`, `cp_markup` dengan bentuk dokumen yang sama; hapus kategori diblokir bila masih punya bahan; aturan markup yang tumpang tindih diberi peringatan.
 
+### US-13.18 Akun tim produksi (permintaan Sehan 17 Okt 2026)
+1. THE email akun tim produksi SHALL didaftarkan di env `NEXT_PUBLIC_PRODUKSI_EMAILS` (dipisah koma, tidak peka huruf besar); password tidak disimpan di env atau repo.
+2. WHEN akun yang terdaftar login atau membuka `/login` dalam keadaan sudah login THEN aplikasi SHALL membuka `/produksi`; akun lain tetap ke `/`.
+3. THE akun tim produksi SHALL tetap bisa membuka semua halaman, termasuk Finansial (K-30).
+
 ### US-13.13 Purchase Order (Fase 2)
 1. THE nomor PO SHALL berformat `PO-{No. Invoice}`.
 2. THE pemilihan order SHALL berupa pencarian seperti invoice; judul file cetak `PO-{noInv}_{vendor}`.
@@ -185,6 +190,7 @@ Permintaan klien:
 | K-27 | Navigasi dua section: **Produksi** (Ringkasan Produksi, Data Customer, Size Chart, Data Vendor, Kalender, Cost & Profit, dan grup Dokumen) dan **Finansial** (Ringkasan Finansial, Data Table, Dana Masuk, Dana Keluar, Mitra Vendor). Memilih Ringkasan atau halaman dari satu section mengganti bottom nav HP ke section itu: 3 tab tetap + 1 slot halaman aktif + Menu (menggantikan K-26). |
 | K-28 | Kalender: integrasi Google Calendar OAuth visualkaindb tidak dipindah karena client ID terikat domain lama; diganti tautan "Tambah ke Google Calendar" per deadline dan ekspor `.ics` per bulan. |
 | K-29 | Ringkasan Produksi meniru susunan chart dashboard `visualkaindb` fase 4-6 (permintaan Sehan 17 Okt 2026), tetapi tanpa angka uang (US-13.14.2): tren Omzet & Profit menjadi tren volume pcs/jumlah order, bilah HPP vs laba menjadi proporsi qty per jenis lengan, tab Top Margin menjadi Vendor, kartu Arus Kas & Piutang tidak dibawa (sudah di Ringkasan Finansial) dan diganti distribusi ukuran aktif. Peringkat customer berdasarkan jumlah order, bukan omzet. Order tanpa deadline tidak dihitung "aman" seperti di `visualkaindb`, tetapi ditampilkan terpisah di akhir antrean. |
+| K-30 | Akun Raja Purnama (tim produksi): akses penuh, hanya halaman awal setelah login yang diarahkan ke Ringkasan Produksi. Akun dibuat Sehan sendiri di Firebase Console (Authentication), bukan oleh agen, dan password dibagikan lewat jalur pribadi, tidak disimpan di env. Daftar email di env `NEXT_PUBLIC_PRODUKSI_EMAILS` ikut terkirim ke browser, jadi hanya berisi email. |
 
 ## 6. Pertanyaan terbuka
 - Q-1 (sebagian terjawab K-24 untuk laporan finansial): Kertas invoice memakai rumus `visualkaindb` (gross − diskon), sedangkan pembayaran dari ledger finansial. Untuk order dengan biaya tambahan customer (F-12) atau gross yang diubah manual di Edit Finansial, Total Tagihan di invoice bisa berbeda dari Data Table. Perlu keputusan: tetap seperti `visualkaindb`, atau tambah baris biaya tambahan dan pakai total finansial.

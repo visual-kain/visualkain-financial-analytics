@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { getInitials, getUserDisplayName } from '@/lib/legacy/formatters';
+import { isProduksiEmail } from '@/lib/user-roles';
 import { useRouter } from 'next/navigation';
 
 export interface UserProfile {
@@ -37,7 +38,7 @@ function buildProfile(firebaseUser: User): UserProfile {
   return {
     name,
     shortName: name.split(/\s+/).slice(0, 2).join(' '),
-    role: 'Tim VisualKain',
+    role: isProduksiEmail(firebaseUser.email) ? 'Tim Produksi' : 'Tim VisualKain',
     email: firebaseUser.email || '',
     initials: getInitials(name),
     department: 'VisualKain',

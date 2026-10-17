@@ -38,3 +38,4 @@ Status: `[ ]` belum, `[x]` selesai.
 - [x] 25. Ringkasan Produksi (`/produksi`) + navigasi dua section. _US-13.14, K-27_
 - [x] 26. Chart Ringkasan Produksi mengikuti layout dashboard `visualkaindb` (tren, donut + pipeline, radar + antrean, leaderboard, distribusi ukuran). _US-13.14.4, K-29_
 - [x] 27. Header halaman versi desktop (tile ikon, badge sebaris judul, aksi rata kanan); tampilan HP tidak berubah.
+- [x] 28. Akun tim produksi lewat `NEXT_PUBLIC_PRODUKSI_EMAILS`: login mendarat di `/produksi`, akses tetap penuh. _US-13.18, K-30_
