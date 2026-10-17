@@ -1,5 +1,6 @@
 import { calculateTotals } from '@/lib/legacy/calculations';
 import { STATUS_LABELS, type LegacyOrder } from '@/lib/legacy/types';
+import { pickAudit, type AuditFields } from '@/lib/audit';
 
 export const WEEKDAY_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'] as const;
 
@@ -210,7 +211,7 @@ export function orderEventDetails(order: LegacyOrder, baseUrl = ''): string {
   return lines.filter((line): line is string => line !== null).join('\n');
 }
 
-export interface CalendarNote {
+export interface CalendarNote extends AuditFields {
   id: string;
   date: string;
   text: string;
@@ -222,7 +223,7 @@ export function normalizeCalendarNote(id: string, data: Record<string, unknown>)
   const date = normalizeDateKey(data.date);
   const text = typeof data.text === 'string' ? data.text.trim() : '';
   if (!date || !text) return null;
-  return { id, date, text, createdAt: typeof data.createdAt === 'string' ? data.createdAt : '' };
+  return { id, date, text, createdAt: typeof data.createdAt === 'string' ? data.createdAt : '', ...pickAudit(data) };
 }
 
 /** Urut tanggal lalu waktu dibuat; dilakukan di klien agar tidak butuh composite index Firestore. */

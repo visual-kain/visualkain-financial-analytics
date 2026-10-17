@@ -1,3 +1,4 @@
+import { pickAudit, type AuditFields } from '@/lib/audit';
 /**
  * Master rekening penerima/pencairan. `kode` ditulis sebagai prefix keterangan transaksi
  * ("Transfer BCA - catatan"), jadi tidak boleh berubah setelah dibuat agar transaksi lama tetap terbaca.
@@ -8,7 +9,7 @@ export interface RekeningInput {
   atasNama: string;
 }
 
-export interface RekeningDoc extends RekeningInput {
+export interface RekeningDoc extends RekeningInput, AuditFields {
   kode: string;
 }
 
@@ -49,7 +50,7 @@ export function mergeRekening(
   const merged: RekeningAccount[] = defaults.map((def) => {
     const override = byKode.get(def.kode);
     return override
-      ? { ...def, namaBank: override.namaBank || def.namaBank, nomor: override.nomor ?? '', atasNama: override.atasNama ?? '' }
+      ? { ...def, namaBank: override.namaBank || def.namaBank, nomor: override.nomor ?? '', atasNama: override.atasNama ?? '', ...pickAudit(override) }
       : { ...def };
   });
   const defaultKodes = new Set(defaults.map((d) => d.kode));

@@ -11,6 +11,7 @@ import type {
 } from '@/types';
 import type { CashPeriodSummary } from './cash-ledger';
 import { isInvestorInflow, isInvestorRepayment, isInvestorTransaction } from './investor-ledger';
+import { pickAudit } from './audit';
 
 function isDuplicateOrderVendorTx(tx: CashTransaction, orders: Order[]): boolean {
   if (tx.kategori !== 'Pembayaran Vendor') return false;
@@ -70,6 +71,7 @@ export function buildCashOutflowEntries(
           noInv: order.noInv,
           vendorOrTargetName: targetVendor,
           rawOrder: order,
+          ...pickAudit(vp),
         });
       });
 
@@ -139,6 +141,7 @@ export function buildCashOutflowEntries(
         ? 'Mitra Vendor (Non-Order)'
         : 'Kas Operasional',
       rawTransaction: tx,
+      ...pickAudit(tx),
     });
   }
 
@@ -496,6 +499,7 @@ export function transformToMasterRows(orders: Order[]): MasterFinanceRow[] {
       noInv: o.noInv,
       tanggalInv: o.tanggalOrder,
       namaCustomer: o.customerName,
+      ...pickAudit(o),
       namaProject: o.projectName || '-',
       noWaCustomer: o.noWaCustomer,
       totalBiayaVendor: o.totalHpp,

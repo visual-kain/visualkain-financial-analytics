@@ -2,6 +2,8 @@ import { Timestamp, addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, upda
 import { db } from '@/lib/firebase';
 import { documentYear } from '@/lib/document-number';
 import { reserveDocumentNumber } from '@/lib/firestore/document-counters';
+import { updatedStamp } from '@/lib/audit';
+import { currentActor } from '@/lib/firestore/actor';
 import {
   buildKerjasamaCreatePayload,
   buildKerjasamaUpdatePayload,
@@ -44,7 +46,7 @@ export async function createKerjasama(form: KerjasamaFormState, author: LetterAu
 }
 
 export async function updateKerjasama(id: string, form: KerjasamaFormState): Promise<void> {
-  await updateDoc(doc(db, KERJASAMA_COLLECTION, id), omitUndefined({ ...buildKerjasamaUpdatePayload(form), updatedAt: Timestamp.now() }));
+  await updateDoc(doc(db, KERJASAMA_COLLECTION, id), omitUndefined({ ...buildKerjasamaUpdatePayload(form), updatedAt: Timestamp.now(), ...updatedStamp(currentActor()) }));
 }
 
 export async function deleteKerjasama(id: string): Promise<void> {
@@ -80,7 +82,7 @@ export async function createPenawaran(form: PenawaranFormState, items: Penawaran
 export async function updatePenawaran(id: string, form: PenawaranFormState, items: PenawaranItem[]): Promise<void> {
   await updateDoc(
     doc(db, PENAWARAN_COLLECTION, id),
-    omitUndefined({ ...buildPenawaranUpdatePayload(form, items), updatedAt: Timestamp.now() })
+    omitUndefined({ ...buildPenawaranUpdatePayload(form, items), updatedAt: Timestamp.now(), ...updatedStamp(currentActor()) })
   );
 }
 

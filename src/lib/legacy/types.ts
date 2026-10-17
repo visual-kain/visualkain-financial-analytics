@@ -1,3 +1,4 @@
+import type { AuditFields } from '@/lib/audit';
 /**
  * Bentuk dokumen Firestore yang dipakai bersama `visualkaindb`. Field dibiarkan longgar karena dokumen lama
  * bisa tidak lengkap; pembacaan selalu memakai fallback.
@@ -106,19 +107,19 @@ export interface SizeChartData {
   lebar: number;
 }
 
-export interface SizeChart {
+export interface SizeChart extends AuditFields {
   id: string;
   nama: string;
   sizes: Record<string, SizeChartData>;
   createdAt?: FirestoreTimestampLike | null;
 }
 
-export interface KategoriDoc {
+export interface KategoriDoc extends AuditFields {
   id: string;
   nama: string;
 }
 
-export interface VendorDoc {
+export interface VendorDoc extends AuditFields {
   id: string;
   nama: string;
   alamat?: string;

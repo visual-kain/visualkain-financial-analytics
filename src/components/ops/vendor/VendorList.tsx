@@ -6,6 +6,7 @@ import { Shimmer } from '@/components/ui/shimmer';
 import type { VendorDoc } from '@/lib/legacy/types';
 import { buildWaChatUrl } from '@/lib/vendors';
 import { cn } from '@/lib/utils';
+import { CreatorLabel } from '@/components/ui/creator-label';
 
 export interface VendorListProps {
   vendors: VendorDoc[];
@@ -48,6 +49,7 @@ export function VendorTable({ vendors, orderCounts, countsReady, loading, emptyS
             <th className={cn(TH, 'min-w-[140px]')}>Alamat</th>
             <th className={cn(TH, 'min-w-[128px]')}>No. WhatsApp</th>
             <th className={cn(TH, 'min-w-[100px]')}>PIC</th>
+            <th className={cn(TH, 'min-w-[110px]')}>Dibuat Oleh</th>
             <th className={cn(TH, 'w-[64px] text-center')}>Order</th>
             <th className={cn(TH, 'w-[104px] text-center')}>Aksi</th>
           </tr>
@@ -65,7 +67,7 @@ export function VendorTable({ vendors, orderCounts, countsReady, loading, emptyS
             ))
           ) : vendors.length === 0 ? (
             <tr>
-              <td colSpan={6} className="p-6">
+              <td colSpan={7} className="p-6">
                 {emptyState}
               </td>
             </tr>
@@ -93,6 +95,9 @@ export function VendorTable({ vendors, orderCounts, countsReady, loading, emptyS
                     </div>
                   </td>
                   <td className={cn(TD, TEXT)}>{vendor.pic || '-'}</td>
+                  <td className={TD}>
+                    <CreatorLabel audit={vendor} />
+                  </td>
                   <td className={cn(TD, 'text-center')}>
                     <OrderCount count={orderCounts.get(vendor.id) ?? 0} ready={countsReady} />
                   </td>
@@ -186,6 +191,9 @@ export function VendorCards({ vendors, orderCounts, countsReady, loading, emptyS
                 <span className="truncate" title={vendor.pic || undefined}>
                   {vendor.pic || '-'}
                 </span>
+              </li>
+              <li className="min-w-0">
+                <CreatorLabel audit={vendor} />
               </li>
             </ul>
 

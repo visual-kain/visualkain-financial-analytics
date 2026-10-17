@@ -16,6 +16,7 @@ import { formatIsoDateLong } from '@/lib/legacy/formatters';
 import { filterLetterRows, letterYears, sortLetterRows, type LetterRow } from '@/lib/letters';
 import { cn } from '@/lib/utils';
 import { INPUT_CLASS, OUTLINE_BUTTON_CLASS } from './fields';
+import { CreatorLabel } from '@/components/ui/creator-label';
 
 interface LetterListViewProps {
   title: string;
@@ -230,7 +231,9 @@ export function LetterListView({
                     <td className="whitespace-nowrap px-3 py-3 align-top tabular-nums text-slate-600">{formatIsoDateLong(row.tanggal) || '-'}</td>
                     <td className={cn(TEXT_CELL, 'font-semibold text-slate-800')}>{row.perihal || '-'}</td>
                     <td className={cn(TEXT_CELL, 'text-slate-700')}>{row.perusahaan || '-'}</td>
-                    <td className={cn(TEXT_CELL, 'text-slate-600')}>{row.createdBy || '-'}</td>
+                    <td className={cn(TEXT_CELL)}>
+                      <CreatorLabel audit={row} />
+                    </td>
                     <td className="px-3 py-2 align-top">
                       <div className="flex items-center justify-end gap-1">
                         <Link

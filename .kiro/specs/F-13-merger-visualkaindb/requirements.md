@@ -160,6 +160,11 @@ Permintaan klien:
 5. THE size chart SHALL tampil sebagai poster Measurement Guide desain klien dan bisa diunduh sebagai JPG (K-34).
 6. THE kredensial Cloudinary SHALL dibaca dari env standar `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`; file catatan kredensial di luar format `.env` SHALL di-ignore git (K-35).
 
+### US-13.20 Jejak pembuat data (permintaan Sehan 17 Okt 2026)
+1. WHEN pengguna menambah data lewat aplikasi (order, Dana Masuk/Keluar, dana investor, pembayaran customer/vendor per termin, vendor, size chart, kategori/bahan/markup Cost & Profit, catatan kalender, rekening, surat) THEN dokumen atau entri SHALL menyimpan `createdBy` dan `createdByEmail` akun yang login.
+2. WHEN data diubah THEN dokumen SHALL menyimpan `updatedBy` dan `updatedByEmail`; entri pembayaran yang diedit di panel termin juga.
+3. THE tabel dan daftar SHALL menampilkan label "dibuat oleh" (dan "diubah" bila pengubah berbeda); data lama atau dari aplikasi lain tanpa jejak ditandai "Tidak tercatat" (K-36).
+
 ### US-13.13 Purchase Order (Fase 2)
 1. THE nomor PO SHALL berformat `PO-{No. Invoice}`.
 2. THE pemilihan order SHALL berupa pencarian seperti invoice; judul file cetak `PO-{noInv}_{vendor}`.
@@ -204,6 +209,7 @@ Permintaan klien:
 | K-33 | Tabel Data Customer memakai `table-fixed` dengan lebar dasar kolom 1.086 px; di layar lebih lebar sisa ruang dibagi proporsional, di bawahnya baru muncul scroll horizontal. Label status memakai versi pendek, aksi berupa grid 2×2, detail dibuka lewat klik baris atau No Inv. |
 | K-34 | Poster size chart diambil dari `sizechart.pdf` klien: kaos, panah, logo, dan grid diekspor sebagai SVG statis (`public/size-chart/guide-base.svg`, tabel raster dan teks pill dihapus lewat redaction); nama size chart dan tabel ukuran digambar dari data. JPG dibuat di browser lewat kanvas (2376×1836 px) tanpa dependensi baru. |
 | K-35 | `env.cloudinary` (catatan teks, bukan format `NAMA=nilai`) tidak dibaca Next.js dan belum di-ignore git; `.gitignore` kini mencakup `.env*`, `env.*`, `*.env`. Nilai Cloudinary perlu dipindah Sehan ke `.env.local` dan Vercel dengan tiga nama variabel standar; agen tidak membuka isinya. |
+| K-36 | Jejak pembuat memakai nama field yang sama dengan order (`createdBy`, `createdByEmail`, ditambah `updatedBy`, `updatedByEmail`), diisi dari akun Firebase yang login (nama tampilan, atau nama dari email). Stempel pembuat entri pembayaran dipasang di panel termin saat entri dibuat, bukan saat simpan, agar entri lama tidak keliru tercatat atas nama pengubah. Data lama tidak diisi mundur (tidak ada penulisan massal ke produksi); labelnya "Tidak tercatat". Penghapusan belum dicatat. |
 
 ## 6. Pertanyaan terbuka
 - Q-1: terjawab oleh K-32 (feedback klien 17 Okt 2026).

@@ -30,6 +30,7 @@ import {
 import { KATEGORI_INVESTOR, investorKey, summarizeInvestors, validateInvestorInflowChange } from '@/lib/investor-ledger';
 import type { CustomerPayment, Order, CashOutflowCategory } from '@/types';
 import { toast, Toaster } from 'sonner';
+import { pickAudit } from '@/lib/audit';
 import {
   ArrowLeft,
   Save,
@@ -79,6 +80,7 @@ function buildInitialCustomerRows(order: Order | undefined): LedgerRow[] {
       jenis: p.jenis,
       keterangan: p.keterangan,
       createdAt: p.createdAt,
+      ...pickAudit(p),
     })),
     totalInv,
     'customer'
@@ -291,6 +293,7 @@ function CashInNewContent() {
             label: row.label,
             keterangan: row.keterangan || 'Transfer BCA',
             createdAt: row.createdAt || new Date().toISOString(),
+            ...pickAudit(row),
           };
         });
 

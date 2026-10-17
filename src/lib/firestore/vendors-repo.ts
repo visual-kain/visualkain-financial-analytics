@@ -1,6 +1,8 @@
 import { Timestamp, addDoc, collection, deleteDoc, doc, getDocs, limit, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { buildVendorPayload, type VendorFormValues } from '@/lib/vendors';
+import { createdStamp, updatedStamp } from '@/lib/audit';
+import { currentActor } from '@/lib/firestore/actor';
 
 export const VENDORS_COLLECTION = 'vendors';
 
@@ -13,12 +15,12 @@ export class VendorInUseError extends Error {
 }
 
 export async function createVendor(values: VendorFormValues): Promise<string> {
-  const ref = await addDoc(collection(db, VENDORS_COLLECTION), { ...buildVendorPayload(values), createdAt: Timestamp.now() });
+  const ref = await addDoc(collection(db, VENDORS_COLLECTION), { ...buildVendorPayload(values), createdAt: Timestamp.now(), ...createdStamp(currentActor()) });
   return ref.id;
 }
 
 export async function updateVendor(id: string, values: VendorFormValues): Promise<void> {
-  await updateDoc(doc(db, VENDORS_COLLECTION, id), { ...buildVendorPayload(values), updatedAt: Timestamp.now() });
+  await updateDoc(doc(db, VENDORS_COLLECTION, id), { ...buildVendorPayload(values), updatedAt: Timestamp.now(), ...updatedStamp(currentActor()) });
 }
 
 /**

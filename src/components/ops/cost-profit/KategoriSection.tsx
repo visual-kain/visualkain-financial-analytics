@@ -96,7 +96,7 @@ export function KategoriSection({ kategoriList, bahanList, loading }: KategoriSe
                 key={k.id}
                 className="inline-flex h-11 max-w-full items-center rounded-full border border-slate-200 bg-slate-50 pl-3.5 text-xs font-semibold text-slate-800 sm:h-10"
               >
-                <span className="min-w-0 truncate" title={k.nama}>
+                <span className="min-w-0 truncate" title={`${k.nama} • dibuat oleh ${k.createdBy || 'tidak tercatat'}`}>
                   {k.nama}
                 </span>
                 <span className="ml-2 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-slate-500 ring-1 ring-inset ring-slate-200">

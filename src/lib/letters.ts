@@ -1,5 +1,6 @@
 import { documentYear, parseDocumentNumber } from '@/lib/document-number';
 import type { FirestoreTimestampLike } from '@/lib/legacy/types';
+import { pickAudit } from '@/lib/audit';
 
 export interface LetterAuthor {
   name: string;
@@ -51,6 +52,8 @@ export interface KerjasamaCreatePayload extends KerjasamaContentPayload {
 
 export interface KerjasamaDoc extends KerjasamaCreatePayload {
   id: string;
+  updatedBy?: string;
+  updatedByEmail?: string;
   createdAt?: FirestoreTimestampLike | null;
   updatedAt?: FirestoreTimestampLike | null;
 }
@@ -98,6 +101,8 @@ export interface PenawaranCreatePayload extends PenawaranContentPayload {
 
 export interface PenawaranDoc extends PenawaranCreatePayload {
   id: string;
+  updatedBy?: string;
+  updatedByEmail?: string;
   createdAt?: FirestoreTimestampLike | null;
   updatedAt?: FirestoreTimestampLike | null;
 }
@@ -109,6 +114,7 @@ export interface LetterRow {
   perihal: string;
   perusahaan: string;
   createdBy: string;
+  updatedBy?: string;
   tahun: number;
   urut: number;
 }
@@ -414,6 +420,7 @@ export function normalizeKerjasamaDoc(id: string, data: Record<string, unknown>)
     paragrafPenutup: text(data.paragrafPenutup),
     createdBy: text(data.createdBy),
     createdByEmail: text(data.createdByEmail),
+    ...pickAudit({ updatedBy: data.updatedBy, updatedByEmail: data.updatedByEmail }),
     createdAt: timestamp(data.createdAt),
     updatedAt: timestamp(data.updatedAt),
   };
@@ -442,6 +449,7 @@ export function normalizePenawaranDoc(id: string, data: Record<string, unknown>)
     catatan: text(data.catatan),
     createdBy: text(data.createdBy),
     createdByEmail: text(data.createdByEmail),
+    ...pickAudit({ updatedBy: data.updatedBy, updatedByEmail: data.updatedByEmail }),
     createdAt: timestamp(data.createdAt),
     updatedAt: timestamp(data.updatedAt),
   };
@@ -489,6 +497,7 @@ export function kerjasamaToRow(doc: KerjasamaDoc): LetterRow {
     perihal: doc.perihal,
     perusahaan: doc.kepadaNama,
     createdBy: doc.createdBy,
+    ...pickAudit({ updatedBy: doc.updatedBy }),
     tahun: doc.tahun,
     urut: doc.urut,
   };
@@ -502,6 +511,7 @@ export function penawaranToRow(doc: PenawaranDoc): LetterRow {
     perihal: doc.perihal,
     perusahaan: doc.namaPerusahaan,
     createdBy: doc.createdBy,
+    ...pickAudit({ updatedBy: doc.updatedBy }),
     tahun: doc.tahun,
     urut: doc.urut,
   };

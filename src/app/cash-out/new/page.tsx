@@ -31,6 +31,7 @@ import {
 import { KATEGORI_INVESTOR, investorKey, investorRemaining, summarizeInvestors } from '@/lib/investor-ledger';
 import type { Order, VendorPayment, CashOutflowCategory } from '@/types';
 import { toast, Toaster } from 'sonner';
+import { pickAudit } from '@/lib/audit';
 import {
   ArrowLeft,
   Save,
@@ -104,6 +105,7 @@ function buildInitialVendorRows(order: Order | undefined): LedgerRow[] {
       jenis: vp.jenis,
       keterangan: vp.keterangan || vp.catatan,
       createdAt: vp.createdAt,
+      ...pickAudit(vp),
     })),
     totalHpp,
     'vendor'
@@ -359,6 +361,7 @@ function CashOutNewContent() {
             keterangan: noteText,
             catatan: noteText,
             createdAt: row.createdAt || new Date().toISOString(),
+            ...pickAudit(row),
           };
         });
 

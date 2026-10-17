@@ -8,6 +8,7 @@ import { SIZES } from '@/lib/legacy/calculations';
 import type { LegacyOrder, SizeChart } from '@/lib/legacy/types';
 import { cn } from '@/lib/utils';
 import { SizeChartGuide, downloadSizeChartJpg, sizeChartFileName } from './SizeChartGuide';
+import { CreatorLabel } from '@/components/ui/creator-label';
 
 function value(chart: SizeChart, size: string, key: 'panjang' | 'lebar'): number {
   return Number(chart.sizes?.[size]?.[key] ?? 0) || 0;
@@ -51,6 +52,7 @@ export function SizeChartDetail({ chart, orders, onEdit, onDelete }: SizeChartDe
           <p className="mt-1 text-xs text-slate-500">
             {orders.length > 0 ? `Dipakai di ${orders.length} order` : 'Belum dipakai order'} &bull; Satuan centimeter (cm)
           </p>
+          <CreatorLabel audit={chart} className="mt-1" />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
           <button
@@ -170,6 +172,7 @@ export function SizeChartList({ charts, selectedId, usage, onSelect }: SizeChart
                 <span className="min-w-0">
                   <span className="line-clamp-2 text-sm font-bold text-slate-900">{chart.nama}</span>
                   <span className="mt-0.5 block text-[11px] text-slate-500">{used > 0 ? `Dipakai ${used} order` : 'Belum dipakai'}</span>
+                  <CreatorLabel audit={chart} className="mt-0.5" showEditor={false} />
                 </span>
               </button>
             </li>

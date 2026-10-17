@@ -5,6 +5,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { timestampToDate } from '@/lib/legacy/formatters';
 import { normalizeOrderStatus, type KategoriDoc, type LegacyOrder, type SizeChart, type VendorDoc } from '@/lib/legacy/types';
+import { pickAudit } from '@/lib/audit';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -87,7 +88,7 @@ export function OpsDataProvider({ children }: { children: React.ReactNode }) {
         const list = snap.docs
           .map((d) => {
             const data = d.data();
-            return { id: d.id, nama: String(data.nama || ''), sizes: data.sizes || {}, createdAt: data.createdAt } as SizeChart;
+            return { id: d.id, nama: String(data.nama || ''), sizes: data.sizes || {}, createdAt: data.createdAt, ...pickAudit(data) } as SizeChart;
           })
           .sort((a, b) => a.nama.localeCompare(b.nama));
         setSizeCharts(list);
@@ -104,7 +105,7 @@ export function OpsDataProvider({ children }: { children: React.ReactNode }) {
       (snap) => {
         setKategoriList(
           snap.docs
-            .map((d) => ({ id: d.id, nama: String(d.data().nama || '') }))
+            .map((d) => ({ id: d.id, nama: String(d.data().nama || ''), ...pickAudit(d.data()) }))
             .filter((k) => k.nama)
             .sort((a, b) => a.nama.localeCompare(b.nama))
         );
@@ -126,6 +127,7 @@ export function OpsDataProvider({ children }: { children: React.ReactNode }) {
               return {
                 id: d.id,
                 nama: String(data.nama || ''),
+                ...pickAudit(data),
                 alamat: String(data.alamat || ''),
                 wa: String(data.wa || ''),
                 pic: String(data.pic || ''),

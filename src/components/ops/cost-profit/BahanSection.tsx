@@ -14,6 +14,7 @@ import type { BahanDoc } from '@/lib/cost-profit';
 import { deleteBahan } from '@/lib/firestore/cost-profit-repo';
 import type { KategoriDoc } from '@/lib/legacy/types';
 import { cn, formatRupiah } from '@/lib/utils';
+import { CreatorLabel } from '@/components/ui/creator-label';
 
 interface BahanSectionProps {
   bahanList: BahanDoc[];
@@ -103,6 +104,9 @@ export function BahanSection({ bahanList, kategoriList, loading }: BahanSectionP
                   <th scope="col" className="px-4 py-3 text-right">
                     Harga Modal / Pcs
                   </th>
+                  <th scope="col" className="px-4 py-3 text-left">
+                    Dibuat Oleh
+                  </th>
                   <th scope="col" className="px-4 py-3 text-center">
                     Aksi
                   </th>
@@ -117,6 +121,9 @@ export function BahanSection({ bahanList, kategoriList, loading }: BahanSectionP
                       <NegativeAwareValue value={b.harga} reason="Harga modal minus, perbaiki lewat Edit">
                         {formatRupiah(b.harga)}
                       </NegativeAwareValue>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <CreatorLabel audit={b} />
                     </td>
                     <td className="px-4 py-2 align-top">
                       <div className="flex justify-center gap-1.5">
@@ -144,6 +151,7 @@ export function BahanSection({ bahanList, kategoriList, loading }: BahanSectionP
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-extrabold leading-snug text-slate-900">{b.nama}</p>
                     <p className={cn('truncate text-[11px] font-medium', kategoriName.has(b.kategoriId) ? 'text-slate-500' : 'text-amber-700')}>{nameOf(b)}</p>
+                    <CreatorLabel audit={b} />
                   </div>
                   <p className="shrink-0 font-mono text-sm font-extrabold text-slate-900">
                     <NegativeAwareValue value={b.harga} reason="Harga modal minus, perbaiki lewat Edit">

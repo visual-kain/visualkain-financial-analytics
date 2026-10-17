@@ -8,6 +8,7 @@ import { Shimmer } from '@/components/ui/shimmer';
 import { formatDateTime, formatRelativeTime } from '@/lib/legacy/formatters';
 import { formatShortIsoDate, isDeadlineOverdue, type DataCustomerRow } from '@/lib/data-customer';
 import { cn } from '@/lib/utils';
+import { CreatorLabel } from '@/components/ui/creator-label';
 
 export interface DataCustomerActions {
   onOpen: (row: DataCustomerRow) => void;
@@ -130,7 +131,9 @@ export function DataCustomerTable({ rows, loading, selectedId, onHover, today, e
                   <td className={cn(TD, TEXT)}>{row.kategoriOrder || '-'}</td>
                   <td className={cn(TD, TEXT)}>{row.jenisBahan || '-'}</td>
                   <td className={cn(TD, TEXT)}>{row.warna || '-'}</td>
-                  <td className={cn(TD, TEXT, 'text-slate-600')}>{row.createdBy || '-'}</td>
+                  <td className={cn(TD, TEXT)}>
+                    <CreatorLabel audit={row} className="text-[10.5px]" />
+                  </td>
                   <td className={cn(TD, 'text-center')} onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-center">
                       <AccImageThumb url={row.accCustUrl} label={`${row.noInv} - ${row.namaCustomer}`} />

@@ -16,6 +16,7 @@ import {
 import type { Order, CashTransaction, CashInflowEntry, InflowCategoryType } from '@/types';
 import { exportCashInflowToExcel } from '@/lib/excel-export';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { CreatorLabel } from '@/components/ui/creator-label';
 import {
   Coins,
   ArrowDownLeft,
@@ -812,6 +813,7 @@ export function CashInflowSection({
                     <p className="text-[11px] text-slate-500 font-medium line-clamp-2" title={item.keterangan}>
                       {item.projectName !== '-' ? `${item.projectName} • ` : ''}{item.keterangan}
                     </p>
+                    <CreatorLabel audit={item} />
                   </div>
                 </div>
 
@@ -870,6 +872,7 @@ export function CashInflowSection({
                 <th className="px-4 py-3">CUSTOMER / SUMBER</th>
                 <th className="px-4 py-3 text-center">JENIS</th>
                 <th className="px-4 py-3">KETERANGAN</th>
+                <th className="px-4 py-3">DICATAT OLEH</th>
                 <th className="px-4 py-3 text-right">NOMINAL (RP)</th>
                 <th className="px-4 py-3 text-center">AKSI</th>
               </tr>
@@ -877,7 +880,7 @@ export function CashInflowSection({
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {paginatedInflows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
                     Tidak ada transaksi pemasukan yang cocok dengan kriteria filter.
                   </td>
                 </tr>
@@ -907,6 +910,9 @@ export function CashInflowSection({
                     </td>
                     <td className="px-4 py-3 text-slate-600 max-w-xs truncate" title={item.keterangan}>
                       {item.keterangan}
+                    </td>
+                    <td className="px-4 py-3 max-w-[150px]">
+                      <CreatorLabel audit={item} />
                     </td>
                     <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600 tabular-nums">
                       +{formatRupiah(item.nominal)}

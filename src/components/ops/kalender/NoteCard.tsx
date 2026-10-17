@@ -5,6 +5,7 @@ import { CalendarPlus, Trash2 } from 'lucide-react';
 import { ICON_BTN } from '@/components/ops/kalender/styles';
 import { buildGoogleCalendarUrl, formatDayMonth, noteEventTitle, type CalendarNote } from '@/lib/calendar';
 import { cn } from '@/lib/utils';
+import { CreatorLabel } from '@/components/ui/creator-label';
 
 interface NoteCardProps {
   note: CalendarNote;
@@ -20,6 +21,7 @@ export function NoteCard({ note, showDate = false, onDelete }: NoteCardProps) {
       <div className="min-w-0 flex-1 space-y-0.5">
         {showDate && <p className="text-[11px] font-bold text-teal-800">{formatDayMonth(note.date)}</p>}
         <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-slate-700">{note.text}</p>
+        <CreatorLabel audit={note} />
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <a

@@ -6,7 +6,7 @@ branch: "feat/F-13-merger-visualkaindb"
 base_commit: "b7074de"
 current_commit: "feat/F-13-merger-visualkaindb (belum di-push)"
 active_feature: "F-13"
-active_task: "F-13 task 1–29 selesai, PR #2 terbuka, menunggu smoke klien"
+active_task: "F-13 task 1–30 selesai; PR #2 sudah di-merge sampai 4faad8d, commit sesudahnya belum di main"
 expires_after: "2026-10-31"
 ---
 
@@ -33,6 +33,7 @@ Memindahkan modul operasional `visualkaindb` ke aplikasi ini dengan UI standar a
 ## Keputusan penting yang perlu diingat
 - K-16: order baru ditulis `pembayaranList: []` dan `dpNominal: 0` supaya modul finansial tidak membaca DP 70% sebagai uang masuk.
 - K-20: rekening invoice default tetap rekening `visualkaindb`; default master rekening aplikasi ini (`8830-1928-41`, `137-00-1928-11`) belum dikonfirmasi klien.
+- K-36: jejak pembuat/pengubah (`createdBy`, `updatedBy`) di semua input aplikasi, label "dibuat oleh" di tabel; data lama "Tidak tercatat".
 - K-31: status order 6 tahap sama dengan `visualkaindb` main; finishing/QC/packing dibaca sebagai Produksi.
 - K-32: invoice dan PO memakai angka finansial (Q-1 selesai).
 - K-34: poster size chart dari `public/size-chart/guide-base.svg`, tabel digambar dari data, unduh JPG di browser.

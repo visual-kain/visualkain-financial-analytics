@@ -40,3 +40,4 @@ Status: `[ ]` belum, `[x]` selesai.
 - [x] 27. Header halaman versi desktop (tile ikon, badge sebaris judul, aksi rata kanan); tampilan HP tidak berubah.
 - [x] 28. Akun tim produksi lewat `NEXT_PUBLIC_PRODUKSI_EMAILS`: login mendarat di `/produksi`, akses tetap penuh. _US-13.18, K-30_
 - [x] 29. Feedback klien batch kedua: status 6 tahap, invoice/PO dari angka finansial, footer invoice, tabel Data Customer muat layar, poster size chart + JPG, env Cloudinary. _US-13.19, K-31–K-35_
+- [x] 30. Jejak pembuat dan pengubah di semua input + label "dibuat oleh" di tabel. _US-13.20, K-36_

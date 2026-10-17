@@ -7,6 +7,9 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { formatRupiah, cn } from '@/lib/utils';
 import { FINANCE_START_DATE, isFromFinanceStartDate } from '@/lib/constants';
 import { ManageActions, type ManageMode } from '@/components/finance/ManageActions';
+import { CreatorLabel } from '@/components/ui/creator-label';
+import { useCurrentActor } from '@/context/AuthContext';
+import { createdStamp, updatedStamp } from '@/lib/audit';
 import {
   type LedgerEntry,
   type LedgerKind,
@@ -117,6 +120,7 @@ export function PaymentLedgerPanel({
 }: PaymentLedgerPanelProps) {
   const copy = COPY[variant];
   const uid = useId();
+  const actor = useCurrentActor();
   const isCustomer = variant === 'customer';
 
   const [isFormOpen, setIsFormOpen] = useState<boolean>(true);
@@ -160,7 +164,7 @@ export function PaymentLedgerPanel({
     if (editingRow) {
       const next = entries.map((row) =>
         row.id === editingRow.id
-          ? { ...row, tanggal, nominal, label: effectiveLabel.trim() || suggestedLabel, keterangan }
+          ? { ...row, tanggal, nominal, label: effectiveLabel.trim() || suggestedLabel, keterangan, ...updatedStamp(actor) }
           : row
       );
       return normalizeLedger(next, totalTagihan, variant) as LedgerRow[];
@@ -173,9 +177,10 @@ export function PaymentLedgerPanel({
       label: effectiveLabel.trim() || suggestedLabel,
       keterangan,
       createdAt: new Date().toISOString(),
+      ...createdStamp(actor),
     };
     return normalizeLedger([...entries, created], totalTagihan, variant) as LedgerRow[];
-  }, [canSubmit, catatan, rekening, editingRow, entries, tanggal, nominal, effectiveLabel, suggestedLabel, totalTagihan, variant, terminKe]);
+  }, [canSubmit, catatan, rekening, editingRow, entries, tanggal, nominal, effectiveLabel, suggestedLabel, totalTagihan, variant, terminKe, actor]);
 
   useEffect(() => {
     onPendingChange?.(hasPending);
@@ -226,6 +231,7 @@ export function PaymentLedgerPanel({
         label: effectiveLabel.trim() || suggestedLabel,
         keterangan,
         createdAt: new Date().toISOString(),
+        ...createdStamp(actor),
       };
       onChange(normalizeLedger([...entries, created], totalTagihan, variant) as LedgerRow[]);
     }
@@ -592,6 +598,7 @@ export function PaymentLedgerPanel({
                 <div className="font-mono text-sm font-extrabold text-slate-900 tabular-nums shrink-0">{formatRupiah(row.nominal)}</div>
               </div>
               {row.keterangan && <p className="text-[11px] text-slate-600 break-words">{row.keterangan}</p>}
+              <CreatorLabel audit={row} />
               {!disabled && (
                 <div className="flex items-center gap-2 pt-1">
                   <button type="button" onClick={() => startEdit(row)} aria-label={`Edit ${row.label}`} className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer">
@@ -620,6 +627,7 @@ export function PaymentLedgerPanel({
               <th scope="col" className="px-4 py-3 font-bold">Tanggal</th>
               <th scope="col" className="px-4 py-3 font-bold">Judul Pembayaran</th>
               <th scope="col" className="px-4 py-3 font-bold">Rekening dan catatan</th>
+              <th scope="col" className="px-4 py-3 font-bold">Dicatat oleh</th>
               <th scope="col" className="px-4 py-3 font-bold text-right">Nominal (Rp)</th>
               {!disabled && <th scope="col" className="px-4 py-3 font-bold text-center w-28">Aksi</th>}
             </tr>
@@ -627,7 +635,7 @@ export function PaymentLedgerPanel({
           <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
             {entries.length === 0 ? (
               <tr>
-                <td colSpan={disabled ? 5 : 6} className="py-8 text-center text-xs text-slate-500">
+                <td colSpan={disabled ? 6 : 7} className="py-8 text-center text-xs text-slate-500">
                   Belum ada {copy.rowNoun} tercatat. Isi form di atas lalu tekan Tambahkan baris.
                 </td>
               </tr>
@@ -645,6 +653,9 @@ export function PaymentLedgerPanel({
                     )}
                   </td>
                   <td className="px-4 py-3 text-slate-600 max-w-[280px] break-words">{row.keterangan || '-'}</td>
+                  <td className="px-4 py-3 max-w-[160px]">
+                    <CreatorLabel audit={row} />
+                  </td>
                   <td className="px-4 py-3 text-right font-mono font-bold text-slate-900 tabular-nums">{formatRupiah(row.nominal)}</td>
                   {!disabled && (
                     <td className="px-4 py-3">

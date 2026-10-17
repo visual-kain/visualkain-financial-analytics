@@ -12,6 +12,7 @@ import { Shimmer } from '@/components/ui/shimmer';
 import { findOverlappingRules, formatMarkupPersen, formatQtyRange, type MarkupDoc } from '@/lib/cost-profit';
 import { deleteMarkup } from '@/lib/firestore/cost-profit-repo';
 import { cn } from '@/lib/utils';
+import { CreatorLabel } from '@/components/ui/creator-label';
 
 interface MarkupSectionProps {
   markupList: MarkupDoc[];
@@ -93,6 +94,7 @@ export function MarkupSection({ markupList, loading }: MarkupSectionProps) {
                 <li key={m.id} className="flex min-w-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-card-double">
                   <p className="font-mono text-3xl font-extrabold tabular-nums text-teal-700">{formatMarkupPersen(m.persen)}</p>
                   <p className="mt-1 text-xs font-semibold text-slate-600">{formatQtyRange(m.qtyMin, m.qtyMax)}</p>
+                  <CreatorLabel audit={m} className="mt-1.5" />
                   {overlap > 0 && (
                     <p className="mt-2 inline-flex items-center gap-1 self-start rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10.5px] font-bold text-amber-800">
                       <AlertTriangle className="h-3 w-3" aria-hidden /> Tumpang tindih dengan {overlap} aturan

@@ -1,4 +1,5 @@
 import type { CustomerPayment } from '@/types';
+import { pickAudit } from '@/lib/audit';
 
 /**
  * Derivasi pembayaran customer dan vendor dari dokumen `orders` mentah. Dipindah dari `useFirebaseFinance`
@@ -67,6 +68,7 @@ export function deriveOrderPayments(docId: string, d: RawOrderDoc, nominalDpFall
         label: typeof p.label === 'string' ? p.label : undefined,
         keterangan: p.keterangan || p.catatan || 'Pembayaran Termin',
         createdAt: p.createdAt || new Date().toISOString(),
+        ...pickAudit(p),
       });
     });
   } else if (validRiwayatList.length > 0) {
@@ -84,6 +86,7 @@ export function deriveOrderPayments(docId: string, d: RawOrderDoc, nominalDpFall
         label: typeof p.label === 'string' ? p.label : undefined,
         keterangan: p.catatan || (idx === 0 ? 'DP Pembayaran' : 'Pembayaran Termin'),
         createdAt: new Date().toISOString(),
+        ...pickAudit(p),
       });
     });
   } else if (Array.isArray(d.riwayatPembayaran) || Array.isArray(d.pembayaranList)) {

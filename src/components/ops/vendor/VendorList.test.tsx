@@ -24,10 +24,10 @@ function props(overrides: Partial<VendorListProps> = {}): VendorListProps {
 }
 
 describe('VendorTable', () => {
-  it('shows the six columns in the agreed order', () => {
+  it('shows the columns in the agreed order, including who created the vendor', () => {
     render(<VendorTable {...props()} />);
     const headers = screen.getAllByRole('columnheader').map((th) => th.textContent);
-    expect(headers).toEqual(['Nama Vendor', 'Alamat', 'No. WhatsApp', 'PIC', 'Order', 'Aksi']);
+    expect(headers).toEqual(['Nama Vendor', 'Alamat', 'No. WhatsApp', 'PIC', 'Dibuat Oleh', 'Order', 'Aksi']);
   });
 
   it('shows order counts, a WhatsApp chat link, and dashes for missing values', () => {
