@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ExternalLink, ImageOff } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
+import { safeImageUrl } from '@/lib/safe-url';
 import { cn } from '@/lib/utils';
 
 interface AccImageThumbProps {
@@ -15,9 +16,10 @@ interface AccImageThumbProps {
 const SIZE = { sm: 'h-9 w-9', md: 'h-11 w-11', lg: 'h-40 w-full sm:h-56' };
 
 /** Thumbnail gambar ACC customer yang membuka lightbox (pengganti "buka tab baru" di visualkaindb). */
-export function AccImageThumb({ url, label, size = 'sm', className }: AccImageThumbProps) {
+export function AccImageThumb({ url: rawUrl, label, size = 'sm', className }: AccImageThumbProps) {
   const [open, setOpen] = useState(false);
   const [broken, setBroken] = useState(false);
+  const url = safeImageUrl(rawUrl || '');
 
   if (!url) return <span className="text-slate-400">-</span>;
 

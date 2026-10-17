@@ -156,8 +156,12 @@ Permintaan klien:
 | K-18 | Hapus order diblokir bila sudah ada pembayaran (Q18 A). |
 | K-19 | Techpack masuk Fase 1 (Q19). |
 | K-20 | Rekening invoice: modal tetap seperti `visualkaindb` (pilihan, form manual, diingat per perangkat), tetapi daftarnya juga memuat master rekening aplikasi ini dan rekening manual disimpan ke master (Q10 + Q20). Default tetap rekening invoice `visualkaindb`, karena nomor default master rekening aplikasi ini berbeda dan belum dikonfirmasi klien. |
+| K-21 | Hasil review 17 Okt 2026: pembayaran berjenis pelunasan dari ledger finansial ikut dihitung ke target DP di kertas invoice (transfer 100% sekaligus tidak lagi menampilkan "Sisa DP"); edit order ditolak bila total baru di bawah uang yang sudah diterima; gerbang pelunasan vendor hanya saat status berubah ke Selesai; tanggal invoice wajib dan minimal 1 Okt 2026; tautan internal dari form yang belum disimpan meminta konfirmasi. |
 
-## 6. Di luar cakupan
+## 6. Pertanyaan terbuka
+- Q-1: Kertas invoice memakai rumus `visualkaindb` (gross − diskon), sedangkan pembayaran dari ledger finansial. Untuk order dengan biaya tambahan customer (F-12) atau gross yang diubah manual di Edit Finansial, Total Tagihan di invoice bisa berbeda dari Data Table. Perlu keputusan: tetap seperti `visualkaindb`, atau tambah baris biaya tambahan dan pakai total finansial.
+
+## 7. Di luar cakupan
 - Perubahan rumus finansial modul yang sudah ada.
 - Hak akses per role dan pengetatan Firestore rules (F-11).
 - Migrasi data lama; tidak ada penulisan massal ke data produksi.

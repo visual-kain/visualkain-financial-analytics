@@ -46,8 +46,10 @@ export function summarizeInvoicePayments(payments: ReadonlyArray<Pick<CustomerPa
     rows.push({ key: p.id || `dp-${idx}`, label: dpIndex <= 2 ? fallback : customLabel || fallback, tanggal: p.tanggal || '', nominal });
   });
 
-  const totalDpDiterima = dp1 + dp2;
-  return { dp1, dp2, totalDpDiterima, pelunasan, totalUangMasuk: totalDpDiterima + pelunasan, rows };
+  // Ledger finansial menandai pembayaran yang melunasi tagihan sebagai pelunasan, termasuk transfer 100% sekaligus.
+  // Uang itu tetap dihitung ke target DP produksi agar kertas tidak menagih "Sisa DP" untuk invoice yang sudah lunas.
+  const totalDpDiterima = dp1 + dp2 + pelunasan;
+  return { dp1, dp2, totalDpDiterima, pelunasan, totalUangMasuk: dp1 + dp2 + pelunasan, rows };
 }
 
 export function invoicePaymentsForOrder(order: Record<string, any> & { id: string }): InvoicePaymentSummary {

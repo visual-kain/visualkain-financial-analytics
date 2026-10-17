@@ -7,6 +7,7 @@ import { PaperViewport, PrintPortal } from '@/components/legacy/PaperViewport';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/modal';
+import { useDirtyNavigationGuard } from '@/hooks/useDirtyNavigationGuard';
 import { cn } from '@/lib/utils';
 import { DANGER_BUTTON_CLASS, OUTLINE_BUTTON_CLASS, PRIMARY_BUTTON_CLASS } from './fields';
 
@@ -63,6 +64,7 @@ export function LetterEditorLayout({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const saved = Boolean(nomor);
+  const { dialog: leaveDialog } = useDirtyNavigationGuard(dirty && !saving);
 
   const selectTab = (next: Tab, focus = false) => {
     setTab(next);
@@ -211,6 +213,7 @@ export function LetterEditorLayout({
       </div>
 
       {printCopy && <PrintPortal>{printCopy}</PrintPortal>}
+      {leaveDialog}
 
       {onDelete && (
         <ConfirmDialog

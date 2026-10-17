@@ -8,7 +8,9 @@ import {
   type CategoryType,
 } from '@/lib/legacy/calculations';
 import { computeEditableNet } from '@/lib/calculations';
-import { deriveOrderPayments, deriveOrderVendorPaid } from '@/lib/order-payments';
+import { deriveOrderVendorPaid } from '@/lib/order-payments';
+import { mapFinanceOrderDoc } from '@/lib/finance-order-mapper';
+import { formatRupiah } from '@/lib/utils';
 import { calculateOrderTotals } from '@/lib/calculations';
 import { FINANCE_START_DATE } from '@/lib/constants';
 import { isOrderStatus, type LegacyOrder, type OrderStatus } from '@/lib/legacy/types';
@@ -246,13 +248,35 @@ export interface PaymentSnapshot {
   vendorPaid: number;
 }
 
+/** Uang masuk customer dan pembayaran vendor persis seperti yang dibaca modul finansial. */
 export function paymentSnapshot(order: LegacyOrder): PaymentSnapshot {
-  const totals = calculateOrderTotals(order);
-  const { payments } = deriveOrderPayments(order.id, order, totals.nominalDP);
-  return {
-    customerPaid: payments.reduce((acc, p) => acc + p.nominal, 0),
-    vendorPaid: deriveOrderVendorPaid(order, totals.totalHpp),
-  };
+  const mapped = mapFinanceOrderDoc(order.id, order, () => undefined);
+  return { customerPaid: mapped.totalUangMasukCustomer, vendorPaid: mapped.totalDibayarKeVendor };
+}
+
+/**
+ * Edit qty/harga tidak boleh membuat total tagihan lebih kecil dari uang yang sudah diterima, sama seperti
+ * pengecekan di editor finansial. Mengembalikan pesan galat atau null.
+ */
+export function paidExceedsTotalError(existing: LegacyOrder, next: Record<string, unknown>): string | null {
+  const paid = paymentSnapshot(existing).customerPaid;
+  if (paid <= 0) return null;
+  const newTotal = mapFinanceOrderDoc(existing.id, { ...existing, ...next }, () => undefined).totalInvoice;
+  if (paid <= newTotal) return null;
+  return `Total tagihan baru (${formatRupiah(newTotal)}) lebih kecil dari pembayaran yang sudah diterima (${formatRupiah(paid)}). Periksa qty/harga atau koreksi pembayaran di modul finansial.`;
+}
+
+/** Nama vendor ikut ditulis saat vendor berubah karena modul finansial memakai `vendorName` sebagai cadangan. */
+export function vendorNameUpdate(prevVendorId: string | undefined, nextVendorId: string, vendors: ReadonlyArray<{ id: string; nama: string }>): Record<string, string> {
+  if ((prevVendorId || '') === nextVendorId) return {};
+  return { vendorName: nextVendorId ? vendors.find((v) => v.id === nextVendorId)?.nama || '' : '' };
+}
+
+/** Tanggal invoice wajib dan tidak boleh sebelum 1 Okt 2026, karena order lebih lama diperlakukan sebagai arsip. */
+export function invoiceDateError(tanggalInv: string): string | null {
+  if (!tanggalInv) return 'Tanggal invoice wajib diisi';
+  if (tanggalInv.slice(0, 10) < FINANCE_START_DATE) return 'Tanggal invoice minimal 1 Oktober 2026';
+  return null;
 }
 
 /** Alasan hapus diblokir, atau null bila order boleh dihapus (K-18). */

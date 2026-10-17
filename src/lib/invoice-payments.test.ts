@@ -11,7 +11,7 @@ describe('summarizeInvoicePayments', () => {
     ]);
     expect(s.dp1).toBe(300000);
     expect(s.dp2).toBe(500000);
-    expect(s.totalDpDiterima).toBe(800000);
+    expect(s.totalDpDiterima).toBe(1000000);
     expect(s.pelunasan).toBe(200000);
     expect(s.totalUangMasuk).toBe(1000000);
     expect(s.rows.map((r) => r.label)).toEqual(['DP 1', 'DP 2', 'Termin 3', 'Pelunasan']);
@@ -21,6 +21,23 @@ describe('summarizeInvoicePayments', () => {
     const s = summarizeInvoicePayments([{ id: 'a', nominal: 0, jenis: 'dp', tanggal: '' }]);
     expect(s.rows).toHaveLength(0);
     expect(s.totalUangMasuk).toBe(0);
+  });
+});
+
+describe('pelunasan dari ledger finansial', () => {
+  it('transfer 100% sekaligus yang ditandai pelunasan tetap memenuhi target DP', () => {
+    const s = summarizeInvoicePayments([{ id: 'a', nominal: 1000000, jenis: 'pelunasan', tanggal: '2026-10-10' }]);
+    expect(s.totalDpDiterima).toBe(1000000);
+    expect(s.totalUangMasuk).toBe(1000000);
+    expect(s.rows[0].label).toBe('Pelunasan');
+  });
+
+  it('DP 50% lalu pelunasan 50% tidak menyisakan kekurangan DP', () => {
+    const s = summarizeInvoicePayments([
+      { id: 'a', nominal: 500000, jenis: 'dp', tanggal: '2026-10-10' },
+      { id: 'b', nominal: 500000, jenis: 'pelunasan', tanggal: '2026-10-12' },
+    ]);
+    expect(Math.max(0, 700000 - s.totalDpDiterima)).toBe(0);
   });
 });
 

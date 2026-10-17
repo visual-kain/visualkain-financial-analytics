@@ -12,7 +12,8 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { useAuth } from '@/context/AuthContext';
 import { useOpsData } from '@/context/OpsDataContext';
 import { useBeforeUnloadGuard } from '@/hooks/useBeforeUnloadGuard';
-import { todayInJakarta } from '@/lib/constants';
+import { useDirtyNavigationGuard } from '@/hooks/useDirtyNavigationGuard';
+import { FINANCE_START_DATE, todayInJakarta } from '@/lib/constants';
 import { CATEGORY_DISPLAY_ORDER, CATEGORY_LABELS, SIZES, qtyKey, type CategoryType } from '@/lib/legacy/calculations';
 import { generateInvoiceNumber } from '@/lib/legacy/formatters';
 import { STATUS_LABELS, STATUS_ORDER, type LegacyOrder, type OrderStatus } from '@/lib/legacy/types';
@@ -22,7 +23,10 @@ import {
   buildOverrideSync,
   createEmptyOrderForm,
   formToOrderFields,
+  invoiceDateError,
   orderToForm,
+  paidExceedsTotalError,
+  vendorNameUpdate,
   summarizeForm,
   vendorOutstanding,
   type OrderFormState,
@@ -59,7 +63,7 @@ export function OrderForm({ mode, order }: OrderFormProps) {
 
   const [form, setForm] = useState<OrderFormState>(initial);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<'namaCustomer' | 'kategoriOrder', string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<'namaCustomer' | 'kategoriOrder' | 'tanggalInv', string>>>({});
   const [vendorModalOpen, setVendorModalOpen] = useState(false);
   const [kategoriModalOpen, setKategoriModalOpen] = useState(false);
   const [vendorUnpaid, setVendorUnpaid] = useState<number | null>(null);
@@ -70,6 +74,7 @@ export function OrderForm({ mode, order }: OrderFormProps) {
   const initialSnapshot = useRef(JSON.stringify(initial));
   const isDirty = JSON.stringify(form) !== initialSnapshot.current;
   useBeforeUnloadGuard(isDirty && !saving);
+  const { dialog: leaveDialog } = useDirtyNavigationGuard(isDirty && !saving);
 
   // Nomor invoice order baru dihitung ulang saat tanggal berubah atau data order selesai dimuat; mode edit tidak pernah mengganti nomor.
   useEffect(() => {
@@ -120,6 +125,8 @@ export function OrderForm({ mode, order }: OrderFormProps) {
     const next: typeof errors = {};
     if (!form.namaCustomer.trim()) next.namaCustomer = 'Nama customer wajib diisi';
     if (!form.kategoriOrder) next.kategoriOrder = 'Kategori order wajib dipilih';
+    const dateError = invoiceDateError(form.tanggalInv);
+    if (dateError) next.tanggalInv = dateError;
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -135,7 +142,7 @@ export function OrderForm({ mode, order }: OrderFormProps) {
     try {
       if (mode === 'create') {
         const noInv = await resolveUniqueInvoiceNumber(form.tanggalInv, knownInvs);
-        const fields = formToOrderFields({ ...form, noInv });
+        const fields = { ...formToOrderFields({ ...form, noInv }), ...vendorNameUpdate('', form.vendorId, vendors) };
         const extras = buildCreateExtras({ name: profile?.name || 'Pengguna VisualKain', email: profile?.email || '' });
         if (form.status === 'completed') {
           const outstanding = vendorOutstanding({ ...fields, ...extras });
@@ -149,9 +156,15 @@ export function OrderForm({ mode, order }: OrderFormProps) {
         toast.success(`Order ${noInv} tersimpan`);
         router.push(`/data-customer/${id}`);
       } else if (order) {
-        const fields = formToOrderFields({ ...form, noInv: order.noInv });
+        const fields = { ...formToOrderFields({ ...form, noInv: order.noInv }), ...vendorNameUpdate(order.vendorId, form.vendorId, vendors) };
         const sync = buildOverrideSync(order, fields);
-        if (form.status === 'completed') {
+        const paidError = paidExceedsTotalError(order, { ...fields, ...sync });
+        if (paidError) {
+          toast.error(paidError, { duration: 8000 });
+          return;
+        }
+        // Gerbang pelunasan vendor hanya saat status berubah ke Selesai, supaya order yang sudah Selesai tetap bisa dikoreksi.
+        if (form.status === 'completed' && order.status !== 'completed') {
           const outstanding = vendorOutstanding({ ...order, ...fields, ...sync });
           if (outstanding > 0) {
             setVendorUnpaid(outstanding);
@@ -197,7 +210,16 @@ export function OrderForm({ mode, order }: OrderFormProps) {
                 <label htmlFor="tanggalInv" className={LABEL}>
                   Tanggal Invoice
                 </label>
-                <input id="tanggalInv" type="date" value={form.tanggalInv} onChange={(e) => set('tanggalInv', e.target.value)} className={FIELD} />
+                <input
+                  id="tanggalInv"
+                  type="date"
+                  min={FINANCE_START_DATE}
+                  value={form.tanggalInv}
+                  onChange={(e) => set('tanggalInv', e.target.value)}
+                  aria-invalid={!!errors.tanggalInv}
+                  className={cn(FIELD, errors.tanggalInv && 'border-rose-300 ring-2 ring-rose-100')}
+                />
+                {errors.tanggalInv && <p className="mt-1 text-[11px] font-semibold text-rose-600">{errors.tanggalInv}</p>}
               </div>
               <div>
                 <span className={LABEL}>No. Invoice</span>
@@ -498,6 +520,7 @@ export function OrderForm({ mode, order }: OrderFormProps) {
         onClose={() => setVendorModalOpen(false)}
         onSave={(vendorId, prices) => setForm((prev) => ({ ...prev, vendorId, hargaVendor: prices }))}
       />
+      {leaveDialog}
       <AddKategoriModal open={kategoriModalOpen} onClose={() => setKategoriModalOpen(false)} onAdded={(nama) => set('kategoriOrder', nama)} />
       <VendorUnpaidDialog open={vendorUnpaid !== null} outstanding={vendorUnpaid ?? 0} onClose={() => setVendorUnpaid(null)} />
       <ConfirmDialog

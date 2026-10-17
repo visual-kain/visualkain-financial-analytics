@@ -23,7 +23,6 @@ import {
   toDataCustomerRow,
   type DataCustomerRow,
 } from '@/lib/data-customer';
-import { exportDataCustomerToExcel } from '@/lib/excel-export-ops';
 import { STATUS_FILTER_LABELS, STATUS_ORDER, type LegacyOrder } from '@/lib/legacy/types';
 import { cn } from '@/lib/utils';
 
@@ -145,6 +144,8 @@ function DataCustomerContent() {
 
   const handleExport = async () => {
     try {
+      // exceljs dimuat saat dibutuhkan agar halaman tetap ringan di HP.
+      const { exportDataCustomerToExcel } = await import('@/lib/excel-export-ops');
       await exportDataCustomerToExcel(filtered, filterLabel);
       toast.success('Data Customer berhasil diekspor ke Excel');
     } catch (err) {

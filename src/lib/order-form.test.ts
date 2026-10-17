@@ -121,3 +121,35 @@ describe('arsip', () => {
     expect(isArchivedOrder({ tanggalInv: '2026-10-01' })).toBe(false);
   });
 });
+
+describe('guard simpan dari review', () => {
+  it('tanggal invoice wajib dan minimal 1 Oktober 2026', async () => {
+    const { invoiceDateError } = await import('./order-form');
+    expect(invoiceDateError('')).toContain('wajib');
+    expect(invoiceDateError('2026-09-30')).toContain('1 Oktober 2026');
+    expect(invoiceDateError('2026-10-17')).toBeNull();
+  });
+
+  it('menolak edit yang membuat total di bawah uang yang sudah diterima', async () => {
+    const { paidExceedsTotalError } = await import('./order-form');
+    const paid = baseOrder({ pembayaranList: [{ id: 'p', nominal: 900000, tanggal: '2026-10-16' }] });
+    expect(paidExceedsTotalError(paid, { pendekM: 5 })).toContain('lebih kecil');
+    expect(paidExceedsTotalError(paid, { pendekM: 10 })).toBeNull();
+    expect(paidExceedsTotalError(baseOrder({ pembayaranList: [] }), { pendekM: 1 })).toBeNull();
+  });
+
+  it('nama vendor ikut ditulis hanya saat vendor berubah', async () => {
+    const { vendorNameUpdate } = await import('./order-form');
+    const vendors = [{ id: 'v1', nama: 'MAJU' }];
+    expect(vendorNameUpdate('v1', 'v1', vendors)).toEqual({});
+    expect(vendorNameUpdate('', 'v1', vendors)).toEqual({ vendorName: 'MAJU' });
+    expect(vendorNameUpdate('v1', '', vendors)).toEqual({ vendorName: '' });
+  });
+
+  it('URL gambar ACC hanya https', async () => {
+    const { safeImageUrl } = await import('@/lib/safe-url');
+    expect(safeImageUrl('https://res.cloudinary.com/x.webp')).toBe('https://res.cloudinary.com/x.webp');
+    expect(safeImageUrl('javascript:alert(1)')).toBe('');
+    expect(safeImageUrl('http://insecure/x.jpg')).toBe('');
+  });
+});

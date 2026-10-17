@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   limit,
+  orderBy,
   query,
   setDoc,
   updateDoc,
@@ -75,10 +76,28 @@ async function invoiceNumberTaken(noInv: string): Promise<boolean> {
   return !snap.empty;
 }
 
+/** Nomor invoice tertinggi tahun itu langsung dari Firestore, agar tidak bergantung pada daftar order yang termuat di layar. */
+async function latestInvoiceNumber(prefix: string): Promise<string | null> {
+  // Batas atas rentang = prefix tahun berikutnya (VK26 sampai sebelum VK27).
+  const upperBound = `VK${String(Number(prefix.slice(2)) + 1).padStart(2, '0')}`;
+  const snap = await getDocs(
+    query(collection(db, 'orders'), where('noInv', '>=', prefix), where('noInv', '<', upperBound), orderBy('noInv', 'desc'), limit(1))
+  );
+  return snap.empty ? null : String(snap.docs[0].data().noInv || '');
+}
+
 /** Dicek ulang ke Firestore sesaat sebelum simpan karena dua perangkat bisa membuat order bersamaan. */
 export async function resolveUniqueInvoiceNumber(tanggalInv: string, knownInvs: ReadonlyArray<string>): Promise<string> {
   const date = tanggalInv ? new Date(`${tanggalInv}T00:00:00`) : new Date();
+  const prefix = `VK${String(date.getFullYear()).slice(-2)}`;
   const seen = [...knownInvs];
+  try {
+    const latest = await latestInvoiceNumber(prefix);
+    if (latest) seen.push(latest);
+  } catch (err) {
+    // Query rentang gagal (mis. offline): tetap lanjut dengan daftar yang termuat lalu cek keunikan per kandidat.
+    console.warn('[orders] Gagal membaca nomor invoice terakhir:', err);
+  }
   for (let attempt = 0; attempt < 5; attempt++) {
     const candidate = generateInvoiceNumber(date, seen);
     if (!(await invoiceNumberTaken(candidate))) return candidate;

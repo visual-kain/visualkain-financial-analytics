@@ -1,57 +1,45 @@
 ---
 status: active
 owner: "Claude Code (sesi bersama Sehan)"
-session_date: "2026-10-15"
-branch: "main"
-base_commit: "3a79adc"
-current_commit: "main (merge F-12)"
-active_feature: "F-12"
-active_task: "F-12 (task 1–22) di main, menunggu smoke di live"
-expires_after: "2026-10-28"
+session_date: "2026-10-17"
+branch: "feat/F-13-merger-visualkaindb"
+base_commit: "b7074de"
+current_commit: "feat/F-13-merger-visualkaindb (belum di-push)"
+active_feature: "F-13"
+active_task: "F-13 task 1–19 selesai, menunggu preview deploy dan smoke klien"
+expires_after: "2026-10-31"
 ---
 
-# Session Handoff: F-12 Feedback Klien 14 Okt 2026
+# Session Handoff: F-13 Merger VisualKainDB
 
 ## Tujuan
-Menerapkan 10 poin feedback klien sesuai `.kiro/specs/F-12-client-feedback-laba-investor/`: kartu Laba Bersih, rincian biaya tambahan, rename Pembayaran Vendor, total gabungan per vendor, HPP terkunci, tambah/edit vendor dan rekening, hapus badge Live Firestore, hapus field voucher, Dana Investor sebagai kewajiban, dan perbaikan form termin.
+Memindahkan modul operasional `visualkaindb` ke aplikasi ini dengan UI standar aplikasi ini, responsif untuk monitor besar dan HP, logika dan angka tetap sama. Spec: `.kiro/specs/F-13-merger-visualkaindb/` (requirements K-1 sampai K-20, design, screens, tasks).
 
 ## Status
-- Task 1–22 selesai (termasuk Opsi B koleksi `finance_investor`, migrasi dana investor lama, dan kategori kas masuk `Pendapatan Lain`).
-- Task 18 (feedback lanjutan klien, US-12.11): kartu "Total Biaya Tambahan" diganti "Selisih untuk VisualKain" = customer − vendor − lainnya (VK260039: Rp 400.000). Commit langsung ke `main` atas permintaan Sehan.
-- Task 19–20 (feedback malam 14 Okt, US-12.12 dan US-12.13): panel termin customer dipindah ke atas rincian biaya tambahan; baris item biaya tambahan tidak lagi pecah per huruf di mobile.
-- Task 21 (feedback 15 Okt, US-12.14): panel "Proyeksi Kecukupan Dana" menggantikan "Status Cover Hutang Vendor": kas + pelunasan customer − utang vendor − dana investor. Data Oktober: sisa +Rp 1.553.480 (CUKUP); tanpa menunggu pelunasan kurang Rp 4.457.020.
-- Task 22 (15 Okt): header grup tabel master menjadi "Pembayaran Vendor" dan "Pembayaran Customer".
-- Di-merge langsung ke `main` atas permintaan Sehan (2026-10-14) tanpa smoke lokal; smoke dilakukan Sehan di live.
-- Data produksi sudah berubah (task 16): dana investor Rp 2.000.000 kini di `finance_investor`. Versi aplikasi yang sedang ter-deploy (pra-F-12) dan VisualKainDB tidak membaca koleksi itu, sehingga saldo kas di keduanya turun Rp 2.000.000 sampai F-12 di-deploy (VisualKainDB tetap turun; diterima Sehan).
+- Fase 1 selesai: navigasi gabungan (sidebar berkelompok, bottom nav HP 5 slot + sheet Menu), Data Customer (daftar 18 kolom + status, kartu HP, detail, tambah/edit, hapus dengan guard pembayaran, ekspor Excel), Techpack, Invoice (kertas disalin, pembayaran dari `pembayaranList`), Size Chart, warning minus di tabel finansial.
+- Fase 2 selesai: Kerjasama (`SK-VK-YYYY-NNN`), Penawaran (`PH-VK-YYYY-NNN`), Purchase Order (`PO-{noInv}`).
+- Fase 3 (Vendor, Kalender, Cost & Profit, ringkasan operasional) belum dikerjakan, hanya spec.
+- Patch kompatibilitas 3/4 Tangan di repo `visualkaindb` ada di branch `fix/tiga-perempat-compat` (commit `6c44680`), belum di-merge atau di-deploy.
 
-## Bukti verifikasi (2026-10-14)
+## Bukti verifikasi (2026-10-17)
 - `npm run lint` (tsc): 0 error.
-- `npm run test`: 22 file, 216 test lulus (sebelumnya 21 file, 211 test).
-- `npm run build`: sukses; First Load `/` 810 kB.
+- `npm run test`: 36 file, 383 test lulus (sebelumnya 24 file, 226 test).
+- `npm run build`: sukses.
 - `npm run context:validate`: lulus.
-- Review independen (code-reviewer): tidak ada Critical/High. Medium M1 (rename vendor tidak tercermin di order), M2 (edit/hapus dana investor tanpa cek pengembalian), M3 (slug doc id rekening bentrok/kosong), M4 (total vendor hanya order berutang), serta Low L6 (kategori saat investor diubah ke kas biasa) dan L8 (draft biaya tambahan hilang) sudah diperbaiki, sebagian dengan test.
+- QA visual lewat `/dev-preview/*` (data fiktif, hanya `next dev`) di lebar HP: tidak ada overflow horizontal di 12 layar; tabel desktop 1440 px tanpa overflow halaman.
+- Belum diuji dengan login dan data produksi; belum ada penulisan ke Firestore produksi.
+- Review independen (code-reviewer): tidak ada Critical. High (invoice lunas lewat satu transfer masih menampilkan Sisa DP) dan Medium/Low (gerbang pelunasan vendor, validasi tanggal, total di bawah pembayaran, guard navigasi, vendorName, nomor invoice dari Firestore, URL gambar https) sudah diperbaiki dengan test. Medium Q-1 (total invoice vs biaya tambahan F-12) menunggu keputusan.
 
-## Keputusan yang dipegang (detail di requirements.md §5)
-- A-1 Laba Bersih = Laba Kotor (basis order) − beban kas periode (tanpa Pembayaran Vendor dan Pengembalian Dana Investor; Bagi Hasil termasuk).
-- A-2 Biaya tambahan "lainnya" masuk biaya operasional order.
-- A-3 "DP VENDOR" diganti "PEMBAYARAN VENDOR"; KPI ekspor "LABA BERSIH (PROFIT)" diganti "LABA KOTOR (ORDER)".
-- A-5 (Opsi B, keputusan Sehan 2026-10-14): transaksi investor disimpan di koleksi terpisah `finance_investor` dengan `jenis` `masuk`/`pengembalian`/`bagiHasil`, lalu digabung dengan `kas` di hook. Alasannya, VisualKainDB menghitung semua kas `keluar` sebagai beban dan akan dilebur ke aplikasi ini.
-- A-6 Kartu Dana Investor menampilkan sisa kewajiban.
-- A-7 Kas masuk non-order memakai kategori `Pendapatan Lain`; kas masuk lama `Biaya Lain` dibaca sebagai `Pendapatan Lain`.
-- A-8 Dana investor lama di `kas` dipindah agen ke `finance_investor` (bukan dicatat ulang klien).
-
-## Audit Firebase (2026-10-14, via Firebase MCP, hanya baca)
-- Project `appkonveksi` aktif, Firestore `(default)` native. Rules: semua koleksi baca/tulis untuk user login; `tracking` baca publik. `finance_rekening` dan `finance_investor` sudah diizinkan tanpa perubahan rules.
-- Dokumen vendor minimal `{nama, pic, createdAt}` aman di VisualKainDB (fallback `'-'` untuk `alamat`/`wa`).
-- Isi `orders`/`kas`/`vendors` sudah diaudit di sesi lanjutan: angka Oktober cocok dengan screenshot klien (omzet Rp 13.257.000, laba kotor Rp 4.102.000) dan invariant #4 aman untuk VK260039/40/41. Detail dan catatan AU-3 sampai AU-5 (tidak dieksekusi) di requirements.md §7.
-- Satu-satunya penulisan produksi: `kas/YdRM2j4mK715FDhbKZmR` → `finance_investor/YdRM2j4mK715FDhbKZmR` (atas izin Sehan, 2026-10-14).
+## Keputusan penting yang perlu diingat
+- K-16: order baru ditulis `pembayaranList: []` dan `dpNominal: 0` supaya modul finansial tidak membaca DP 70% sebagai uang masuk. Form Data Customer tidak menulis DP, biaya operasional, atau pembayaran.
+- K-20: rekening invoice default tetap rekening invoice `visualkaindb`. Default bawaan master rekening aplikasi ini (`8830-1928-41`, `137-00-1928-11`) berbeda dan belum dikonfirmasi klien, jadi disembunyikan dari modal rekening invoice sampai diubah lewat master rekening.
 
 ## Risiko terbuka
-- Rules mengizinkan siapa pun yang login di project bersama membaca/menulis seluruh data keuangan. Masuk scope F-11 security.
-- Simpan halaman edit order kini juga menulis `biayaLainnya`, `biayaTambahanCust`, `biayaTambahanList`, `biayaOperasionalDasar` ke dokumen order.
-- L5 (belum diubah): ekspor Excel kas masuk dan grafik tren harian tab Kas Masuk masih menjumlahkan dana investor; label jenis "INVESTOR" sudah ada per baris.
-- L7: order lama dengan `totalHpp` < `biayaTambahanVendor` akan naik HPP-nya saat disimpan (dasar HPP di-clamp ke 0).
-- Sisa dari F-10: trade-off label M2, konfirmasi V-1, import lucide menganggur, AGENTS.md §3 stale.
+- Selama paralel, mengedit order baru lewat form `visualkaindb` akan menulis `dpNominal` 70% yang dibaca modul finansial sebagai uang masuk. Pensiunkan form order `visualkaindb` begitu Data Customer dipakai.
+- Kertas invoice memakai rumus `visualkaindb` (tanpa biaya tambahan customer F-12 dan tanpa override gross finansial), sama seperti sebelumnya.
+- `/api/upload` butuh env `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` di Vercel aplikasi ini.
+- Koleksi baru `document_counters`, `kerjasama`, `penawaran` mengandalkan rules "semua koleksi untuk user login" (audit F-12).
+- Sisa F-12: smoke klien di live belum dikonfirmasi (lihat arsip handoff 2026-10-15).
 
 ## Langkah berikutnya
-Sehan menjalankan smoke di live setelah deploy dari `main`: dashboard 8 kartu, edit order VK260040 (biaya tambahan + HPP terkunci + tambah vendor/rekening), cek kartu Dana Investor menampilkan Rp 2.000.000 dari data migrasi, catat Pendapatan Lain di Dana Masuk, catat Dana Investor lalu Pengembalian. Bila ada temuan, perbaiki di branch baru dari `main`.
+Push branch `feat/F-13-merger-visualkaindb` untuk preview deploy (butuh persetujuan Sehan), set env Cloudinary di Vercel, lalu Sehan dan klien smoke test dengan login: buat order uji, cek Data Table finansial, cetak invoice/techpack/PO, buat surat kerjasama dan penawaran. Setelah lolos, merge ke `main`.
