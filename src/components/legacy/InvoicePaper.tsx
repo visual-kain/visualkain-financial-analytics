@@ -64,7 +64,7 @@ export default function InvoicePaper({ order, payments, bankInfo = DEFAULT_BANK_
 
   const sisa =
     sisaKekuranganDp > 0
-      ? { label: `Sisa DP (Target ${targetDpPersen}% Produksi)`, value: formatCurrency(sisaKekuranganDp), note: '* Wajib transfer sebelum pesanan naik meja jahit' }
+      ? { label: `Sisa DP (Target ${targetDpPersen}% Produksi)`, value: formatCurrency(sisaKekuranganDp), note: '* Wajib transfer sebelum pesanan diproduksi' }
       : sisaPelunasanAkhir > 0
         ? { label: 'Sisa Pelunasan (100%)', value: formatCurrency(sisaPelunasanAkhir), note: '* Pelunasan wajib dilakukan saat produksi selesai & sebelum pengiriman' }
         : { label: 'Status Pelunasan (100%)', value: 'LUNAS', note: 'Seluruh pembayaran tagihan telah diterima' };

@@ -13,7 +13,7 @@ export const ICON_BTN_EDIT = `inline-flex h-11 w-11 cursor-pointer items-center 
 export const ICON_BTN_DANGER = `inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 transition-colors hover:bg-rose-100 sm:h-10 sm:w-10 ${FOCUS}`;
 
 export const FIELD_INPUT =
-  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold text-slate-900 transition-colors placeholder:font-normal placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 aria-[invalid=true]:border-rose-400 sm:h-10 sm:text-xs';
+  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 transition-colors placeholder:font-normal placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 aria-[invalid=true]:border-rose-400 sm:h-10 sm:text-xs';
 
 export const FIELD_LABEL = 'mb-1.5 block text-xs font-bold text-slate-700';
 

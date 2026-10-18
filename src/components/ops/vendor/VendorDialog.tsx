@@ -114,7 +114,7 @@ export function VendorDialog({ open, vendor, vendors, onClose }: VendorDialogPro
             value={values.alamat}
             onChange={(e) => setField('alamat', e.target.value)}
             placeholder="Alamat lengkap"
-            className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:text-xs"
+            className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:text-xs"
           />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">

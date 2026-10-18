@@ -36,3 +36,10 @@ export function documentYear(tanggal: string | undefined, now: Date = new Date()
   const match = /^(\d{4})-/.exec(tanggal || '');
   return match ? Number(match[1]) : now.getFullYear();
 }
+
+/** Judul file cetak invoice: `VK260052_YOGA - Kaos Aniversary` (feedback klien 18 Okt 2026); project kosong tidak ditulis. */
+export function invoiceFileTitle(order: { noInv?: string; namaCustomer?: string; namaProject?: unknown }): string {
+  const project = typeof order.namaProject === 'string' ? order.namaProject.trim() : '';
+  const base = `${(order.noInv || '').trim()}_${(order.namaCustomer || '').trim()}`;
+  return project && project !== '-' ? `${base} - ${project}` : base;
+}

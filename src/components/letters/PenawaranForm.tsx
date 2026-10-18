@@ -254,7 +254,7 @@ export function PenawaranForm({ form, items, onChange, onAddItem, onRemoveItem, 
                         id={`${uid}-harga-${index}`}
                         value={item.harga || ''}
                         onValueChange={(v) => onUpdateItem(index, 'harga', v)}
-                        className="h-11 text-base sm:h-10 sm:text-xs"
+                        className="h-11 text-sm sm:h-10 sm:text-xs"
                         placeholder="Rp 0"
                       />
                     </div>

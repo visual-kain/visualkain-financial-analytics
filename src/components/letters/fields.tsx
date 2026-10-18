@@ -5,12 +5,12 @@ import { cn } from '@/lib/utils';
 
 // Font 16px di HP mencegah Safari iOS memperbesar layar saat input difokuskan.
 export const INPUT_CLASS =
-  'h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold text-slate-800 shadow-sm transition-colors placeholder:font-normal placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:h-10 sm:text-xs';
+  'h-11 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm transition-colors placeholder:font-normal placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:h-10 sm:text-xs';
 
 export const READONLY_INPUT_CLASS = 'cursor-default bg-slate-100 text-slate-600 focus:border-slate-200 focus:ring-0';
 
 export const TEXTAREA_CLASS =
-  'w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base leading-relaxed text-slate-800 shadow-sm transition-colors placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:text-xs';
+  'w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm leading-relaxed text-slate-800 shadow-sm transition-colors placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:text-xs';
 
 export const PRIMARY_BUTTON_CLASS = 'h-11 border-teal-700 bg-teal-600 text-xs hover:bg-teal-700 focus:ring-teal-500/40 sm:h-10';
 export const OUTLINE_BUTTON_CLASS = 'h-11 text-xs sm:h-10';

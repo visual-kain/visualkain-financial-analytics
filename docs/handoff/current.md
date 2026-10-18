@@ -1,12 +1,12 @@
 ---
 status: active
 owner: "Claude Code (sesi bersama Sehan)"
-session_date: "2026-10-17"
-branch: "feat/F-13-merger-visualkaindb"
+session_date: "2026-10-18"
+branch: "main"
 base_commit: "b7074de"
-current_commit: "feat/F-13-merger-visualkaindb (belum di-push)"
+current_commit: "main (F-13 di-merge 17 Okt, merge 1878b9a)"
 active_feature: "F-13"
-active_task: "F-13 task 1–30 selesai; PR #2 sudah di-merge sampai 4faad8d, commit sesudahnya belum di main"
+active_task: "F-13 task 1–31 selesai dan live di main; feedback klien kecil langsung ke main"
 expires_after: "2026-10-31"
 ---
 
@@ -49,9 +49,9 @@ Memindahkan modul operasional `visualkaindb` ke aplikasi ini dengan UI standar a
 - Selama paralel, mengedit order baru lewat form `visualkaindb` akan menulis `dpNominal` 70% yang dibaca modul finansial sebagai uang masuk. Pensiunkan form order `visualkaindb` begitu Data Customer dipakai.
 - `visualkaindb` main kini mencatat pembayaran customer di `riwayatPembayaran` (fitur Tambahan Pemasukan), sedangkan modul finansial aplikasi ini memakai `pembayaranList`. `deriveOrderPayments` memakai salah satu daftar (yang entrinya lebih banyak), jadi bila kedua aplikasi mencatat pembayaran di daftar berbeda pada order yang sama, sebagian pembayaran tidak terhitung. Perlu disepakati satu tempat pencatatan.
 - `visualkaindb` main juga mengubah halaman finance (saldo, outstanding, vendor-debt, omzet, profit) dan `biayaLainnya` mengurangi profit; rumus profit finansial aplikasi ini sudah sama, halaman finance baru belum dibandingkan.
-- Cloudinary: isi `env.cloudinary` belum dipindah ke `.env.local` dan Vercel dengan nama `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
+- Cloudinary: Sehan sudah mengisi env di `.env.local` dan Vercel lalu redeploy (18 Okt); upload ACC di production belum dikonfirmasi berhasil setelah redeploy.
 - `/api/upload` butuh env `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` di Vercel aplikasi ini.
 - Koleksi baru (`document_counters`, `kerjasama`, `penawaran`, `vendors`, catatan kalender) mengandalkan rules "semua koleksi untuk user login" (audit F-12).
 
 ## Langkah berikutnya
-Push branch `feat/F-13-merger-visualkaindb` untuk preview deploy (butuh persetujuan Sehan), set env Cloudinary di Vercel, lalu Sehan dan klien smoke test dengan login: buat order uji, cek Ringkasan Produksi dan Data Table finansial, cetak invoice/techpack/PO, buat surat kerjasama dan penawaran. Setelah lolos, merge ke `main`.
+F-13 sudah live di `main`. Konfirmasi upload ACC di production setelah redeploy env Cloudinary, buat akun Raja Purnama dan isi `NEXT_PUBLIC_PRODUKSI_EMAILS`, lalu lanjutkan feedback klien langsung di `main` (catat di spec F-13 dan handoff ini).

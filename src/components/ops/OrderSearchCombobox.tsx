@@ -83,7 +83,7 @@ export function OrderSearchCombobox({ orders, selected, onSelect, placeholder = 
             }
           }}
           placeholder={selected ? `${selected.noInv} - ${selected.namaCustomer}` : placeholder}
-          className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-10 text-base font-semibold text-slate-800 sm:text-xs placeholder-slate-500 shadow-2xs focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10"
+          className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-10 text-sm font-semibold text-slate-800 sm:text-xs placeholder-slate-500 shadow-2xs focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10"
         />
         {selected && (
           <button

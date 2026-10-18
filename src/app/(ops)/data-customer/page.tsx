@@ -231,7 +231,7 @@ function DataCustomerContent() {
                 onChange={(e) => setQuery({ q: e.target.value, page: 1 })}
                 placeholder="Cari nama, project, No. Invoice, atau metode..."
                 aria-label="Cari Data Customer"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-base font-medium text-slate-800 sm:text-xs placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm font-medium text-slate-800 sm:text-xs placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10"
               />
             </div>
             <div className="flex items-center gap-2">

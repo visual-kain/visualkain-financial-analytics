@@ -15,6 +15,7 @@ import { Shimmer } from '@/components/ui/shimmer';
 import { useOpsData } from '@/context/OpsDataContext';
 import { invoicePaymentDateLabel, invoicePaymentsForOrder } from '@/lib/invoice-payments';
 import { isArchivedOrder } from '@/lib/order-form';
+import { invoiceFileTitle } from '@/lib/document-number';
 import type { BankAccountInfo, LegacyOrder } from '@/lib/legacy/types';
 import { formatRupiah } from '@/lib/utils';
 
@@ -35,7 +36,7 @@ function InvoiceContent() {
       toast.warning('Pilih order dulu sebelum mencetak');
       return;
     }
-    printWithTitle(`${order.noInv}_${order.namaCustomer}`);
+    printWithTitle(invoiceFileTitle(order));
   };
 
   return (

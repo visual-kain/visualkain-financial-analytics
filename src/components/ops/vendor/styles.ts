@@ -6,4 +6,4 @@ export const BTN_OUTLINE =
   'inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 text-xs font-medium text-slate-700 shadow-btn-secondary transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10';
 
 export const FIELD =
-  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10 sm:text-xs';
+  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10 sm:text-xs';

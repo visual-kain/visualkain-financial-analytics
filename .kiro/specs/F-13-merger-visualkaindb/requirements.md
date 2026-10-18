@@ -165,6 +165,13 @@ Permintaan klien:
 2. WHEN data diubah THEN dokumen SHALL menyimpan `updatedBy` dan `updatedByEmail`; entri pembayaran yang diedit di panel termin juga.
 3. THE tabel dan daftar SHALL menampilkan label "dibuat oleh" (dan "diubah" bila pengubah berbeda); data lama atau dari aplikasi lain tanpa jejak ditandai "Tidak tercatat" (K-36).
 
+### US-13.21 Feedback klien 18 Okt 2026
+1. THE footer total dan tombol simpan di form order SHALL statis di akhir form pada layar HP (di bawah md), dan tetap sticky di desktop, agar tidak ikut naik di atas keyboard saat mengisi data.
+2. THE input dan kolom pencarian SHALL berukuran 14px di HP (sebelumnya 16px) dan 12px di desktop (K-37).
+3. THE catatan Sisa DP di invoice SHALL berbunyi "* Wajib transfer sebelum pesanan diproduksi".
+4. THE judul file cetak invoice SHALL berformat `{No Inv}_{Nama Customer} - {Nama Project}`.
+5. THE pesan gagal upload karena env Cloudinary kosong SHALL tidak menampilkan nama variabel ke pengguna; nama variabel hanya dicatat di log server.
+
 ### US-13.13 Purchase Order (Fase 2)
 1. THE nomor PO SHALL berformat `PO-{No. Invoice}`.
 2. THE pemilihan order SHALL berupa pencarian seperti invoice; judul file cetak `PO-{noInv}_{vendor}`.
@@ -210,6 +217,7 @@ Permintaan klien:
 | K-34 | Poster size chart diambil dari `sizechart.pdf` klien: kaos, panah, logo, dan grid diekspor sebagai SVG statis (`public/size-chart/guide-base.svg`, tabel raster dan teks pill dihapus lewat redaction); nama size chart dan tabel ukuran digambar dari data. JPG dibuat di browser lewat kanvas (2376×1836 px) tanpa dependensi baru. |
 | K-35 | `env.cloudinary` (catatan teks, bukan format `NAMA=nilai`) tidak dibaca Next.js dan belum di-ignore git; `.gitignore` kini mencakup `.env*`, `env.*`, `*.env`. Nilai Cloudinary perlu dipindah Sehan ke `.env.local` dan Vercel dengan tiga nama variabel standar; agen tidak membuka isinya. |
 | K-36 | Jejak pembuat memakai nama field yang sama dengan order (`createdBy`, `createdByEmail`, ditambah `updatedBy`, `updatedByEmail`), diisi dari akun Firebase yang login (nama tampilan, atau nama dari email). Stempel pembuat entri pembayaran dipasang di panel termin saat entri dibuat, bukan saat simpan, agar entri lama tidak keliru tercatat atas nama pengubah. Data lama tidak diisi mundur (tidak ada penulisan massal ke produksi); labelnya "Tidak tercatat". Penghapusan belum dicatat. |
+| K-37 | Input di HP diturunkan ke 14px atas permintaan klien. Konsekuensinya Safari iPhone bisa memperbesar halaman saat input disentuh (aturan iOS untuk teks di bawah 16px); viewport tidak dikunci agar zoom manual tetap bisa dipakai. Klien memakai Android. |
 
 ## 6. Pertanyaan terbuka
 - Q-1: terjawab oleh K-32 (feedback klien 17 Okt 2026).

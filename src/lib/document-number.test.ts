@@ -3,6 +3,7 @@ import {
   COMPANY_CODE,
   counterId,
   documentYear,
+  invoiceFileTitle,
   formatDocumentNumber,
   formatPoNumber,
   parseDocumentNumber,
@@ -70,5 +71,16 @@ describe('documentYear', () => {
     expect(documentYear('', now)).toBe(2026);
     expect(documentYear(undefined, now)).toBe(2026);
     expect(documentYear('17/10/2026', now)).toBe(2026);
+  });
+});
+
+describe('invoiceFileTitle', () => {
+  it('No Inv, nama customer, lalu nama project', () => {
+    expect(invoiceFileTitle({ noInv: 'VK260052', namaCustomer: 'YOGA', namaProject: 'Kaos aniversary' })).toBe('VK260052_YOGA - Kaos aniversary');
+  });
+
+  it('project kosong atau strip tidak ikut ditulis', () => {
+    expect(invoiceFileTitle({ noInv: 'VK260052', namaCustomer: 'YOGA', namaProject: '' })).toBe('VK260052_YOGA');
+    expect(invoiceFileTitle({ noInv: 'VK260052', namaCustomer: 'YOGA', namaProject: '-' })).toBe('VK260052_YOGA');
   });
 });

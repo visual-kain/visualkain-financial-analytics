@@ -135,7 +135,7 @@ function BahanDialogForm({ bahan, kategoriList, onClose }: Omit<BahanDialogProps
             value={harga || ''}
             onValueChange={setHarga}
             required
-            className="h-11 text-base sm:h-10 sm:text-xs"
+            className="h-11 text-sm sm:h-10 sm:text-xs"
           />
           {visible.harga && (
             <p role="alert" className={FIELD_ERROR}>

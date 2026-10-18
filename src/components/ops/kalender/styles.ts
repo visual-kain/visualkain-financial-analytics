@@ -10,4 +10,4 @@ export const ICON_BTN =
   'inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:h-9 sm:w-9';
 
 export const FIELD =
-  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10 sm:text-xs';
+  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10 sm:text-xs';

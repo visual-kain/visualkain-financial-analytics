@@ -111,7 +111,7 @@ export function NoteDialog({ initialDate, onClose }: NoteDialogProps) {
             placeholder="Tulis catatan untuk tanggal ini..."
             aria-invalid={!!errors.text}
             className={cn(
-              'w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:text-xs',
+              'w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:text-xs',
               errors.text && 'border-rose-400'
             )}
           />

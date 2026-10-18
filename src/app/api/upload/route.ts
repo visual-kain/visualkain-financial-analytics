@@ -67,8 +67,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     if (err instanceof Error && err.message === 'CLOUDINARY_NOT_CONFIGURED') {
-      console.error('[upload] Env Cloudinary belum diatur');
-      return NextResponse.json({ error: 'Penyimpanan gambar (Cloudinary) belum dikonfigurasi di server. Minta admin mengisi env CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, dan CLOUDINARY_API_SECRET.' }, { status: 500 });
+      // Nama env hanya dicatat di log server; pengguna cukup diberi tahu bahwa upload belum aktif.
+      console.error('[upload] Env CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, atau CLOUDINARY_API_SECRET belum diatur');
+      return NextResponse.json({ error: 'Upload gambar belum aktif di server. Hubungi admin aplikasi.' }, { status: 500 });
     }
     console.error('[upload]', err);
     return NextResponse.json({ error: 'Upload gagal, coba lagi' }, { status: 500 });

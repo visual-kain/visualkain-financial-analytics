@@ -35,7 +35,7 @@ import { cn, formatRupiah } from '@/lib/utils';
 
 const LABEL = 'mb-1.5 block text-xs font-bold text-slate-700';
 const FIELD =
-  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-base font-semibold text-slate-800 sm:text-xs placeholder-slate-400 placeholder:font-normal focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10';
+  'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 sm:text-xs placeholder-slate-400 placeholder:font-normal focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 sm:h-10';
 const CARD = 'rounded-2xl border border-slate-200/90 bg-white p-4 shadow-card-double sm:p-5';
 
 function invoiceDate(tanggal: string): Date {
@@ -359,7 +359,7 @@ export function OrderForm({ mode, order }: OrderFormProps) {
                   rows={3}
                   value={form.notes}
                   onChange={(e) => set('notes', e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base font-medium text-slate-800 sm:text-xs focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 sm:text-xs focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -392,14 +392,14 @@ export function OrderForm({ mode, order }: OrderFormProps) {
                   <label htmlFor={`harga-${cat}`} className={LABEL}>
                     Harga Jual {CATEGORY_LABELS[cat]}
                   </label>
-                  <CurrencyInput id={`harga-${cat}`} value={form.harga[cat] || ''} onValueChange={(v) => setHarga(cat, v)} className="h-11 text-base sm:h-10 sm:text-xs" />
+                  <CurrencyInput id={`harga-${cat}`} value={form.harga[cat] || ''} onValueChange={(v) => setHarga(cat, v)} className="h-11 text-sm sm:h-10 sm:text-xs" />
                 </div>
               ))}
               <div>
                 <label htmlFor="diskonHarga" className={LABEL}>
                   Diskon (Rp)
                 </label>
-                <CurrencyInput id="diskonHarga" value={form.diskonHarga || ''} onValueChange={(v) => set('diskonHarga', v)} className="h-11 text-base sm:h-10 sm:text-xs" />
+                <CurrencyInput id="diskonHarga" value={form.diskonHarga || ''} onValueChange={(v) => set('diskonHarga', v)} className="h-11 text-sm sm:h-10 sm:text-xs" />
               </div>
               <div>
                 <label htmlFor="status" className={LABEL}>
@@ -473,7 +473,8 @@ export function OrderForm({ mode, order }: OrderFormProps) {
         </section>
       </div>
 
-      <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] z-20 -mx-1 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-[0_-6px_24px_rgba(15,23,42,0.08)] backdrop-blur-md md:bottom-3 sm:p-4">
+      {/* Di HP footer statis di akhir form: versi sticky ikut naik di atas keyboard dan menutupi field yang sedang diisi (feedback klien 18 Okt 2026). */}
+      <div className="z-20 -mx-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-card-double sm:p-4 md:sticky md:bottom-3 md:bg-white/95 md:shadow-[0_-6px_24px_rgba(15,23,42,0.08)] md:backdrop-blur-md">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-4">
             <div>
