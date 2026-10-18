@@ -171,6 +171,7 @@ Permintaan klien:
 3. THE catatan Sisa DP di invoice SHALL berbunyi "* Wajib transfer sebelum pesanan diproduksi".
 4. THE judul file cetak invoice SHALL berformat `{No Inv}_{Nama Customer} - {Nama Project}`.
 5. THE pesan gagal upload karena env Cloudinary kosong SHALL tidak menampilkan nama variabel ke pengguna; nama variabel hanya dicatat di log server.
+6. THE halaman laporan finansial order (`/finance/report/[id]`) SHALL di HP menampilkan kertas A4 utuh yang diperkecil (CSS zoom, seperti invoice) tanpa mengubah tata letak, font, atau tampilan desktop; zoom dibatalkan saat cetak.
 
 ### US-13.13 Purchase Order (Fase 2)
 1. THE nomor PO SHALL berformat `PO-{No. Invoice}`.

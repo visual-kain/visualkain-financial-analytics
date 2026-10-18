@@ -41,4 +41,4 @@ Status: `[ ]` belum, `[x]` selesai.
 - [x] 28. Akun tim produksi lewat `NEXT_PUBLIC_PRODUKSI_EMAILS`: login mendarat di `/produksi`, akses tetap penuh. _US-13.18, K-30_
 - [x] 29. Feedback klien batch kedua: status 6 tahap, invoice/PO dari angka finansial, footer invoice, tabel Data Customer muat layar, poster size chart + JPG, env Cloudinary. _US-13.19, K-31–K-35_
 - [x] 30. Jejak pembuat dan pengubah di semua input + label "dibuat oleh" di tabel. _US-13.20, K-36_
-- [x] 31. Feedback klien 18 Okt: footer form statis di HP, input 14px di HP, catatan Sisa DP, judul file invoice, pesan upload. _US-13.21, K-37_
+- [x] 31. Feedback klien 18 Okt: footer form statis di HP, input 14px di HP, catatan Sisa DP, judul file invoice, pesan upload, laporan finansial diperkecil utuh di HP. _US-13.21, K-37_
