@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import FinanceReportPaper from './FinanceReportPaper';
+import { PaperZoom } from '@/components/ui/paper-zoom';
 
 interface InvoicePreviewModalProps {
   isOpen: boolean;
@@ -97,7 +98,10 @@ export function InvoicePreviewModal({
 
           {/* Laporan Finansial Paper (Porting SSOT VisualKainDB) */}
           <div className="invoice-preview-wrapper w-full max-w-full overflow-x-auto shadow-2xl rounded-xl" id="techpackPreviewWrapper">
-            <FinanceReportPaper order={targetOrder} getVendorById={getVendorById} />
+            {/* Sama dengan halaman laporan: kertas A4 diperkecil utuh di HP, bukan disusun ulang. */}
+            <PaperZoom>
+              <FinanceReportPaper order={targetOrder} getVendorById={getVendorById} />
+            </PaperZoom>
           </div>
         </motion.div>
       </div>
